@@ -1,7 +1,6 @@
 from core.Enum.TickerType import TickerType
 from core.Enum.TickerKType import TickerKType
 
-
 import datetime
 import pandas as pd
 from dateutil.relativedelta import relativedelta
@@ -209,13 +208,3 @@ class DataSourceHelper:
 
     def updateProjectTickers(self,projectId,codeList):
         return ProjectTicker().updateProjectTickers(projectId,codeList)
-
-
-
-
-
-
-
-
-
-

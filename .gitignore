@@ -1,19 +1,12 @@
 *.bak
-
 *.pyc
-
 *.xml
-
 *.tar.gz
-
 *.iml
-
 *.zip
-
 *.icls
 
 /_windows/
-
 /codestyles/
 __pycache__/
 */__pycache__/
@@ -26,9 +19,9 @@ output/
 *.egg-info/
 colors
 
-
 # IDE
 .idea/
+.vscode/
 
 # jupyter
 .ipynb_checkpoints
@@ -36,3 +29,15 @@ colors
 #docs/source/_templates/
 node_modules
 package-lock.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
