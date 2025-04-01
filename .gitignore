@@ -1,0 +1,38 @@
+*.bak
+
+*.pyc
+
+*.xml
+
+*.tar.gz
+
+*.iml
+
+*.zip
+
+*.icls
+
+/_windows/
+
+/codestyles/
+__pycache__/
+*/__pycache__/
+
+# Temp
+build/
+docs/_build/
+dist/
+output/
+*.egg-info/
+colors
+
+
+# IDE
+.idea/
+
+# jupyter
+.ipynb_checkpoints
+#docs/source/_static/
+#docs/source/_templates/
+node_modules
+package-lock.json

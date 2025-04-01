@@ -1,0 +1,31 @@
+# 核心依赖
+pandas>=2.0.0
+numpy>=1.24.0
+python-dateutil>=2.8.2
+matplotlib>=3.4.1
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
+python-dotenv>=1.0.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# akshare相关依赖
+akshare>=1.8.23
+beautifulsoup4>=4.9.3
+demjson3>=3.0.0
+lxml>=4.6.3
+py-mini-racer>=0.6.0
+requests>=2.31.0
+urllib3<2.0.0
+
+# futu-api及其依赖
+protobuf==3.5.1  # 降级以兼容 futu-api
+futu-api==5.1.1320
+
+# 其他工具依赖
+openpyxl>=3.0.7
+tqdm>=4.59.0
+PyMySQL>=1.0.2
+websocket-client>=0.58.0
+pypinyin==0.41.0
+xlrd==1.2.0
