@@ -1,9 +1,10 @@
-from http.cookiejar import CookieJar
-import urllib.request
 import gzip
 import json
 import datetime
 import pandas as pd
+import asyncio
+import urllib.request
+from pyppeteer import launch
 
 from core.Enum.TickerType import TickerType
 
@@ -29,28 +30,111 @@ class Xueqiu:
         3: 0, #退市
     }
 
-    def __init__(self):
-        cookie = CookieJar()
-        handler = urllib.request.HTTPCookieProcessor(cookie)
-        opener = urllib.request.build_opener(handler)
-        opener.addheaders=[
-            ('Host','xueqiu.com'),
-            ('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'),
-        ]
-        opener.open('https://xueqiu.com/')
-        for item in cookie:
-            if item.name == 'xqat':
-                self.xqat = item.value
+    async def get_token_with_puppeteer(self):
+        """使用pyppeteer获取雪球的token"""
+        try:
+            browser = await launch(
+                headless=True,  # 设置为无头模式
+                args=['--no-sandbox', '--disable-setuid-sandbox']
+            )
+            page = await browser.newPage()
+            
+            # 设置User-Agent
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
+            
+            # 访问雪球网站
+            await page.goto('https://xueqiu.com/', {'waitUntil': 'networkidle0'})
+            
+            # 获取所有cookie
+            cookies = await page.cookies()
+            xqat = None
+            
+            # 查找xqat cookie
+            for cookie in cookies:
+                if cookie.get('name') == 'xqat':
+                    xqat = cookie.get('value')
+                    break
+            
+            await browser.close()
+            return xqat
+        except Exception as e:
+            print(f"使用puppeteer获取token失败: {e}")
+            return None
 
-    def _request(self,url):
+    def get_token_with_urllib(self):
+        """使用urllib获取雪球token（备用方法）"""
+        try:
+            from http.cookiejar import CookieJar
+            
+            cookie = CookieJar()
+            handler = urllib.request.HTTPCookieProcessor(cookie)
+            opener = urllib.request.build_opener(handler)
+            opener.addheaders=[
+                ('Host','xueqiu.com'),
+                ('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'),
+            ]
+            opener.open('https://xueqiu.com/')
+            
+            for item in cookie:
+                if item.name == 'xqat':
+                    return item.value
+            
+            return None
+        except Exception as e:
+            print(f"使用urllib获取token失败: {e}")
+            return None
+
+    def __init__(self):
+        """初始化Xueqiu类，尝试多种方式获取token"""
+        # 首先尝试使用puppeteer获取token
+        self.xqat = asyncio.get_event_loop().run_until_complete(self.get_token_with_puppeteer())
+        
+        # 如果puppeteer失败，尝试使用urllib作为备用方法
+        if not self.xqat:
+            print("使用puppeteer获取token失败，尝试使用备用方法...")
+            self.xqat = self.get_token_with_urllib()
+        
+        # 如果两种方法都失败，抛出异常
+        if not self.xqat:
+            raise Exception("无法获取雪球token，请检查网络连接或尝试更新User-Agent")
+        
+        print("成功获取雪球token")
+
+    def _request(self, url, retry=True):
+        """发送HTTP请求并处理响应
+        
+        Args:
+            url: 请求的URL
+            retry: 是否在请求失败时尝试重新获取token并重试
+            
+        Returns:
+            解码后的响应内容
+        """
         headers = {
             'Host': 'stock.xueqiu.com',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
             'Accept-Encoding': 'gzip, deflatef',
             'Cookie': 'xqat={};'.format(self.xqat)
         }
-        r = urllib.request.Request(url,headers=headers)
-        return gzip.decompress(urllib.request.urlopen(r).read()).decode('utf-8')
+        
+        try:
+            r = urllib.request.Request(url, headers=headers)
+            response = urllib.request.urlopen(r)
+            return gzip.decompress(response.read()).decode('utf-8')
+        except Exception as e:
+            # 如果请求失败且允许重试，则尝试重新获取token并重试
+            if retry:
+                print(f"请求失败: {e}，正在尝试重新获取token...")
+                # 重新获取token
+                self.xqat = asyncio.get_event_loop().run_until_complete(self.get_token_with_puppeteer())
+                if not self.xqat:
+                    raise Exception("无法获取雪球token，请检查网络连接或尝试更新User-Agent")
+                # 重新请求（禁用重试以避免无限循环）
+                return self._request(url, retry=False)
+            else:
+                # 重试失败，抛出异常
+                print(f"重试失败: {e}")
+                return None
 
     def getSymbol(self,code):
         if code.startswith('SZ') or code.startswith('SH'):
@@ -241,5 +325,3 @@ class Xueqiu:
             "成交额"
         ]]
         return temp_df
-
-    

@@ -9,7 +9,6 @@ from .TickerRepository import TickerRepository
 # 导入传统API类（仅在需要时使用）
 # 惰性导入以避免在导入时连接数据库
 def _import_legacy_api():
-    from .Ticker import Ticker
     from .TickerDayLine import TickerDayLine
     from .Strategy import Strategy
     from .TickerStrategy import TickerStrategy
@@ -18,7 +17,6 @@ def _import_legacy_api():
     from .TickerValuation import TickerValuation
     from .ProjectTicker import ProjectTicker
     return {
-        'Ticker': Ticker,
         'TickerDayLine': TickerDayLine,
         'Strategy': Strategy,
         'TickerStrategy': TickerStrategy,

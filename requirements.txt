@@ -8,6 +8,7 @@ sqlalchemy>=2.0.0
 python-dotenv>=1.0.0
 fastapi>=0.100.0
 uvicorn>=0.23.0
+pyppeteer>=1.0.2  # 用于浏览器自动化
 
 # akshare相关依赖
 akshare>=1.8.23

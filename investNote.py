@@ -1,9 +1,9 @@
 #coding=UTF-8
-from core.Valuation.ResearchReportValuation import ResearchReportValuation
+# from core.Valuation.ResearchReportValuation import ResearchReportValuation
 from core.Handler import DataSourceHelper
 
-from custom.TickerScoreFilter import TickerScoreFilter
-from custom.TickerHighValuation import TickerHighValuation
+# from custom.TickerScoreFilter import TickerScoreFilter
+# from custom.TickerHighValuation import TickerHighValuation
 import sys
 import datetime
 
@@ -13,10 +13,12 @@ endDate = '2022-12-16'
 
 dataSource = DataSourceHelper()
 dataSource.setEndDate(endDate)
-dataSource.setFilterRule(TickerHighValuation())
+# dataSource.setFilterRule(TickerHighValuation())
+
+dataSource.analysisTicker("AAPL",250)
 
 # if sys.argv[1] == '-ticker':
-dataSource.updateTickerList()
+# dataSource.updateTickerList()
 
 # if sys.argv[1] == '-a':
 #     code = None
