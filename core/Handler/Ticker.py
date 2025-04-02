@@ -123,6 +123,8 @@ class DongCaiTicker:
         result = []
         tickers = ak.stock_us_spot_em()
         for i in range(len(tickers)):
+            if '_' in tickers['代码'][i]:
+                continue
             result.append({
                 'code': 'US.%s'%tickers['代码'][i][4:],
                 'name': tickers['名称'][i],

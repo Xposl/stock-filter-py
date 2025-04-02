@@ -123,7 +123,7 @@ class DataSourceHelper:
         self.updateTickers(tickers)
 
     # 分析项目数据
-    def analysisTicker(self,code,days,kLineData=None,kScoreData=None):
+    def analysisTicker(self,code,days=250,kLineData=None,kScoreData=None):
         ticker = TickerRepository().get_by_code(code)
         if ticker is None:
             print("未找到目标数据")
@@ -132,6 +132,9 @@ class DataSourceHelper:
         startDate = (datetime.datetime.now() - relativedelta(days=days)).strftime('%Y-%m-%d')
         kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
         strategyData = TickerStrategy(self.endDate).update_ticker_strategy(ticker,kLineData)
+        indicatorData = TickerIndicator(self.endDate,self.indicators).updateTickerIndicator(ticker,kLineData)
+        # valuationData = TickerValuation(self.endDate,self.valuations).updateTickerValuation(ticker)
+        # TickerScore(self.scoreRule).updateTickerScore(ticker,kLineData,strategyData,indicatorData,valuationData)
         # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
         # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     

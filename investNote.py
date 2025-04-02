@@ -16,7 +16,7 @@ dataSource.setEndDate(endDate)
 # dataSource.setFilterRule(TickerHighValuation())
 
 # dataSource.updateTickerList()
-dataSource.analysisTicker("HK.00700",250)
+dataSource.analysisTicker("HK.00700")
 
 # if sys.argv[1] == '-ticker':
 # dataSource.updateTickerList()

@@ -11,14 +11,14 @@ from .TickerRepository import TickerRepository
 def _import_legacy_api():
     from .Strategy import Strategy
     from .ticker_strategy_repository import TickerStrategyRepository
-    from .TickerIndicator import TickerIndicator
+    from .ticker_indicator_repository import TickerIndicatorRepository
     from .TickerScore import TickerScore
     from .TickerValuation import TickerValuation
     from .ProjectTicker import ProjectTicker
     return {
         'Strategy': Strategy,
         'TickerStrategy': TickerStrategyRepository,
-        'TickerIndicator': TickerIndicator,
+        'TickerIndicator': TickerIndicatorRepository,
         'TickerScore': TickerScore,
         'TickerValuation': TickerValuation,
         'ProjectTicker': ProjectTicker

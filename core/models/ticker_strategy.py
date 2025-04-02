@@ -36,8 +36,6 @@ class TickerStrategy(TickerStrategyBase):
     code: Optional[str] = Field(default=None, description="代码")
     version: Optional[int] = Field(default=1, description="版本号")
     create_time: Optional[datetime] = Field(default_factory=datetime.now, description="创建时间")
-    creator: Optional[str] = Field(default=None, description="创建者")
-    mender: Optional[str] = Field(default=None, description="修改者")
     
     model_config = ConfigDict(from_attributes=True)
 

@@ -192,6 +192,9 @@ class Xueqiu:
         if content is None:
             return None
         jsonData = json.loads(content)
+        # 增加数据检查，避免'data'或'quote'键不存在的情况
+        if 'data' not in jsonData or jsonData['data'] is None or 'quote' not in jsonData['data'] or jsonData['data']['quote'] is None:
+            return None
         return jsonData['data']['quote']
 
     def getZHStockDetail(self,code,name):
@@ -209,7 +212,8 @@ class Xueqiu:
             'name': name
         }
         
-        if jsonData['data']['company'] is None:
+        # 增加数据检查，避免'company'键不存在的情况
+        if 'data' not in jsonData or jsonData['data'] is None or 'company' not in jsonData['data'] or jsonData['data']['company'] is None:
             return result
 
         if jsonData['data']['company']['org_cn_introduction'] is not None:
@@ -242,7 +246,8 @@ class Xueqiu:
             'name': name
         }
 
-        if jsonData['data']['company'] is None:
+        # 增加数据检查，避免'company'键不存在的情况
+        if 'data' not in jsonData or jsonData['data'] is None or 'company' not in jsonData['data'] or jsonData['data']['company'] is None:
             return result
         
         if jsonData['data']['company']['comintr'] is not None:
@@ -264,7 +269,8 @@ class Xueqiu:
             'name': name
         }
 
-        if jsonData['data']['company'] is None:
+        # 增加数据检查，避免'company'键不存在的情况
+        if 'data' not in jsonData or jsonData['data'] is None or 'company' not in jsonData['data'] or jsonData['data']['company'] is None:
             return result
         
         if jsonData['data']['company']['org_cn_introduction'] is not None:
@@ -336,7 +342,8 @@ class Xueqiu:
         if content is None:
             return None
         jsonData = json.loads(content)
-        if jsonData is None or 'item' not in jsonData['data']:
+        # 增加数据检查，避免'data'键不存在的情况
+        if jsonData is None or 'data' not in jsonData or jsonData['data'] is None or 'item' not in jsonData['data']:
             return None
         temp_df = pd.DataFrame(jsonData["data"]["item"])
         temp_df.columns = ["日期","成交量","开盘","最高","最低","收盘","chg","涨跌幅","换手率","成交额","volume_post","amount_post"]
