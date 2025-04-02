@@ -131,6 +131,7 @@ class DataSourceHelper:
         endDate = datetime.datetime.now().strftime('%Y-%m-%d')
         startDate = (datetime.datetime.now() - relativedelta(days=days)).strftime('%Y-%m-%d')
         kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        strategyData = TickerStrategy(self.endDate).update_ticker_strategy(ticker,kLineData)
         # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
         # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     

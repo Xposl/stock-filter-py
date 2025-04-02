@@ -9,17 +9,15 @@ from .TickerRepository import TickerRepository
 # 导入传统API类（仅在需要时使用）
 # 惰性导入以避免在导入时连接数据库
 def _import_legacy_api():
-    from .Ticker import Ticker
     from .Strategy import Strategy
-    from .TickerStrategy import TickerStrategy
+    from .ticker_strategy_repository import TickerStrategyRepository
     from .TickerIndicator import TickerIndicator
     from .TickerScore import TickerScore
     from .TickerValuation import TickerValuation
     from .ProjectTicker import ProjectTicker
     return {
-        'Ticker': Ticker,
         'Strategy': Strategy,
-        'TickerStrategy': TickerStrategy,
+        'TickerStrategy': TickerStrategyRepository,
         'TickerIndicator': TickerIndicator,
         'TickerScore': TickerScore,
         'TickerValuation': TickerValuation,
@@ -83,9 +81,13 @@ class APIHelper:
         """获取传统Strategy API实例"""
         return self.legacy_api_classes['Strategy'](self.db_connection)
 
-    def tickerStrategy(self):
-        """获取传统TickerStrategy API实例"""
+    def ticker_strategy_repository(self):
+        """获取TickerStrategyRepository实例"""
         return self.legacy_api_classes['TickerStrategy'](self.db_connection)
+    
+    def tickerStrategy(self):
+        """获取传统TickerStrategy API实例（兼容旧版API）"""
+        return self.ticker_strategy_repository()
 
     def tickerIndicator(self):
         """获取传统TickerIndicator API实例"""

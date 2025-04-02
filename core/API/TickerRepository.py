@@ -129,44 +129,6 @@ class TickerRepository:
             logger.error(f"获取可用股票信息错误: {e}")
             return []
     
-    def get_all_available_quarter(self, end_time: str, page: int = 1) -> List[Ticker]:
-        """
-        分页获取某个时间之前的可用股票信息
-        
-        Args:
-            end_time: 结束时间
-            page: 页码
-            
-        Returns:
-            Ticker对象列表
-        """
-        try:
-            # 获取总数
-            count_sql = f"""
-                SELECT COUNT(*) as total FROM {self.table} 
-                WHERE is_deleted = 0 AND status = 1 
-                AND (update_date < ? OR update_date IS NULL)
-            """
-            count_result = self.db.query_one(count_sql, (end_time,))
-            total = int(count_result['total']) if count_result else 0
-            
-            # 计算分页
-            limit = int(total/4) if total % 4 == 0 else int(total/4) + 1
-            offset = (page - 1) * limit
-            
-            # 查询数据
-            sql = f"""
-                SELECT * FROM {self.table} 
-                WHERE is_deleted = 0 AND status = 1 
-                AND (update_date < ? OR update_date IS NULL) 
-                ORDER BY group_id LIMIT ? OFFSET ?
-            """
-            results = self.db.query(sql, (end_time, limit, offset))
-            return [dict_to_ticker(result) for result in results]
-        except Exception as e:
-            logger.error(f"分页获取股票信息错误: {e}")
-            return []
-    
     def get_all_available_start_with(self, start_key: str) -> List[Ticker]:
         """
         获取以指定字符串开头的所有可用股票信息

@@ -1,7 +1,6 @@
 from core.Enum.TickerKType import TickerKType
 from core.API import APIHelper
-
-from core.Strategy import Strategy,defaultStrategies
+from core.Strategy import Strategy
 
 class TickerStrategy:
     updateTime = ''
@@ -16,8 +15,8 @@ class TickerStrategy:
     def calculate(self,kLineData):
         return Strategy(self.strategies).calculate(kLineData)
 
-    def updateTickerStrategy(self,ticker,kLineData):
-        tickerId = ticker['id']
+    def update_ticker_strategy(self,ticker,kLineData):
+        print('更新策略',ticker.code)
         length = len(kLineData)
         if length == 0:
             print('无数据')
@@ -26,5 +25,5 @@ class TickerStrategy:
         strategies = self.calculate(kLineData)
         for strategyKey in strategies:
             result = strategies[strategyKey]
-            self.APIHelper.tickerStrategy().updateItem(tickerId,strategyKey,TickerKType.DAY.value,self.updateTime,result)
+            self.APIHelper.ticker_strategy_repository().update_item(ticker.id,strategyKey,TickerKType.DAY.value,self.updateTime,result)
         return strategies
