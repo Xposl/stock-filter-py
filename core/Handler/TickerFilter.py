@@ -1,9 +1,12 @@
 
 from core.API import APIHelper
+from core.Handler.TickerKLine import TickerKLine
 
 from core.Enum.TickerKType import TickerKType
 from core.Filter import Filter
 from core.utils import UtilsHelper
+import datetime
+from dateutil.relativedelta import relativedelta
 
 class TickerFilter:
     rule = None
@@ -12,6 +15,8 @@ class TickerFilter:
     def __init__(self,rule = None):
         if rule is not None:
             self.rule = rule
+        self.endDate = datetime.date.today().strftime('%Y-%m-%d')
+        self.startDate = (datetime.date.today() - relativedelta(years=3)).strftime('%Y-%m-%d')
 
     def run(self,tickers):
         result = []
@@ -24,7 +29,9 @@ class TickerFilter:
                 total = len(result)
             ))
             
-            kLineData = self.APIHelper.tickerDayLine().getItemsByTickerId(ticker['id'])
+            # 使用TickerKLine从在线API获取K线数据
+            ticker_kline = TickerKLine()
+            kLineData = ticker_kline.get_history_kl(ticker['code'], ticker['source'], self.startDate, self.endDate)
             strategyData = self.APIHelper.tickerStrategy().getItemsByTickerId(ticker['id'],TickerKType.DAY.value)
             indicatorData = self.APIHelper.tickerIndicator().getItemsByTickerId(ticker['id'],TickerKType.DAY.value)
             scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id'])
@@ -34,4 +41,3 @@ class TickerFilter:
                 print(ticker['code'] + ":"+ticker['name']+"\n")
                 result.append(ticker)
         return result
-

@@ -77,8 +77,8 @@ class DataSourceHelper:
 
     # 更新股票数据
     def updateTicker(self,ticker,force=False):
-        self.updateTickerKLine(ticker,force)
-        kLineData = self.APIHelper.tickerDayLine().getItemsByTickerId(ticker['id'])
+        # 直接从在线API获取K线数据
+        kLineData = TickerKLine().get_history_kl(ticker['code'], ticker['source'], self.startDate, self.endDate)
         strategyData = TickerStrategy(self.endDate,self.strategies).updateTickerStrategy(ticker,kLineData)
         indicatorData = TickerIndicator(self.endDate,self.indicators).updateTickerIndicator(ticker,kLineData)
         valuationData = TickerValuation(self.endDate,self.valuations).updateTickerValuation(ticker)
@@ -132,15 +132,15 @@ class DataSourceHelper:
         startDate = (datetime.datetime.now() - relativedelta(days=days)).strftime('%Y-%m-%d')
         kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
         print(kLineData)
-        # kLineData = self.APIHelper.tickerDayLine().getItemsByTickerId(ticker['id']) if kLineData is None else kLineData
         # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
         # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     
     # 分析即时项目数据
     def analysisTickerOnTime(self,code,days):
         ticker = self.APIHelper.ticker().getItemByCode(code)
-        kLineData = self.APIHelper.tickerDayLine().getItemsByTickerId(ticker['id'])
-        onTimeData = TickerKLine(ticker['code'],ticker['source'],self.startDate,self.endDate).getKLineOnTime()
+        # 从在线API获取K线数据和实时数据
+        kLineData = TickerKLine().get_history_kl(ticker['code'], ticker['source'], self.startDate, self.endDate)
+        onTimeData = TickerKLine().get_kl(ticker['code'], ticker['source'])
         
         if onTimeData is not None:
             if kLineData is None:

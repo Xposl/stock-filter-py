@@ -10,7 +10,6 @@ from .TickerRepository import TickerRepository
 # 惰性导入以避免在导入时连接数据库
 def _import_legacy_api():
     from .Ticker import Ticker
-    from .TickerDayLine import TickerDayLine
     from .Strategy import Strategy
     from .TickerStrategy import TickerStrategy
     from .TickerIndicator import TickerIndicator
@@ -19,7 +18,6 @@ def _import_legacy_api():
     from .ProjectTicker import ProjectTicker
     return {
         'Ticker': Ticker,
-        'TickerDayLine': TickerDayLine,
         'Strategy': Strategy,
         'TickerStrategy': TickerStrategy,
         'TickerIndicator': TickerIndicator,
@@ -80,10 +78,6 @@ class APIHelper:
     def ticker(self):
         """获取传统Ticker API实例"""
         return self.legacy_api_classes['Ticker'](self.db_connection)
-
-    def tickerDayLine(self):
-        """获取传统TickerDayLine API实例"""
-        return self.legacy_api_classes['TickerDayLine'](self.db_connection)
 
     def strategy(self):
         """获取传统Strategy API实例"""

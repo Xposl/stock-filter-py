@@ -1,3 +1,4 @@
+import os
 import gzip
 import json
 import datetime
@@ -33,9 +34,6 @@ class Xueqiu:
     async def get_token_with_puppeteer(self):
         """使用pyppeteer获取雪球的token"""
         try:
-            import os
-            import pyppeteer.chromium_downloader as downloader
-            
             # 获取环境变量或使用默认设置
             chromium_executable_path = os.environ.get('PYPPETEER_CHROMIUM_PATH')
             
@@ -98,7 +96,15 @@ class Xueqiu:
             return None
 
     def __init__(self):
-        """初始化Xueqiu类，尝试多种方式获取token"""
+        """初始化Xueqiu类，初始token为None，只在需要时获取"""
+        # 初始化时不获取token，只在真正需要时才获取
+        self.xqat = None
+
+    def _get_token(self):
+        """获取雪球token，如果还没有获取过或之前获取失败"""
+        if self.xqat:
+            return True
+            
         # 首先尝试使用puppeteer获取token
         self.xqat = asyncio.get_event_loop().run_until_complete(self.get_token_with_puppeteer())
         
@@ -107,11 +113,13 @@ class Xueqiu:
             print("使用puppeteer获取token失败，尝试使用备用方法...")
             self.xqat = self.get_token_with_urllib()
         
-        # 如果两种方法都失败，抛出异常
+        # 如果两种方法都失败，返回False
         if not self.xqat:
-            raise Exception("无法获取雪球token，请检查网络连接或尝试更新User-Agent")
+            print("无法获取雪球token，请检查网络连接或尝试更新User-Agent")
+            return False
         
         print("成功获取雪球token")
+        return True
 
     def _request(self, url, retry=True):
         """发送HTTP请求并处理响应
@@ -123,6 +131,15 @@ class Xueqiu:
         Returns:
             解码后的响应内容
         """
+        # 确保有token
+        if not self.xqat and not self._get_token():
+            if retry:
+                print("首次获取token失败，正在重试...")
+                if not self._get_token():
+                    raise Exception("无法获取雪球token，请检查网络连接或尝试更新User-Agent")
+            else:
+                return None
+                
         headers = {
             'Host': 'stock.xueqiu.com',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
@@ -138,9 +155,9 @@ class Xueqiu:
             # 如果请求失败且允许重试，则尝试重新获取token并重试
             if retry:
                 print(f"请求失败: {e}，正在尝试重新获取token...")
-                # 重新获取token
-                self.xqat = asyncio.get_event_loop().run_until_complete(self.get_token_with_puppeteer())
-                if not self.xqat:
+                # 重置token并重新获取
+                self.xqat = None
+                if not self._get_token():
                     raise Exception("无法获取雪球token，请检查网络连接或尝试更新User-Agent")
                 # 重新请求（禁用重试以避免无限循环）
                 return self._request(url, retry=False)
