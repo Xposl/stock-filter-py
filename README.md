@@ -39,6 +39,12 @@ pip install -r requirements.txt
 ### 功能
 
 
+### 数据库解除锁定
+```bash
+fuser investnote.db
+## investnote.db: 65368
+kill -9 65368
+```
 ### 示例
 
 分析腾讯控股的股票数据:

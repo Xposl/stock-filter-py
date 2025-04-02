@@ -21,7 +21,7 @@ class SQLiteHelper:
         建立SQLite数据库连接
         """
         try:
-            self.conn = sqlite3.connect(self.db_path)
+            self.conn = sqlite3.connect(self.db_path, timeout=10)
             # 启用外键约束
             self.conn.execute("PRAGMA foreign_keys = ON")
             # 配置返回字典形式的结果

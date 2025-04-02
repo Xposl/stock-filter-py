@@ -5,7 +5,7 @@ import sys
 class UtilsHelper:
 
     def runProcess(self,index,total,title,message):
-        print("\r\033[K", end="")  # \r移回行首，\033[K清除从光标到行尾的内容
+        print("\r", end="")  # \r移回行首，\033[K清除从光标到行尾的内容
         process = int(index/(total-1) * 100) if total > 1 else 100
         print("{title}: {process}%: ".format(
             title = title,

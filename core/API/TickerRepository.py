@@ -247,8 +247,6 @@ class TickerRepository:
             创建的Ticker对象或None
         """
         try:
-            logger.info(f'添加新的项目: {code} {name}')
-            
             # 转换为字典
             if isinstance(data, TickerCreate):
                 entity = ticker_to_dict(data)
@@ -262,6 +260,10 @@ class TickerRepository:
             entity['is_deleted'] = entity.get('is_deleted', 0)
             entity['status'] = entity.get('status', 1)
             
+            # 处理枚举类型
+            if 'type' in entity and hasattr(entity['type'], 'value'):
+                entity['type'] = entity['type'].value
+                
             # 添加创建时间和版本
             if 'create_time' not in entity:
                 entity['create_time'] = datetime.now()
@@ -280,6 +282,9 @@ class TickerRepository:
                 # 处理布尔值
                 if isinstance(value, bool):
                     values.append(1 if value else 0)
+                # 处理其他可能的枚举类型
+                elif hasattr(value, 'value'):
+                    values.append(value.value)
                 else:
                     values.append(value)
             
@@ -302,7 +307,7 @@ class TickerRepository:
                 self.db.rollback()
             return None
     
-    def update(self, code: str, name: str, data: Union[Dict, TickerUpdate]) -> Optional[Ticker]:
+    def update(self, code: str, name: str, data: Union[Dict, TickerUpdate], commit: bool = True) -> Optional[Ticker]:
         """
         更新股票记录
         
@@ -310,6 +315,7 @@ class TickerRepository:
             code: 股票代码
             name: 股票名称
             data: 股票数据，可以是字典或TickerUpdate对象
+            commit: 是否立即提交事务
             
         Returns:
             更新后的Ticker对象或None
@@ -338,6 +344,11 @@ class TickerRepository:
             if not filtered_entity:
                 return self.get_by_code(code)
             
+            # 处理枚举类型
+            for key, value in list(filtered_entity.items()):
+                if hasattr(value, 'value'):
+                    filtered_entity[key] = value.value
+            
             # 构建SQL参数和SET子句
             set_clauses = []
             values = []
@@ -348,6 +359,9 @@ class TickerRepository:
                 # 处理布尔值
                 if isinstance(value, bool):
                     values.append(1 if value else 0)
+                # 处理其他可能的枚举类型
+                elif hasattr(value, 'value'):
+                    values.append(value.value)
                 else:
                     values.append(value)
             
@@ -359,7 +373,9 @@ class TickerRepository:
             
             # 执行SQL并提交
             self.db.execute(sql, tuple(values))
-            self.db.commit()
+            # 提交事务
+            if commit:
+                self.db.commit()
             
             # 获取更新后的记录
             return self.get_by_code(code)

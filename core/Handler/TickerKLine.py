@@ -351,7 +351,13 @@ class TickerKLine:
         # 处理历史数据
         for i in range(len(data)):
             time_key = data_source.get_data_time_key(data, i)
-            if time_key >= startDate and time_key <= endDate:
+            # 确保类型一致，将time_key作为字符串与字符串日期比较
+            if isinstance(time_key, datetime.date):
+                time_key_str = time_key.strftime('%Y-%m-%d')
+            else:
+                time_key_str = str(time_key)
+                
+            if time_key_str >= startDate and time_key_str <= endDate:
                 result.append(data_source.convert_data(data, i))
         return result
 

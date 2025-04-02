@@ -14,6 +14,8 @@ from core.API.Helper.XueqiuHelper import Xueqiu
 from core.utils import UtilsHelper
 from core.API.TickerRepository import TickerRepository
 
+hk_filters = ['00', '01', '02', '03', '06', '08', '09']
+
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -101,6 +103,8 @@ class DongCaiTicker:
         result = []
         tickers = ak.stock_hk_spot_em()
         for i in range(len(tickers)):
+            if tickers['代码'][i][:2] not in hk_filters:
+                continue
             result.append({
                 'code': 'HK.%s'%tickers['代码'][i],
                 'name': tickers['名称'][i],
@@ -135,14 +139,13 @@ class DongCaiTicker:
         """
         result = []
         result += self.get_hk_tickers()
-        result += self.get_us_tickers()
         result += self.get_ch_tickers()
+        result += self.get_us_tickers()
         return result
 
 
 class Ticker:
     """股票数据处理类"""
-    Xueqiu = Xueqiu()
     
     def __init__(self, update_time):
         """
@@ -156,6 +159,7 @@ class Ticker:
         self.update_time = update_time
         self.api_helper = APIHelper()
         self.ticker_repository = TickerRepository()
+        self.Xueqiu = Xueqiu()
 
     def update_ticker_list(self):
         """
@@ -242,80 +246,84 @@ class Ticker:
             # 获取现有的股票数据
             existing_tickers = self.ticker_repository.get_all_map()
             
+            # 使用单独的数据库连接进行批量处理，避免锁冲突
+            db_adapter = self.ticker_repository.db
+            
             # 处理新增股票
-            i = 0
+            processed_count = 0
             total = len(ticker_list)
-            for code in ticker_list:
-                UtilsHelper().runProcess(i, total, "添加新股", f"{code}")
-                if code not in existing_tickers:
-                    ticker = ticker_list[code]
-                    # 获取新股详情
-                    new_ticker = self.get_ticker_detail(ticker)
-                    if new_ticker:
-                        # 使用 TickerRepository 插入数据到 investNote.db，不立即提交
-                        self.ticker_repository.create(
-                            new_ticker['code'], 
-                            new_ticker['name'], 
-                            new_ticker, 
-                            commit=False  # 不立即提交，使用批量事务
-                        )
-                
-                    i += 1  # 需要更新才增加计数器
-                
-                # 每处理10条记录提交一次，平衡性能和内存占用
-                if i % 10 == 0:
-                    try:
-                        self.ticker_repository.db.commit()
-                        # SQLite会在下一次执行SQL时自动开始新事务，无需显式调用begin
-                    except Exception as e:
-                        logger.error(f"提交批量数据出错: {str(e)}")
-                        self.ticker_repository.db.rollback()
-                        # SQLite会在下一次执行SQL时自动开始新事务，无需显式调用begin
+            batch_size = 5  # 减小批处理大小，更频繁地提交事务
             
-            # 提交最后一批数据
-            if total > 0:
+            # 确保开始一个新的事务
+            try:
+                db_adapter.rollback()  # 清除任何可能存在的未完成事务
+            except:
+                pass
+                
+            for i, code in enumerate(ticker_list):
                 try:
-                    self.ticker_repository.db.commit()
-                except Exception as e:
-                    logger.error(f"提交最终数据出错: {str(e)}")
-                    self.ticker_repository.db.rollback()
+                    UtilsHelper().runProcess(i, total, "处理项目", f"{code}")
+                    ticker = ticker_list[code]
+                    if code not in existing_tickers:
+                        # 获取新股详情
+                        new_ticker = self.get_ticker_detail(ticker)
+                        if new_ticker:
+                            # 使用 TickerRepository 插入数据到 investNote.db，不立即提交
+                            self.ticker_repository.create(
+                                new_ticker['code'], 
+                                new_ticker['name'], 
+                                new_ticker, 
+                                commit=False  # 不立即提交，使用批量事务
+                            )
+                            processed_count += 1
+                    elif ticker.get('name') != ticker_list[code].get('name'):
+                        new_ticker = self.get_ticker_detail(ticker)
+                        if new_ticker:
+                            self.ticker_repository.update(
+                                new_ticker['code'], 
+                                new_ticker['name'], 
+                                new_ticker, 
+                                commit=False  # 不立即提交，使用批量事务
+                            )
 
-            # 处理需要更新的股票
+                    # 每处理batch_size条记录提交一次，无论是否有实际插入
+                    if (i + 1) % batch_size == 0:
+                        try:
+                            db_adapter.commit()
+                            # 短暂暂停，让其他可能的进程有机会访问数据库
+                            time.sleep(0.1)
+                        except Exception as e:
+                            logger.error(f"提交批量数据出错: {str(e)}")
+                            db_adapter.rollback()
+                except Exception as e:
+                    logger.error(f"处理股票 {code} 时出错: {str(e)}")
+                    # 继续处理下一条，不影响整体流程
+                    continue
+            # 提交最后一批数据
+            try:
+                db_adapter.commit()
+            except Exception as e:
+                logger.error(f"提交最终数据出错: {str(e)}")
+                db_adapter.rollback()
+
+            # 处理存在existing_tickers中但不在ticker_list中的数据
             i = 0
-            existing_ticker_dict = {k: v.model_dump() for k, v in existing_tickers.items()}
-            total = len(existing_ticker_dict)
-            current_date = datetime.datetime.now().strftime('%Y-%m-%d')
-            
-            for code, ticker in existing_ticker_dict.items():
-                UtilsHelper().runProcess(i, total, "更新现有股", f"{code}")
-                
-                # 需要更新的情况：1. 股票不在最新列表且修改时间早于今天; 2. 股票在列表中但名称变了
-                modify_time = ticker.get('modify_time')
-                if modify_time and isinstance(modify_time, datetime.datetime):
-                    modify_time_str = modify_time.strftime('%Y-%m-%d')
-                else:
-                    modify_time_str = str(modify_time)
-                
-                need_update = False
-                if code not in ticker_list and modify_time_str < current_date:
-                    need_update = True
-                elif code in ticker_list and ticker.get('name') != ticker_list[code].get('name'):
-                    need_update = True
-                    
-                if need_update:
-                    logger.info(f'更新项目: {code}')
-                    new_ticker = self.get_ticker_detail(ticker)
-                    if new_ticker:
-                        # 使用 TickerRepository 更新数据到 investNote.db
-                        self.ticker_repository.update(new_ticker['code'], new_ticker['name'], new_ticker)
-                
-                i += 1
-                
-            logger.info("股票数据更新完成")
-            return True
+            total = len(existing_tickers)
+            for code in existing_tickers:
+                if code not in ticker_list:
+                    UtilsHelper().runProcess(i, total, "删除项目", f"{code}")
+                    self.ticker_repository.update(
+                        code, 
+                        existing_tickers[code]['name'], 
+                        {'is_deleted': 1}, 
+                    )
             
         except Exception as e:
             logger.error(f"更新股票数据出错: {str(e)}")
             # 发生错误时回滚事务
-            self.ticker_repository.db.rollback()
+            try:
+                self.ticker_repository.db.rollback()
+            except:
+                pass
             return False
+            
