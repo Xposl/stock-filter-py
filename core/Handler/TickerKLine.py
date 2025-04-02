@@ -291,6 +291,10 @@ class xueqiuSource:
         return None
 
 class TickerKLine:
+    """
+    股票K线数据工具类
+    支持从不同数据源获取股票K线数据
+    """
     tickerType = [
         TickerType.STOCK,
         TickerType.IDX,
@@ -298,65 +302,84 @@ class TickerKLine:
         TickerType.PLATE
     ]
 
-    def __init__(self, code, source, startDate=None, endDate=None):
+    def __init__(self):
         """
-        初始化TickerKLine
-        
-        参数:
-            code: 股票代码
-            source: 数据源 1=东财 2=新浪 3=雪球
-            startDate: 开始日期，如果不提供则只获取最新数据
-            endDate: 结束日期，如果不提供则只获取最新数据
+        初始化TickerKLine工具类
+        现在改为工具类形式，不需要初始化参数
         """
-        self.code = code
-        self.source = source
-        self.startDate = startDate
-        self.endDate = endDate
-        
-        # 初始化对应的数据源
-        if self.source == 1:
-            self.dataSource = dongcaiSource(self.code, self.startDate, self.endDate)
-        elif self.source == 2:
-            self.dataSource = sinaSource(self.code, self.startDate, self.endDate)
-        elif self.source == 3:
-            self.dataSource = xueqiuSource(self.code, self.startDate, self.endDate)
-        else:
-            raise Exception("未知数据源", self.source)
+        pass
     
-    def get_history_kl(self):
+    def get_history_kl(self, code, source, startDate=None, endDate=None):
         """
         获取历史K线数据
-        仅在提供了startDate和endDate时有效
+        
+        参数:
+            code: 股票代码 (必填)
+            source: 数据源 1=东财 2=新浪 3=雪球 (必填)
+            startDate: 开始日期，格式为'YYYY-MM-DD'
+            endDate: 结束日期，格式为'YYYY-MM-DD'
+            
+        返回:
+            K线数据列表
         """
-        if not self.startDate or not self.endDate:
+        if not startDate or not endDate:
             print('获取历史数据需要提供开始和结束日期')
             return None
-            
-        result = []
-        data = self.dataSource.get_kl()
-        if data is None:
-            print('数据失效source:%s' % self.source)
+        
+        # 根据参数创建数据源
+        if source == 1:
+            data_source = dongcaiSource(code, startDate, endDate)
+        elif source == 2:
+            data_source = sinaSource(code, startDate, endDate)
+        elif source == 3:
+            data_source = xueqiuSource(code, startDate, endDate)
+        else:
+            print(f"未知数据源: {source}")
             return None
-            
+ 
+        # 获取K线数据
+        result = []
+        data = data_source.get_kl()
+        if data is None:
+            print(f'数据失效 source:{source}')
+            return None
+        
         # 如果返回的是实时数据（一个dict而不是dataframe）
         if isinstance(data, dict):
             return [data]
-            
+        
         # 处理历史数据
         for i in range(len(data)):
-            timeKey = self.dataSource.get_data_time_key(data, i)
-            if timeKey >= self.startDate and timeKey <= self.endDate:
-                result.append(self.dataSource.convert_data(data, i))
+            time_key = data_source.get_data_time_key(data, i)
+            if time_key >= startDate and time_key <= endDate:
+                result.append(data_source.convert_data(data, i))
         return result
 
-    def get_kl(self):
+    def get_kl(self, code, source):
         """
         获取最新K线数据
-        不再保存到数据库，直接返回实时数据
+        
+        参数:
+            code: 股票代码 (必填)
+            source: 数据源 1=东财 2=新浪 3=雪球 (必填)
+            
+        返回:
+            最新的K线数据
         """
         try:
-            # 根据设置的数据源获取实时数据
-            data = self.dataSource.get_kl()
+            # 根据参数创建数据源
+            if source == 1:
+                data_source = dongcaiSource(code)
+            elif source == 2:
+                data_source = sinaSource(code)
+            elif source == 3:
+                data_source = xueqiuSource(code)
+            else:
+                print(f"未知数据源: {source}")
+                return None
+            
+            # 获取实时数据
+            data = data_source.get_kl()
             
             # 如果是字典类型的数据（单条数据），直接返回
             if isinstance(data, dict):
@@ -364,20 +387,20 @@ class TickerKLine:
                 
             # 如果是DataFrame类型的数据，获取最后一条
             if data is not None and len(data) > 0:
-                if hasattr(self.dataSource, 'convert_data'):
-                    return self.dataSource.convert_data(data, len(data) - 1)
+                if hasattr(data_source, 'convert_data'):
+                    return data_source.convert_data(data, len(data) - 1)
                     
             # 数据获取失败，尝试使用东财数据源作为备选
-            if self.source != 1:
-                return dongcaiSource(self.code).get_on_time_kl()
+            if source != 1:
+                return dongcaiSource(code).get_on_time_kl()
                 
             return None
         except Exception as e:
             print(f"获取实时K线数据失败: {e}")
             # 出错时尝试使用东财数据源作为备选
-            if self.source != 1:
+            if source != 1:
                 try:
-                    return dongcaiSource(self.code).get_on_time_kl()
+                    return dongcaiSource(code).get_on_time_kl()
                 except:
                     pass
             return None

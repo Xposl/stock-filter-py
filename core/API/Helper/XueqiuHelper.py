@@ -33,10 +33,23 @@ class Xueqiu:
     async def get_token_with_puppeteer(self):
         """使用pyppeteer获取雪球的token"""
         try:
-            browser = await launch(
-                headless=True,  # 设置为无头模式
-                args=['--no-sandbox', '--disable-setuid-sandbox']
-            )
+            import os
+            import pyppeteer.chromium_downloader as downloader
+            
+            # 获取环境变量或使用默认设置
+            chromium_executable_path = os.environ.get('PYPPETEER_CHROMIUM_PATH')
+            
+            # 构建launch参数
+            launch_args = {
+                'headless': True,  # 设置为无头模式
+                'args': ['--no-sandbox', '--disable-setuid-sandbox']
+            }
+            
+            # 如果环境变量中指定了chromium路径，则使用它
+            if chromium_executable_path and os.path.exists(chromium_executable_path):
+                launch_args['executablePath'] = chromium_executable_path
+            
+            browser = await launch(**launch_args)
             page = await browser.newPage()
             
             # 设置User-Agent

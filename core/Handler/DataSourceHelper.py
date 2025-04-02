@@ -13,10 +13,11 @@ from .TickerKLine import TickerKLine
 from .TickerStrategy import TickerStrategy
 from .TickerIndicator import TickerIndicator
 from .TickerScore import TickerScore
-from .TickerAnalysis import TickerAnalysis
 from .TickerFilter import TickerFilter
 from .ProjectTicker import ProjectTicker
 from .TickerValuation import TickerValuation
+
+from core.API.TickerRepository import TickerRepository
 
 class DataSourceHelper:
     tickerType = [
@@ -65,7 +66,10 @@ class DataSourceHelper:
 
     ## 更新股票列表
     def updateTickerList(self):
-        Ticker(self.endDate).updateTickers()
+        """
+        更新股票列表
+        """
+        Ticker(self.endDate).update_tickers()
 
     # 更新个股K线
     def updateTickerKLine(self,ticker,force=False):
@@ -118,13 +122,19 @@ class DataSourceHelper:
         tickers = APIHelper().ticker().getAllAvaiableItemsQuarter(self.endDate,page)
         self.updateTickers(tickers)
 
-
     # 分析项目数据
     def analysisTicker(self,code,days,kLineData=None,kScoreData=None):
-        ticker = self.APIHelper.ticker().getItemByCode(code)
-        kLineData = self.APIHelper.tickerDayLine().getItemsByTickerId(ticker['id']) if kLineData is None else kLineData
-        scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
-        TickerAnalysis(days).run(ticker,kLineData,scoreData)
+        ticker = TickerRepository().get_by_code(code)
+        if ticker is None:
+            print("未找到目标数据")
+
+        endDate = datetime.datetime.now().strftime('%Y-%m-%d')
+        startDate = (datetime.datetime.now() - relativedelta(days=days)).strftime('%Y-%m-%d')
+        kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        print(kLineData)
+        # kLineData = self.APIHelper.tickerDayLine().getItemsByTickerId(ticker['id']) if kLineData is None else kLineData
+        # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
+        # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     
     # 分析即时项目数据
     def analysisTickerOnTime(self,code,days):
@@ -142,7 +152,7 @@ class DataSourceHelper:
         strategyData = TickerStrategy(self.endDate).calculate(kLineData)
         indicatorData = TickerIndicator(self.endDate).calculate(kLineData)
         scoreData = TickerScore(self.scoreRule).calculate(ticker,kLineData,strategyData,indicatorData,None)
-        TickerAnalysis(days).run(ticker,kLineData,scoreData)
+        # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     
     # def getRecommendProjectTickers(self,startKey = None):
     #     tickers = pd.read_csv('output/recommendProject.csv')
@@ -170,7 +180,6 @@ class DataSourceHelper:
         avaiableTickers = self.APIHelper.ticker().getAllAvaiableItems(self.endDate)
         self.updateRecommendProjectTicker(avaiableTickers)
         
-
     # 获取可推荐项目
     def getRecommendTickers(self,startKey = None):
         tickers = pd.read_csv('output/recommend.csv')

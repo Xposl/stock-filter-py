@@ -14,6 +14,7 @@ class TickerBase(BaseModel):
     source: Optional[int] = Field(default=1, description="数据来源")
     status: Optional[int] = Field(default=1, description="状态")
     is_deleted: Optional[bool] = Field(default=False, description="是否删除")
+    remark: Optional[str] = Field(default=None, description="备注信息")
     
     # K线相关字段
     time_key: Optional[str] = Field(default=None, description="时间键")
@@ -43,6 +44,7 @@ class TickerUpdate(BaseModel):
     source: Optional[int] = Field(default=None, description="数据来源")
     status: Optional[int] = Field(default=None, description="状态")
     is_deleted: Optional[bool] = Field(default=None, description="是否删除")
+    remark: Optional[str] = Field(default=None, description="备注信息")
     
     # K线相关字段
     time_key: Optional[str] = Field(default=None, description="时间键")
