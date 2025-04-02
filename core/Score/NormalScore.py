@@ -7,7 +7,7 @@ from core.Enum.IndicatorGroup import IndicatorGroup
 class NormalScore:
 
     def calculate(self,ticker,kLineData,strategyData,indicatorData,valuationData):
-        tickerId = ticker['id']
+        tickerId = ticker.id
         length = len(kLineData)
         if length == 0:
             print('无数据')
@@ -19,7 +19,7 @@ class NormalScore:
         strategyTotal = len(strategyData)
         for i in range(length):
             result.append({
-                'id': kLineData[i]['id'],
+                'id': kLineData[i].get('id', 0),  # 使用get方法，如果没有id键则默认为0
                 'time_key': kLineData[i]['time_key'],
                 'ticker_id': tickerId,
                 'ma_buy': 0,
@@ -83,4 +83,3 @@ class NormalScore:
             result[i]['score'] = float(format(score,'.2f'))
             # result[i]['score'] = float(format((maV + inV + 2 * sV)/4*50 + 50,'.2f'))
         return result
-        

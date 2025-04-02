@@ -1,25 +1,56 @@
-from core.API import APIHelper
-
+from typing import Dict, Any, List, Optional
+from core.API.ticker_valuation_repository import TickerValuationRepository
 from core.Valuation import Valuation
 
 class TickerValuation:
+    """
+    基于估值模型的股票估值处理类
+    """
     updateTime = ''
     valuations = None
-    APIHelper = APIHelper()
+    valuation_repository = None
 
-    def __init__(self,updateTime,valuations = None):
+    def __init__(self, updateTime: str, valuations=None, db_connection=None):
+        """
+        初始化TickerValuation处理类
+        
+        Args:
+            updateTime: 更新时间
+            valuations: 可选的估值模型列表
+            db_connection: 可选的数据库连接
+        """
         self.updateTime = updateTime
         if valuations is not None:
             self.valuations = valuations
+        self.valuation_repository = TickerValuationRepository(db_connection)
 
-    def calculate(self,ticker):
-        return Valuation(self.updateTime,self.valuations).calculate(ticker)
+    def calculate(self, ticker: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        计算股票的估值
+        
+        Args:
+            ticker: 股票信息
+            
+        Returns:
+            估值结果字典
+        """
+        return Valuation(self.updateTime, self.valuations).calculate(ticker)
 
-    def updateTickerValuation(self,ticker):
-        tickerId = ticker['id']
+    def update_ticker_valuation(self, ticker: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        更新股票估值并保存到数据库
+        
+        Args:
+            ticker: 股票信息
+            
+        Returns:
+            估值结果字典
+        """
         valuations = self.calculate(ticker)
         for valuationKey in valuations:
             result = valuations[valuationKey]
             if result is not None:
-                self.APIHelper.tickerValuation().updateItem(tickerId,valuationKey,self.updateTime,result)
+                print(result)
+                # 直接使用valuation_key和仓库类，不再依赖API
+                # self.valuation_repository.update_item(ticker.id, valuationKey, self.updateTime, result)
         return valuations

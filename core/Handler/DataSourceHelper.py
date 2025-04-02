@@ -133,10 +133,10 @@ class DataSourceHelper:
         kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
         strategyData = TickerStrategy(self.endDate).update_ticker_strategy(ticker,kLineData)
         indicatorData = TickerIndicator(self.endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
-        # valuationData = TickerValuation(self.endDate,self.valuations).updateTickerValuation(ticker)
-        # TickerScore(self.scoreRule).updateTickerScore(ticker,kLineData,strategyData,indicatorData,valuationData)
+        valuationData = TickerValuation(self.endDate,self.valuations).update_ticker_valuation(ticker)
+        TickerScore(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
         # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
-        # TickerAnalysis(days).run(ticker,kLineData,scoreData)
+
     
     # 分析即时项目数据
     def analysisTickerOnTime(self,code,days):
@@ -192,31 +192,3 @@ class DataSourceHelper:
             if (startKey is None or code.startswith(startKey)):
                 result.append(code)
         return result
-
-    def getProjectTickers(self,projectId,startKey = None):
-        result = []
-        tickers = ProjectTicker().getProjectTickers(projectId)
-        for i in range(len(tickers)):
-            ticker = tickers[i]
-            if startKey is None or ticker['code'].startswith(startKey):
-                result.append(ticker)
-        return result
-    
-    def getProjectTickerCodes(self,projectId,startKey = None):
-        result = []
-        tickers = pd.DataFrame(ProjectTicker().getProjectTickers(projectId))
-        if len(tickers) == 0:
-            return result
-        for code in tickers['code'].values:
-            if startKey is None or code.startswith(startKey):
-                result.append(code)
-        return result
-
-    def addProjectTicker(self,projectId,code):
-        return ProjectTicker().addProjectTicker(projectId,code)
-    
-    def delProjectTicker(self,projectId,code):
-        return ProjectTicker().delProjectTicker(projectId,code)
-
-    def updateProjectTickers(self,projectId,codeList):
-        return ProjectTicker().updateProjectTickers(projectId,codeList)

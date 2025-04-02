@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ConfigDict, Json
 class TickerStrategyBase(BaseModel):
     """策略基础模型，包含共有字段"""
     ticker_id: int = Field(..., description="股票ID")
-    strategy_id: int = Field(..., description="策略ID")
+    strategy_key: str = Field(..., description="策略键，使用Strategy的getKey值")
     kl_type: str = Field(..., description="K线类型")
     time_key: str = Field(..., description="时间键")
     data: Optional[Union[List[Any], Dict[str, Any]]] = Field(default=None, description="策略数据")
@@ -136,7 +136,7 @@ def dict_to_ticker_strategy(data: dict) -> TickerStrategy:
         return TickerStrategy(
             id=processed_data.get('id', 0),
             ticker_id=processed_data.get('ticker_id', 0),
-            strategy_id=processed_data.get('strategy_id', 0),
+            strategy_key=processed_data.get('strategy_key', ''),
             kl_type=processed_data.get('kl_type', ''),
             time_key=processed_data.get('time_key', ''),
             status=1

@@ -1,6 +1,5 @@
 from core.Enum.IndicatorGroup import IndicatorGroup
 from core.utils import UtilsHelper
-import datetime
 
 class BullBearPowerIndicator:
     dayCount = 50

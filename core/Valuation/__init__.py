@@ -1,3 +1,4 @@
+from core.API.ticker_valuation_repository import TickerValuationRepository
 from .ResearchReportValuation import ResearchReportValuation
 
 from core.API import APIHelper
@@ -34,7 +35,7 @@ class Valuation:
             print('error，找不到估值模型',valuationKey)
             return
 
-        existItem = self.APIHelper.tickerValuation().getItemByTickerIdAndKey(ticker['id'],valuationKey)
-        if existItem is None or existItem['time_key'].strftime('%Y-%m-%d') < self.updateTime:
+        existItem = TickerValuationRepository().get_item_by_ticker_id_and_key(ticker.id,valuationKey)
+        if existItem is None or existItem.time_key < self.updateTime:
             return self.groupMap[valuationKey].calculate(ticker)
         return existItem

@@ -47,8 +47,6 @@ class MysqlHelper:
         data['version'] = 0
         data['create_time'] = 'now()'
         data['modify_time'] = 'now()'
-        data['creator'] = 0
-        data['mender'] = 0
         return self.insert(table,data)
 
     def update(self,table,data,condi):

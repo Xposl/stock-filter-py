@@ -5,7 +5,7 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from core.DB.DBAdapter import DBAdapter
-from .Indicator import Indicator
+from core.Indicator import Indicator
 from core.models.ticker_indicator import (
     TickerIndicator as TickerIndicatorModel,
     TickerIndicatorCreate,
@@ -36,8 +36,8 @@ class TickerIndicatorRepository:
         else:
             self.db = DBAdapter()
         
-        # 指标服务
-        self.indicator = Indicator(self.db)
+        # 指标工具类
+        self.indicator_helper = Indicator()
 
     def get_items_by_ticker_id(self, ticker_id: int, kl_type: str) -> List[TickerIndicatorModel]:
         """根据股票ID和K线类型获取所有指标记录

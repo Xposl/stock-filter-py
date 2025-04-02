@@ -8,15 +8,6 @@ import datetime
 import json
 
 class ResearchReportValuation:
-    # def __init__(self):
-    #     cookie = CookieJar()
-    #     handler = urllib.request.HTTPCookieProcessor(cookie)
-    #     opener = urllib.request.build_opener(handler)
-    #     opener.addheaders=[
-    #         ('Host','hercules-api.investorsobserver.com'),
-    #         ('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36')
-    #     ]
-    #     opener.open('http://hercules-api.investorsobserver.com/api/')
                 
     def getKey(self):
         return 'Research_Report_Valuation'
@@ -101,7 +92,7 @@ class ResearchReportValuation:
 
     
     def calculate(self,ticker):
-        code = ticker['code']
+        code = ticker.code
         if code.startswith('US'):
             return self.getUSValuation(code[3:])
         if code.startswith('HK'):

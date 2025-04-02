@@ -5,23 +5,18 @@ import os
 
 # 导入基于pydantic的仓库类
 from .TickerRepository import TickerRepository
+from .ticker_score_repository import TickerScoreRepository
+from .ticker_strategy_repository import TickerStrategyRepository
+from .ticker_indicator_repository import TickerIndicatorRepository
+from .ticker_valuation_repository import TickerValuationRepository
 
 # 导入传统API类（仅在需要时使用）
 # 惰性导入以避免在导入时连接数据库
 def _import_legacy_api():
-    from .Strategy import Strategy
-    from .ticker_strategy_repository import TickerStrategyRepository
-    from .ticker_indicator_repository import TickerIndicatorRepository
-    from .TickerScore import TickerScore
-    from .TickerValuation import TickerValuation
-    from .ProjectTicker import ProjectTicker
+    # 移除了Strategy, Project, ProjectTicker, TickerScore, TickerValuation
     return {
-        'Strategy': Strategy,
         'TickerStrategy': TickerStrategyRepository,
         'TickerIndicator': TickerIndicatorRepository,
-        'TickerScore': TickerScore,
-        'TickerValuation': TickerValuation,
-        'ProjectTicker': ProjectTicker
     }
 
 class APIHelper:
@@ -78,8 +73,10 @@ class APIHelper:
         return self.legacy_api_classes['Ticker'](self.db_connection)
 
     def strategy(self):
-        """获取传统Strategy API实例"""
-        return self.legacy_api_classes['Strategy'](self.db_connection)
+        """获取传统Strategy API实例（已废弃）"""
+        import logging
+        logging.warning("strategy() 方法已废弃，请使用ticker_strategy_repository()替代")
+        return self.ticker_strategy_repository()
 
     def ticker_strategy_repository(self):
         """获取TickerStrategyRepository实例"""
@@ -94,16 +91,23 @@ class APIHelper:
         return self.legacy_api_classes['TickerIndicator'](self.db_connection)
 
     def tickerScore(self):
-        """获取传统TickerScore API实例"""
-        return self.legacy_api_classes['TickerScore'](self.db_connection)
+        """获取TickerScore API实例（直接使用TickerScoreRepository）"""
+        from .TickerScore import TickerScore
+        return TickerScore(self.db_connection)
     
+    def ticker_valuation_repository(self):
+        """获取TickerValuationRepository实例"""
+        return TickerValuationRepository(self.db_connection)
+        
     def tickerValuation(self):
-        """获取传统TickerValuation API实例"""
-        return self.legacy_api_classes['TickerValuation'](self.db_connection)
+        """获取TickerValuation API实例（直接使用TickerValuationRepository）"""
+        return self.ticker_valuation_repository()
     
     def projectTicker(self):
-        """获取传统ProjectTicker API实例"""
-        return self.legacy_api_classes['ProjectTicker'](self.db_connection)
+        """获取传统ProjectTicker API实例（已废弃）"""
+        import logging
+        logging.warning("projectTicker() 方法已废弃")
+        return None
 
 # 创建默认APIHelper实例
 api_helper = APIHelper()
