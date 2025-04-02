@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ConfigDict
 class TickerIndicatorBase(BaseModel):
     """指标基础模型，包含共有字段"""
     ticker_id: int = Field(..., description="股票ID")
-    indicator_id: int = Field(..., description="指标ID")
+    indicator_key: str = Field(..., description="指标键名")
     kl_type: str = Field(..., description="K线类型")
     time_key: str = Field(..., description="时间键")
     history: Optional[Union[List[Any], Dict[str, Any]]] = Field(default=None, description="历史数据")
@@ -126,7 +126,7 @@ def dict_to_ticker_indicator(data: dict) -> TickerIndicator:
         return TickerIndicator(
             id=processed_data.get('id', 0),
             ticker_id=processed_data.get('ticker_id', 0),
-            indicator_id=processed_data.get('indicator_id', 0),
+            indicator_key=processed_data.get('indicator_key', ''),
             kl_type=processed_data.get('kl_type', ''),
             time_key=processed_data.get('time_key', ''),
             status=1

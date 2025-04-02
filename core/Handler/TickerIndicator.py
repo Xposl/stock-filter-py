@@ -17,7 +17,7 @@ class TickerIndicator:
     def calculate(self,kLineData):
         return Indicator(self.indicators).calculate(kLineData)
 
-    def updateTickerIndicator(self,ticker,kLineData):
+    def update_ticker_indicator(self,ticker,kLineData):
         length = len(kLineData)
         if length == 0:
             print('无数据')

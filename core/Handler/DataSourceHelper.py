@@ -132,7 +132,7 @@ class DataSourceHelper:
         startDate = (datetime.datetime.now() - relativedelta(days=days)).strftime('%Y-%m-%d')
         kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
         strategyData = TickerStrategy(self.endDate).update_ticker_strategy(ticker,kLineData)
-        indicatorData = TickerIndicator(self.endDate,self.indicators).updateTickerIndicator(ticker,kLineData)
+        indicatorData = TickerIndicator(self.endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
         # valuationData = TickerValuation(self.endDate,self.valuations).updateTickerValuation(ticker)
         # TickerScore(self.scoreRule).updateTickerScore(ticker,kLineData,strategyData,indicatorData,valuationData)
         # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
