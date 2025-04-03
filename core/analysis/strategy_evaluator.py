@@ -10,10 +10,20 @@ class StrategyEvaluator:
         self.backtest_engine = AdvancedBacktestEngine()
         self.regime_classifier = MarketRegimeClassifier()
     
-    def evaluate_strategy(self, strategy_obj, kl_data, name=None):
-        """全面评估单个策略"""
+    def evaluate_strategy(self, strategy_obj, kl_data, name=None, simple_mode=False):
+        """全面评估单个策略
+        
+        Args:
+            strategy_obj: 策略对象
+            kl_data: K线数据
+            name: 策略名称（可选）
+            simple_mode: 是否使用简化模式进行回测（可选，默认False）
+        
+        Returns:
+            dict: 策略评估结果
+        """
         # 运行回测
-        backtest_result = self.backtest_engine.run_backtest(strategy_obj, kl_data)
+        backtest_result = self.backtest_engine.run_backtest(strategy_obj, kl_data, simple_mode)
         
         # 市场环境分析
         regime_analysis = self.regime_classifier.analyze_strategy_by_regime(
@@ -51,12 +61,21 @@ class StrategyEvaluator:
         
         return evaluation
     
-    def evaluate_strategies(self, strategies, kl_data):
-        """评估多个策略"""
+    def evaluate_strategies(self, strategies, kl_data, simple_mode=False):
+        """评估多个策略
+        
+        Args:
+            strategies: 策略对象列表
+            kl_data: K线数据
+            simple_mode: 是否使用简化模式进行回测（可选，默认False）
+        
+        Returns:
+            dict: 多个策略的评估结果
+        """
         results = {}
         for strategy in strategies:
             key = strategy.get_key()
-            results[key] = self.evaluate_strategy(strategy, kl_data, key)
+            results[key] = self.evaluate_strategy(strategy, kl_data, key, simple_mode)
         return results
     
     def _calculate_period_performance(self, backtest_result):
