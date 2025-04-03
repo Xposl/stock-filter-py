@@ -4,7 +4,6 @@ from core.Handler import DataSourceHelper
 
 # from custom.TickerScoreFilter import TickerScoreFilter
 # from custom.TickerHighValuation import TickerHighValuation
-import sys
 import datetime
 
 projectId = 1
@@ -16,7 +15,7 @@ dataSource.setEndDate(endDate)
 # dataSource.setFilterRule(TickerHighValuation())
 
 # dataSource.updateTickerList()
-dataSource.analysisTicker("HK.00700")
+dataSource.analysisTicker("HK.09988")
 
 # if sys.argv[1] == '-ticker':
 # dataSource.updateTickerList()

@@ -1,6 +1,6 @@
 
 from core.API import APIHelper
-from core.Handler.TickerKLine import TickerKLine
+from core.Handler.ticker_k_line import TickerKLine
 
 from core.Enum.TickerKType import TickerKType
 from core.Filter import Filter

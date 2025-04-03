@@ -4,7 +4,7 @@ API模块初始化文件 - 使用DBAdapter支持SQLite和PostgreSQL
 import os
 
 # 导入基于pydantic的仓库类
-from .TickerRepository import TickerRepository
+from .ticker_repository import TickerRepository
 from .ticker_score_repository import TickerScoreRepository
 from .ticker_strategy_repository import TickerStrategyRepository
 from .ticker_indicator_repository import TickerIndicatorRepository
@@ -65,7 +65,7 @@ class APIHelper:
     # 新版API - 基于pydantic模型
     def ticker_repository(self):
         """获取Ticker仓库实例"""
-        return TickerRepository(self.db_connection)
+        return ticker_repository(self.db_connection)
     
     # 兼容旧版API的方法
     def ticker(self):
