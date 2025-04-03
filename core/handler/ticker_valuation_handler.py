@@ -1,8 +1,8 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from core.service.ticker_valuation_repository import TickerValuationRepository
 from core.valuation import Valuation
 
-class TickerValuation:
+class TickerValuationHandler:
     """
     基于估值模型的股票估值处理类
     """

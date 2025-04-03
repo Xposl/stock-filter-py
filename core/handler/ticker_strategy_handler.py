@@ -2,7 +2,7 @@ from core.enum.ticker_k_type import TickerKType
 from core.strategy import Strategy
 from core.service.ticker_strategy_repository import TickerStrategyRepository
 
-class TickerStrategy:
+class TickerStrategyHandler:
     updateTime = ''
     strategies = None
 

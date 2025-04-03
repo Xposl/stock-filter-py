@@ -3,7 +3,7 @@ from core.service.ticker_indicator_repository import TickerIndicatorRepository
 
 from core.indicator import Indicator
 
-class TickerIndicator:
+class TickerIndicatorHandler:
     updateTime = ''
     indicators = None
 

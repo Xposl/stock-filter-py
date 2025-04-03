@@ -8,7 +8,7 @@ TickerScore处理程序 - 负责股票评分计算和数据库更新
 from core.score import Score
 from core.service.ticker_score_repository import TickerScoreRepository
 
-class TickerScore:
+class TickerScoreHandler:
     """
     股票评分处理类，用于计算并更新股票评分数据
     """

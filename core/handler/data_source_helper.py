@@ -3,15 +3,15 @@ from core.enum.ticker_type import TickerType
 import datetime
 from dateutil.relativedelta import relativedelta
 
-from core.handler.ticker_analysis import TickerAnalysis
+from core.handler.ticker_analysis_handler import TickerAnalysisHandler
 from core.utils import UtilsHelper
 
 from .ticker_handler import TickerHandler
-from .ticker_k_line import TickerKLine
-from .ticker_strategy import TickerStrategy
-from .ticker_indicator import TickerIndicator
-from .ticker_score import TickerScore
-from .ticker_valuation import TickerValuation
+from .ticker_k_line_handler import TickerKLineHandler
+from .ticker_strategy_handler import TickerStrategyHandler
+from .ticker_indicator_handler import TickerIndicatorHandler
+from .ticker_score_handler import TickerScoreHandler
+from .ticker_valuation_handler import TickerValuationHandler
 
 from core.service.ticker_repository import TickerRepository
 
@@ -57,13 +57,13 @@ class DataSourceHelper:
         current_date = datetime.datetime.now()
         endDate = current_date.strftime('%Y-%m-%d')
         startDate = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
-        kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
         if kLineData:
             # 使用格式化后的字符串日期
-            strategyData = TickerStrategy(endDate).update_ticker_strategy(ticker,kLineData)
-            indicatorData = TickerIndicator(endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
-            valuationData = TickerValuation(endDate,self.valuations).update_ticker_valuation(ticker)
-            scoreData = TickerScore(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
+            strategyData = TickerStrategyHandler(endDate).update_ticker_strategy(ticker,kLineData)
+            indicatorData = TickerIndicatorHandler(endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
+            valuationData = TickerValuationHandler(endDate,self.valuations).update_ticker_valuation(ticker)
+            scoreData = TickerScoreHandler(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
         return ticker,kLineData,scoreData
 
 
@@ -97,7 +97,7 @@ class DataSourceHelper:
             return
         
         ticker,kLineData,scoreData = self.update_ticker(ticker,days)
-        TickerAnalysis().run(ticker,kLineData,scoreData)
+        TickerAnalysisHandler().run(ticker,kLineData,scoreData)
 
     # 分析即时项目数据
     def analysis_ticker_on_time(self,code,days=250,kLineData=None):
@@ -111,8 +111,8 @@ class DataSourceHelper:
         endDate = current_date.strftime('%Y-%m-%d')
         startDate = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
         
-        kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
-        onTimeData = TickerKLine().get_kl(ticker.code, ticker.source)
+        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        onTimeData = TickerKLineHandler().get_kl(ticker.code, ticker.source)
         
         # 确保时间是字符串格式
         time_key = endDate
@@ -128,9 +128,9 @@ class DataSourceHelper:
             elif time_key == ontime_date:
                 kLineData[len(kLineData) - 1] = onTimeData
                 
-        strategyData = TickerStrategy(time_key).calculate(kLineData)
-        indicatorData = TickerIndicator(time_key).calculate(kLineData)
-        scoreData = TickerScore(self.scoreRule).calculate(ticker,kLineData,strategyData,indicatorData,None)
-        TickerAnalysis().run(ticker,kLineData,scoreData)
+        strategyData = TickerStrategyHandler(time_key).calculate(kLineData)
+        indicatorData = TickerIndicatorHandler(time_key).calculate(kLineData)
+        scoreData = TickerScoreHandler(self.scoreRule).calculate(ticker,kLineData,strategyData,indicatorData,None)
+        TickerAnalysisHandler().run(ticker,kLineData,scoreData)
     
 

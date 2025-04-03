@@ -12,7 +12,7 @@ from .data_sources import (
     XueqiuKLineSource
 )
 
-class TickerKLine:
+class TickerKLineHandler:
     """股票K线数据工具类"""
 
     TICKER_TYPES = [

@@ -8,7 +8,7 @@ import matplotlib
 
 from core.utils import UtilsHelper
 
-class TickerAnalysis:
+class TickerAnalysisHandler:
     source = []
     days = 300
 

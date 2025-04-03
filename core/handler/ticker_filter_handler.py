@@ -1,5 +1,5 @@
 
-from .ticker_k_line import TickerKLine
+from .ticker_k_line_handler import TickerKLineHandler
 
 from core.enum.ticker_k_type import TickerKType
 from core.filter import Filter
@@ -7,7 +7,7 @@ from core.utils import UtilsHelper
 import datetime
 from dateutil.relativedelta import relativedelta
 
-class TickerFilter:
+class TickerFilterHandler:
     rule = None
 
     def __init__(self,rule = None):
@@ -28,7 +28,7 @@ class TickerFilter:
             ))
             
             # 使用TickerKLine从在线API获取K线数据
-            ticker_kline = TickerKLine()
+            ticker_kline = TickerKLineHandler()
             kLineData = ticker_kline.get_history_kl(ticker['code'], ticker['source'], self.startDate, self.endDate)
             strategyData = self.APIHelper.tickerStrategy().getItemsByTickerId(ticker['id'],TickerKType.DAY.value)
             indicatorData = self.APIHelper.tickerIndicator().getItemsByTickerId(ticker['id'],TickerKType.DAY.value)
