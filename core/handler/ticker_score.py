@@ -56,3 +56,4 @@ class TickerScore:
         """
         result = self.calculate(ticker, kLineData, strategyData, indicatorData, valuationData)
         TickerScoreRepository().update_items(ticker.id, result)
+        return result

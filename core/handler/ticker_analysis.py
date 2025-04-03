@@ -3,8 +3,8 @@ import mplfinance as mpf
 import matplotlib.pyplot as plt
 import numpy as np
 import mplcursors
-
-from core.service import APIHelper
+from matplotlib.font_manager import FontProperties
+import matplotlib
 
 from core.utils import UtilsHelper
 
@@ -15,16 +15,21 @@ class TickerAnalysis:
     def __init__(self,days = None):
         if days is not None:
             self.days = days
+        self._setup_chinese_font()
+
+    def _setup_chinese_font(self):
+        """设置matplotlib支持中文字体"""
+        # 使用系统默认中文字体
+        plt.rcParams['font.family'] = ['Arial Unicode MS', 'SimHei', 'Microsoft YaHei', 'sans-serif']
+        # 解决负号显示问题
+        matplotlib.rcParams['axes.unicode_minus'] = False
 
     def run(self,ticker,kLineData,scoreData):
-        if ticker is None or ticker['is_deleted'] == 1 or ticker['status'] == 0:
-            raise Exception('项目已经删除或不生效[{id}]{code}'.format(id=ticker['id'],code=ticker['code']))
+        if ticker is None or ticker.is_deleted == 1 or ticker.status == 0:
+            raise Exception('项目已经删除或不生效[{id}]{code}'.format(id=ticker.id,code=ticker.code))
 
         length = len(kLineData)
         start = length - self.days if length - self.days > 0 else 0
-
-        valuation = APIHelper().tickerValuation().getItemByTickerIdAndKey(ticker['id'],'Research_Report_Valuation')
-        targetPrice = valuation['target_price'] if valuation is not None else None
 
         kLine = pd.DataFrame(kLineData)
         kLine['dates'] = pd.to_datetime(kLine['time_key'])
@@ -32,6 +37,7 @@ class TickerAnalysis:
         kLine.set_index(['dates'], inplace=True)
         kFullScore = pd.DataFrame(scoreData)
         score = kFullScore['score'].values
+        print('score:',score)
         maScore = UtilsHelper().WMA(kFullScore['score'].values,7)
         maScoreL = UtilsHelper().WMA(kFullScore['score'].values,21)
 
@@ -58,13 +64,12 @@ class TickerAnalysis:
         plt.axis([kLine['index'][start],kLine['index'][len(kLine)-1]+1,0,100])
         ax2.grid(True)
 
-        plt.title('[{id}]({code}){name}:({price})({score})-target:{targetPrice}'.format(
-            id = str(ticker['id']),
-            code = ticker['code'],
-            name = ticker['name'],
+        plt.title('[{id}]({code}){name}:({price})({score})'.format(
+            id = str(ticker.id),
+            code = ticker.code,
+            name = ticker.name,
             price = kLine['close'][length-1],
-            score = kFullScore['score'][length - 1],
-            targetPrice = targetPrice
+            score = kFullScore['score'][length - 1]
         ))
         plt.xticks(rotation=30)
         plt.tight_layout()

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Optional, Union, Dict, List, Any
+from typing import Optional, Dict, List
 from dotenv import load_dotenv
 
 # 加载环境变量

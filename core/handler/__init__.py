@@ -2,7 +2,7 @@
 Handler模块初始化
 负责股票数据处理和分析的各个组件
 """
-from .ticker import Ticker
+from .ticker_handler import TickerHandler
 from .ticker_k_line import TickerKLine
 from .ticker_strategy import TickerStrategy
 from .ticker_indicator import TickerIndicator
@@ -12,7 +12,7 @@ from .ticker_valuation import TickerValuation
 from .data_source_helper import DataSourceHelper
 
 __all__ = [
-    'Ticker',
+    'TickerHandler',
     'TickerKLine',
     'TickerStrategy',
     'TickerIndicator',

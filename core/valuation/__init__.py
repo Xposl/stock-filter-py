@@ -1,9 +1,6 @@
 from core.service.ticker_valuation_repository import TickerValuationRepository
-from .investorsobserver_valuation import InvestorsobserverValuation
 
-defaultValuations = [
-   InvestorsobserverValuation()
-]
+defaultValuations = []
 
 class Valuation:
     group = []

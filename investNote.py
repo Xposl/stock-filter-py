@@ -11,11 +11,10 @@ endDate = datetime.datetime.now().strftime('%Y-%m-%d')
 endDate = '2022-12-16'
 
 dataSource = DataSourceHelper()
-dataSource.setEndDate(endDate)
 # dataSource.setFilterRule(TickerHighValuation())
 
 # dataSource.updateTickerList()
-dataSource.analysisTicker("HK.09988")
+dataSource.update_tickers_start_with("HK")
 
 # if sys.argv[1] == '-ticker':
 # dataSource.updateTickerList()

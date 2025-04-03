@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import os
 from dotenv import load_dotenv 
 from typing import Optional, List, Dict

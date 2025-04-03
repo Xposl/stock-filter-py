@@ -15,17 +15,12 @@ from .dongcai_ticker import DongCaiTicker
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-class Ticker:
+class TickerHandler:
     """股票数据处理类"""
     
-    def __init__(self, update_time):
-        """初始化股票数据处理类
-        
-        Args:
-            update_time: 更新时间字符串
-        """
+    def __init__(self):
+        """初始化股票数据处理类"""
         self.sources = [DongCaiTicker()]
-        self.update_time = update_time
         self.ticker_repository = TickerRepository()
         self.xueqiu = Xueqiu()
 
