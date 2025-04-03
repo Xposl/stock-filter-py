@@ -21,7 +21,7 @@ defaultIndicators = [
     EMAIndicator(100),
     EMAIndicator(200),
     CCIIndicator(14),
-    MACDIndicator(12,26,9),
+    MACDIndicator(13,34,9),
     KDJIndicator(),
     RSIIndicator(),
     WMSRIndicator(14),

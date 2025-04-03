@@ -1,9 +1,37 @@
+"""
+MA均线策略模块
+"""
 from core.utils import UtilsHelper
+from core.strategy.base_strategy import BaseStrategy
 
-class MABaseStrategy:
-    p1 = 13
-    p2 = 21
-    p3 = 55
+class MABaseStrategy(BaseStrategy):
+    """MA均线策略实现类"""
+    
+    p1 = 13  # 短期均线周期
+    p2 = 21  # 中期均线周期
+    p3 = 55  # 长期均线周期
+
+    def get_params(self):
+        """获取策略参数
+
+        Returns:
+            dict: 策略参数字典
+        """
+        return {
+            'p1': self.p1,
+            'p2': self.p2,
+            'p3': self.p3
+        }
+
+    def set_params(self, param):
+        """设置策略参数
+
+        Args:
+            param: 参数字典
+        """
+        self.p1 = param['p1'] if 'p1' in param else self.p1
+        self.p2 = param['p2'] if 'p2' in param else self.p2
+        self.p3 = param['p3'] if 'p3' in param else self.p3
 
     def get_key(self):
         return 'MA_Base_strategy'

@@ -2,8 +2,9 @@
 CCI-WMA策略模块
 """
 from core.utils import UtilsHelper
+from core.strategy.base_strategy import BaseStrategy
 
-class CCIWmaStrategy:
+class CCIWmaStrategy(BaseStrategy):
     """CCI-WMA趋势策略实现类"""
     
     cci_s_len = 13  # 短期CCI长度
