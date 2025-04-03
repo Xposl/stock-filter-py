@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 from core.DB.DBAdapter import DBAdapter
@@ -115,6 +114,7 @@ class TickerValuationRepository:
                 'remark': entity.get('remark'),
                 'status': entity.get('status', 1)
             }
+           
 
             if existing_item is None:
                 # 创建新记录

@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS ticker_indicator;
 DROP TABLE IF EXISTS ticker_strategy;
 DROP TABLE IF EXISTS ticker_score;
 DROP TABLE IF EXISTS ticker_valuation;
+DROP TABLE IF EXISTS valuation;
 
 -- 创建 ticker_indicator 表
 CREATE TABLE IF NOT EXISTS ticker_indicator (

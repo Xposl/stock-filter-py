@@ -8,9 +8,8 @@ class TickerValuation:
     """
     updateTime = ''
     valuations = None
-    valuation_repository = None
 
-    def __init__(self, updateTime: str, valuations=None, db_connection=None):
+    def __init__(self, updateTime: str, valuations=None):
         """
         初始化TickerValuation处理类
         
@@ -22,7 +21,6 @@ class TickerValuation:
         self.updateTime = updateTime
         if valuations is not None:
             self.valuations = valuations
-        self.valuation_repository = TickerValuationRepository(db_connection)
 
     def calculate(self, ticker: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -36,12 +34,12 @@ class TickerValuation:
         """
         return Valuation(self.updateTime, self.valuations).calculate(ticker)
 
-    def update_ticker_valuation(self, ticker: Dict[str, Any]) -> Dict[str, Any]:
+    def update_ticker_valuation(self, ticker) -> Dict[str, Any]:
         """
         更新股票估值并保存到数据库
         
         Args:
-            ticker: 股票信息
+            ticker: 股票对象
             
         Returns:
             估值结果字典
@@ -49,8 +47,8 @@ class TickerValuation:
         valuations = self.calculate(ticker)
         for valuationKey in valuations:
             result = valuations[valuationKey]
-            if result is not None:
-                print(result)
-                # 直接使用valuation_key和仓库类，不再依赖API
-                # self.valuation_repository.update_item(ticker.id, valuationKey, self.updateTime, result)
+            if result is not None and isinstance(result, dict):
+                # 确保 updateTime 是字符串格式
+                time_key = self.updateTime.strftime('%Y-%m-%d') if hasattr(self.updateTime, 'strftime') else str(self.updateTime)
+                TickerValuationRepository().update_item(ticker.id, valuationKey, time_key, result)
         return valuations

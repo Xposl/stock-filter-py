@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import copy
-import json
 import logging
-from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 from core.DB.DBAdapter import DBAdapter

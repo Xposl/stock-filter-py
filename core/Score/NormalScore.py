@@ -20,7 +20,7 @@ class NormalScore:
         for i in range(length):
             result.append({
                 'id': kLineData[i].get('id', 0),  # 使用get方法，如果没有id键则默认为0
-                'time_key': kLineData[i]['time_key'],
+                'time_key': kLineData[i]['time_key'].strftime('%Y-%m-%d') if hasattr(kLineData[i]['time_key'], 'strftime') else kLineData[i]['time_key'],
                 'ticker_id': tickerId,
                 'ma_buy': 0,
                 'ma_sell': 0,

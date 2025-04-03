@@ -23,7 +23,6 @@ class TickerScore:
         """
         if rule is not None:
             self.rule = rule
-        self.score_repository = TickerScoreRepository()
     
     def calculate(self, ticker, kLineData, strategyData, indicatorData, valuationData):
         """
@@ -56,4 +55,4 @@ class TickerScore:
             None
         """
         result = self.calculate(ticker, kLineData, strategyData, indicatorData, valuationData)
-        # self.score_repository.update_items(ticker.id, result)
+        TickerScoreRepository().update_items(ticker.id, result)

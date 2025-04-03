@@ -127,33 +127,50 @@ class DataSourceHelper:
         ticker = TickerRepository().get_by_code(code)
         if ticker is None:
             print("未找到目标数据")
+            return
 
-        endDate = datetime.datetime.now().strftime('%Y-%m-%d')
-        startDate = (datetime.datetime.now() - relativedelta(days=days)).strftime('%Y-%m-%d')
+        # 统一获取和格式化日期
+        current_date = datetime.datetime.now()
+        endDate = current_date.strftime('%Y-%m-%d')
+        startDate = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
+        
         kLineData = TickerKLine().get_history_kl(ticker.code, ticker.source, startDate, endDate)
-        strategyData = TickerStrategy(self.endDate).update_ticker_strategy(ticker,kLineData)
-        indicatorData = TickerIndicator(self.endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
-        valuationData = TickerValuation(self.endDate,self.valuations).update_ticker_valuation(ticker)
-        TickerScore(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
+        if kLineData:
+            # 使用格式化后的字符串日期
+            strategyData = TickerStrategy(endDate).update_ticker_strategy(ticker,kLineData)
+            indicatorData = TickerIndicator(endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
+            valuationData = TickerValuation(endDate,self.valuations).update_ticker_valuation(ticker)
+            TickerScore(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
         # scoreData = self.APIHelper.tickerScore().getItemsByTickerId(ticker['id']) if kScoreData is None else kScoreData
 
     
     # 分析即时项目数据
     def analysisTickerOnTime(self,code,days):
         ticker = self.APIHelper.ticker().getItemByCode(code)
+        if not ticker:
+            print("未找到目标数据")
+            return
+            
         # 从在线API获取K线数据和实时数据
         kLineData = TickerKLine().get_history_kl(ticker['code'], ticker['source'], self.startDate, self.endDate)
         onTimeData = TickerKLine().get_kl(ticker['code'], ticker['source'])
         
+        # 确保时间是字符串格式
+        time_key = self.endDate
         if onTimeData is not None:
+            ontime_date = onTimeData['time_key']
+            if isinstance(ontime_date, datetime.datetime):
+                ontime_date = ontime_date.strftime('%Y-%m-%d')
+                
             if kLineData is None:
                 kLineData = [onTimeData]
-            elif self.endDate < onTimeData['time_key'].strftime('%Y-%m-%d'):
+            elif time_key < ontime_date:
                 kLineData.append(onTimeData)
-            elif self.endDate == onTimeData['time_key'].strftime('%Y-%m-%d'):
-                kLineData[len(kLineData) - 1 ] = onTimeData
-        strategyData = TickerStrategy(self.endDate).calculate(kLineData)
-        indicatorData = TickerIndicator(self.endDate).calculate(kLineData)
+            elif time_key == ontime_date:
+                kLineData[len(kLineData) - 1] = onTimeData
+                
+        strategyData = TickerStrategy(time_key).calculate(kLineData)
+        indicatorData = TickerIndicator(time_key).calculate(kLineData)
         scoreData = TickerScore(self.scoreRule).calculate(ticker,kLineData,strategyData,indicatorData,None)
         # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     
