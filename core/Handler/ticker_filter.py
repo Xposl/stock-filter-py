@@ -1,16 +1,14 @@
 
-from core.API import APIHelper
-from core.Handler.ticker_k_line import TickerKLine
+from .ticker_k_line import TickerKLine
 
-from core.Enum.TickerKType import TickerKType
-from core.Filter import Filter
+from core.enum.ticker_k_type import TickerKType
+from core.filter import Filter
 from core.utils import UtilsHelper
 import datetime
 from dateutil.relativedelta import relativedelta
 
 class TickerFilter:
     rule = None
-    APIHelper = APIHelper()
 
     def __init__(self,rule = None):
         if rule is not None:

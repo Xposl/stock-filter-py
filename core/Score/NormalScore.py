@@ -1,8 +1,5 @@
-import json
-
-from core.API import APIHelper
 from core.Indicator import Indicator as Helper
-from core.Enum.IndicatorGroup import IndicatorGroup
+from core.enum.indicator_group import IndicatorGroup
 
 class NormalScore:
 

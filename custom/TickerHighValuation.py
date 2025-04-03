@@ -1,8 +1,8 @@
 import pandas as pd
 
-from core.Enum.TickerType import TickerType
+from core.enum.ticker_type import TickerType
 from core.utils import UtilsHelper
-from core.API import APIHelper
+from core.service import APIHelper
 
 class TickerHighValuation:
     
@@ -78,7 +78,3 @@ class TickerHighValuation:
             if strategy['status'] == 1:
                 return True
         return False
-
-        
-
-        

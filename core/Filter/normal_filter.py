@@ -1,8 +1,8 @@
 import pandas as pd
 
-from core.Enum.TickerType import TickerType
+from core.enum.ticker_type import TickerType
 from core.utils import UtilsHelper
-from core.API import APIHelper
+from core.service.ticker_score_repository import TickerScoreRepository
 
 class NormalFilter:
 
@@ -41,7 +41,7 @@ class NormalFilter:
         if maTurnover[length-1] < 10 * 1000 * 1000 and nt < 4:
             return False
 
-        KScoreData = APIHelper().tickerScore().getItemsByTickerId(ticker['id'])
+        KScoreData = TickerScoreRepository().get_items_by_ticker_id(ticker['id'])
         kScore = pd.DataFrame(KScoreData)
         maS = UtilsHelper().WMA(kScore['score'].values,len7)
         maM = UtilsHelper().WMA(kScore['score'].values,len13)
@@ -59,5 +59,3 @@ class NormalFilter:
                 if abs(close - weekMa[weekLength-1])/weekMa[weekLength-1] < 0.1:
                     return True
         return False
-
-        

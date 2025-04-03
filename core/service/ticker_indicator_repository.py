@@ -4,7 +4,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 
-from core.DB.DBAdapter import DBAdapter
+from core.database.db_adapter import DbAdapter
 from core.Indicator import Indicator
 from core.models.ticker_indicator import (
     TickerIndicator as TickerIndicatorModel,
@@ -29,12 +29,12 @@ class TickerIndicatorRepository:
         初始化TickerIndicator仓库
         
         Args:
-            db_connection: 可选的数据库连接，如果未提供将使用DBAdapter创建新连接
+            db_connection: 可选的数据库连接，如果未提供将使用DbAdapter创建新连接
         """
         if db_connection:
             self.db = db_connection
         else:
-            self.db = DBAdapter()
+            self.db = DbAdapter()
         
         # 指标工具类
         self.indicator_helper = Indicator()

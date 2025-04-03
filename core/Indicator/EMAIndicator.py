@@ -1,4 +1,4 @@
-from core.Enum.IndicatorGroup import IndicatorGroup
+from core.enum.indicator_group import IndicatorGroup
 from core.utils import UtilsHelper
 
 class EMAIndicator:

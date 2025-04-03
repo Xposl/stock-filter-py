@@ -5,7 +5,7 @@ import datetime
 from typing import Optional, Dict, Any, Union
 import pandas as pd
 
-from core.Enum.TickerType import TickerType
+from core.enum.ticker_type import TickerType
 from .data_sources import (
     DongcaiKLineSource,
     SinaKLineSource,

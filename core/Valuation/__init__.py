@@ -1,7 +1,5 @@
-from core.API.ticker_valuation_repository import TickerValuationRepository
+from core.service.ticker_valuation_repository import TickerValuationRepository
 from .ResearchReportValuation import ResearchReportValuation
-
-from core.API import APIHelper
 
 defaultValuations = [
    ResearchReportValuation()
@@ -11,7 +9,6 @@ class Valuation:
     group = []
     groupMap = {}
     updateTime = ''
-    APIHelper = APIHelper()
 
     def __init__(self,updateTime,group=None):
         if group is not None:

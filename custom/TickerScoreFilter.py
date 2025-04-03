@@ -1,8 +1,8 @@
 import pandas as pd
 
-from core.Enum.TickerType import TickerType
+from core.enum.ticker_type import TickerType
 from core.utils import UtilsHelper
-from core.API import APIHelper
+from core.service.ticker_score_repository import TickerScoreRepository
 
 class TickerScoreFilter:
 
@@ -40,7 +40,7 @@ class TickerScoreFilter:
         if maTurnover[length-1] < 5 * 1000 * 1000:
             return False
 
-        KScoreData = APIHelper().tickerScore().getItemsByTickerId(ticker['id'])
+        KScoreData = TickerScoreRepository().get_items_by_ticker_id(ticker['id'])
         kScore = pd.DataFrame(KScoreData)
         maS = UtilsHelper().WMA(kScore['score'].values,len5)
         maM = UtilsHelper().WMA(kScore['score'].values,len10)
@@ -60,5 +60,3 @@ class TickerScoreFilter:
             if close > weekMa5[lastWeekIndex] and  close > ma20[lastIndex]:
                 return True
         return False
-
-        

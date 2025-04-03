@@ -5,10 +5,9 @@ import datetime
 import logging
 from time import time
 
-from core.API import APIHelper
-from core.Handler.data_sources.xueqiu_api import Xueqiu
+from .data_sources.xueqiu_api import Xueqiu
 from core.utils import UtilsHelper
-from core.API.ticker_repository import TickerRepository
+from core.service.ticker_repository import TickerRepository
 from .utils import retry_on_exception
 from .dongcai_ticker import DongCaiTicker
 
@@ -27,7 +26,6 @@ class Ticker:
         """
         self.sources = [DongCaiTicker()]
         self.update_time = update_time
-        self.api_helper = APIHelper()
         self.ticker_repository = TickerRepository()
         self.xueqiu = Xueqiu()
 

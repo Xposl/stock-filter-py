@@ -5,7 +5,7 @@ class TickerGroup(Enum):
     ZH = 2 #A股
     US = 3 #美股
 
-def getGroupIdByCode(code):
+def get_group_id_by_code(code):
     if code.startswith('HK'):
         return TickerGroup.HK.value
     elif code.startswith('US'):

@@ -1,11 +1,10 @@
-from core.Enum.TickerKType import TickerKType
-from core.API import APIHelper
-from core.Strategy import Strategy
+from core.enum.ticker_k_type import TickerKType
+from core.strategy import Strategy
+from core.service.ticker_strategy_repository import TickerStrategyRepository
 
 class TickerStrategy:
     updateTime = ''
     strategies = None
-    APIHelper = APIHelper()
 
     def __init__(self,updateTime,strategies = None):
         self.updateTime = updateTime
@@ -25,5 +24,5 @@ class TickerStrategy:
         strategies = self.calculate(kLineData)
         for strategyKey in strategies:
             result = strategies[strategyKey]
-            self.APIHelper.ticker_strategy_repository().update_item(ticker.id,strategyKey,TickerKType.DAY.value,self.updateTime,result)
+            TickerStrategyRepository().update_item(ticker.id,strategyKey,TickerKType.DAY.value,self.updateTime,result)
         return strategies

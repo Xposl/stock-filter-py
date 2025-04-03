@@ -1,4 +1,4 @@
-from .NormalFilter import NormalFilter
+from .normal_filter import NormalFilter
 
 
 class Filter:

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # 加载环境变量
 load_dotenv()
 
-class DBAdapter:
+class DbAdapter:
     """
     数据库适配器，可以根据环境配置选择使用PostgreSQL或SQLite
     """
@@ -22,13 +22,13 @@ class DBAdapter:
         
         if db_type == 'postgres' or db_type == 'postgresql':
             # 使用PostgreSQL
-            from .DBHelper import DBHelper
-            self.db = DBHelper()
+            from .db_helper import DbHelper
+            self.db = DbHelper()
         else:
             # 使用SQLite
-            from .SQLiteHelper import SQLiteHelper
+            from .sqlite_helper import SqliteHelper
             db_path = os.getenv('SQLITE_DB_PATH', 'investnote.db')
-            self.db = SQLiteHelper(db_path)
+            self.db = SqliteHelper(db_path)
     
     def execute(self, sql: str, params=None) -> None:
         """

@@ -6,9 +6,9 @@ import logging
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
-from core.DB.DBAdapter import DBAdapter
+from core.database.db_adapter import DbAdapter
 from core.models.ticker import Ticker, TickerCreate, TickerUpdate, ticker_to_dict, dict_to_ticker
-from core.Enum.TickerGroup import getGroupIdByCode
+from core.enum.ticker_group import get_group_id_by_code
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -25,12 +25,12 @@ class TickerRepository:
         初始化Ticker仓库
         
         Args:
-            db_connection: 可选的数据库连接，如果未提供将使用DBAdapter创建新连接
+            db_connection: 可选的数据库连接，如果未提供将使用DbAdapter创建新连接
         """
         if db_connection:
             self.db = db_connection
         else:
-            self.db = DBAdapter()
+            self.db = DbAdapter()
     
     def get_by_code(self, code: str) -> Optional[Ticker]:
         """
@@ -217,7 +217,7 @@ class TickerRepository:
             
             # 设置基本属性
             entity['name'] = name
-            entity['group_id'] = getGroupIdByCode(code)
+            entity['group_id'] = get_group_id_by_code(code)
             entity['code'] = code
             entity['is_deleted'] = entity.get('is_deleted', 0)
             entity['status'] = entity.get('status', 1)
@@ -291,7 +291,7 @@ class TickerRepository:
             
             # 设置基本属性
             entity['name'] = name
-            entity['group_id'] = getGroupIdByCode(code)
+            entity['group_id'] = get_group_id_by_code(code)
             
             # 排除不需要更新的字段
             exclude_keys = ['id', 'code', 'version', 'create_time', 'creator', 'mender']

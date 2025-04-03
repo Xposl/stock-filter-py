@@ -7,7 +7,7 @@ import asyncio
 import urllib.request
 from pyppeteer import launch
 
-from core.Enum.TickerType import TickerType
+from core.enum.ticker_type import TickerType
 
 class Xueqiu:
 

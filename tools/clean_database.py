@@ -9,7 +9,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
 sys.path.insert(0, project_root)
 
-from core.DB.SQLiteHelper import SQLiteHelper
+from core.database.SQLiteHelper import SQLiteHelper
 
 def clean_database(db_path: str = 'investnote.db') -> None:
     """

@@ -1,11 +1,9 @@
-from core.Enum.TickerType import TickerType
-from core.Enum.TickerKType import TickerKType
+from core.enum.ticker_type import TickerType
 
 import datetime
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from core.API import APIHelper
 from core.utils import UtilsHelper
 
 from .ticker import Ticker
@@ -16,7 +14,7 @@ from .ticker_score import TickerScore
 from .ticker_filter import TickerFilter
 from .ticker_valuation import TickerValuation
 
-from core.API.ticker_repository import TickerRepository
+from core.service.ticker_repository import TickerRepository
 
 class DataSourceHelper:
     tickerType = [
@@ -33,8 +31,6 @@ class DataSourceHelper:
     valuations = None
     scoreRule = None
     filterRulle = None
-
-    APIHelper = APIHelper()
 
     def __init__(self):
         self.endDate = datetime.date.today().strftime('%Y-%m-%d')
@@ -60,9 +56,6 @@ class DataSourceHelper:
     def setValuations(self,valuations):
         self.valuations = valuations
 
-    def getTickersQuarter(self,page):
-        return APIHelper().ticker().getAllAvaiableItemsQuarter(self.endDate,page)
-
     ## 更新股票列表
     def updateTickerList(self):
         """
@@ -83,17 +76,6 @@ class DataSourceHelper:
         valuationData = TickerValuation(self.endDate,self.valuations).updateTickerValuation(ticker)
         TickerScore(self.scoreRule).updateTickerScore(ticker,kLineData,strategyData,indicatorData,valuationData)
 
-    # 根据code更新数据
-    def updateTickerByCode(self,code,force=False):
-        ticker = APIHelper().ticker().getItemByCode(code)
-        if ticker is not None:
-            self.updateTicker(ticker,force)
-    
-    # 根据code更新数据
-    def updateTickerLikeCode(self,code,force=False):
-        ticker = APIHelper().ticker().getItemLikeCode(code)
-        if ticker is not None:
-            self.updateTicker(ticker,force)
 
     # 更新指定股票数据
     def updateTickers(self,tickers):
@@ -107,19 +89,15 @@ class DataSourceHelper:
             self.updateTicker(ticker)
 
     def updateAllTicker(self):
-        tickers = APIHelper().ticker().getAllAvaiableItems()
+        tickers = TickerRepository().get_all_available()
         self.updateTickers(tickers)
 
     # 根据更新startKey开头的数据
     def updateTickerStartWith(self,startKey):
         print('更新'+startKey+'开头的项目的数据')
-        tickers = APIHelper().ticker().getAllAvaiableItemsStartWith(startKey)
+        tickers = Ticker().getAllAvaiableItemsStartWith(startKey)
         self.updateTickers(tickers)
 
-    def updateTickerQuarter(self,page):
-        print('更新分页'+page+'的项目的数据')
-        tickers = APIHelper().ticker().getAllAvaiableItemsQuarter(self.endDate,page)
-        self.updateTickers(tickers)
 
     # 分析项目数据
     def analysisTicker(self,code,days=250,kLineData=None,kScoreData=None):
@@ -173,38 +151,4 @@ class DataSourceHelper:
         scoreData = TickerScore(self.scoreRule).calculate(ticker,kLineData,strategyData,indicatorData,None)
         # TickerAnalysis(days).run(ticker,kLineData,scoreData)
     
-    # def getRecommendProjectTickers(self,startKey = None):
-    #     tickers = pd.read_csv('output/recommendProject.csv')
-    #     result = []
-    #     for i in range(len(tickers)):
-    #         code = tickers['code'][i]
-    #         if startKey is None or code.startswith(startKey):
-    #             result.append(code)
-    #     return result
 
-    def isRecommendTicker(self,code):
-        ticker = self.APIHelper.ticker().getItemByCode(code)
-        TickerFilter(self.filterRulle).run([ticker])
-    
-    # 推荐项目
-    def updateRecommendProjectTicker(self,avaiableTickers):
-        tickers = TickerFilter(self.filterRulle).run(avaiableTickers)
-        if len(tickers) > 0:
-            watchList =  pd.DataFrame(tickers)
-            watchList.set_index(['code'], inplace=True)
-            watchList.to_csv('output/recommend.csv',index=True,header=True)
-
-    # 更新可推荐项目
-    def updateRecommendTickers(self):
-        avaiableTickers = self.APIHelper.ticker().getAllAvaiableItems(self.endDate)
-        self.updateRecommendProjectTicker(avaiableTickers)
-        
-    # 获取可推荐项目
-    def getRecommendTickers(self,startKey = None):
-        tickers = pd.read_csv('output/recommend.csv')
-        result = []
-        for i in range(len(tickers)):
-            code = tickers['code'][i]
-            if (startKey is None or code.startswith(startKey)):
-                result.append(code)
-        return result

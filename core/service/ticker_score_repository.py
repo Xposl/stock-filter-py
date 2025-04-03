@@ -4,7 +4,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 
-from core.DB.DBAdapter import DBAdapter
+from core.database.db_adapter import DbAdapter
 from core.models.ticker_score import (
     TickerScore as TickerScoreModel,
     TickerScoreCreate,
@@ -28,12 +28,12 @@ class TickerScoreRepository:
         初始化TickerScore仓库
         
         Args:
-            db_connection: 可选的数据库连接，如果未提供将使用DBAdapter创建新连接
+            db_connection: 可选的数据库连接，如果未提供将使用DbAdapter创建新连接
         """
         if db_connection:
             self.db = db_connection
         else:
-            self.db = DBAdapter()
+            self.db = DbAdapter()
 
     def get_items_by_ticker_id(self, ticker_id: int) -> List[TickerScoreModel]:
         """根据股票ID获取所有评分记录

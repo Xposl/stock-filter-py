@@ -6,7 +6,7 @@ import math
 from typing import Dict, Any, Optional, Union
 import pandas as pd
 
-from core.Handler.data_sources.xueqiu_api import Xueqiu
+from .xueqiu_api import Xueqiu
 
 from . import KLineDataSource
 

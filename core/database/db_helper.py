@@ -7,7 +7,7 @@ from typing import Optional, List, Dict
 
 load_dotenv()
 
-class DBHelper:
+class DbHelper:
     def __init__(self):
         self.host = os.getenv('DB_HOST')
         self.port = os.getenv('DB_PORT')

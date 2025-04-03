@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from core.API.ticker_valuation_repository import TickerValuationRepository
+from core.service.ticker_valuation_repository import TickerValuationRepository
 from core.Valuation import Valuation
 
 class TickerValuation:
