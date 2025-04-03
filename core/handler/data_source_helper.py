@@ -1,3 +1,4 @@
+import time
 from core.enum.ticker_type import TickerType
 
 import datetime
@@ -60,7 +61,7 @@ class DataSourceHelper:
         kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
         if kLineData:
             # 使用格式化后的字符串日期
-            strategyData = TickerStrategyHandler(endDate).update_ticker_strategy(ticker,kLineData)
+            strategyData = TickerStrategyHandler().update_ticker_strategy(ticker,kLineData, endDate)
             indicatorData = TickerIndicatorHandler(endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
             valuationData = TickerValuationHandler(endDate,self.valuations).update_ticker_valuation(ticker)
             scoreData = TickerScoreHandler(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
@@ -77,6 +78,7 @@ class DataSourceHelper:
                 code = ticker.code
             ))
             self.update_ticker(ticker, days)
+            time.sleep(1)
 
     def update_all_tickers(self):
         tickers = TickerRepository().get_all_available()

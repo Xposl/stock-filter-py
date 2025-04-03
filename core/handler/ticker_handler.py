@@ -9,7 +9,7 @@ from .data_sources.xueqiu_api import Xueqiu
 from core.utils import UtilsHelper
 from core.service.ticker_repository import TickerRepository
 from .utils import retry_on_exception
-from .dongcai_ticker import DongCaiTicker
+from .data_sources.dongcai_ticker import DongCaiTicker
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

@@ -6,11 +6,13 @@ from .ma_base_strategy import MABaseStrategy
 from .cci_ma_strategy import CCIMaStrategy
 from .cci_wma_strategy import CCIWmaStrategy
 from .boll_dl_strategy import BollDLStrategy
+from .macd_divergence_strategy import MACDDivergenceStrategy
 
 DEFAULT_STRATEGIES = [
     BollDLStrategy(),
     CCIWmaStrategy(),
     CCIMaStrategy(),
     ARTDLStrategy(),
-    MABaseStrategy()
+    MABaseStrategy(),
+    # MACDDivergenceStrategy()
 ]

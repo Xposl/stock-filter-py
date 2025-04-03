@@ -193,23 +193,19 @@ class TickerStrategyHandler:
 
     def __init__(self,strategies = None):
         self.strategies = strategies if strategies is not None else DEFAULT_STRATEGIES
-        self.group_map = {}
-        self.profit_init = 100000
-        for item in self.strategies:
-            self.group_map[item.get_key()] = item
 
     def calculate(self,kl_data):
-        StrategyCalculator(self.strategies).calculate(kl_data)
+        return StrategyCalculator(self.strategies).calculate(kl_data)
 
-    def update_ticker_strategy(self,ticker,kLineData):
+    def update_ticker_strategy(self,ticker,kl_data, updateTime):
         print('更新策略',ticker.code)
-        length = len(kLineData)
+        length = len(kl_data)
         if length == 0:
             print('无数据')
             return
   
-        strategies = self.calculate(kLineData)
-        for strategyKey in strategies:
-            result = strategies[strategyKey]
-            TickerStrategyRepository().update_item(ticker.id,strategyKey,TickerKType.DAY.value,self.updateTime,result)
-        return strategies
+        strategiesResult = self.calculate(kl_data)
+        for strategyKey in strategiesResult:
+            result = strategiesResult[strategyKey]
+            TickerStrategyRepository().update_item(ticker.id,strategyKey,TickerKType.DAY.value,updateTime,result)
+        return strategiesResult
