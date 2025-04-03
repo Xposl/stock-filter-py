@@ -6,7 +6,7 @@ import logging
 from time import time
 
 from core.API import APIHelper
-from core.API.Helper.XueqiuHelper import Xueqiu
+from core.Handler.data_sources.xueqiu_api import Xueqiu
 from core.utils import UtilsHelper
 from core.API.ticker_repository import TickerRepository
 from .utils import retry_on_exception

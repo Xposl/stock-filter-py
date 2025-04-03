@@ -11,7 +11,7 @@ project_root = os.path.dirname(script_dir)
 sys.path.insert(0, project_root)
 
 # 导入雪球API
-from core.API.Helper.XueqiuHelper import Xueqiu
+from core.Handler.data_sources.xueqiu_api import Xueqiu
 
 def main():
     """
