@@ -14,7 +14,8 @@ dataSource = DataSourceHelper()
 # dataSource.setFilterRule(TickerHighValuation())
 
 # dataSource.updateTickerList()
-dataSource.update_tickers_start_with("HK")
+dataSource.analysis_ticker("HK.00700")
+# dataSource.update_tickers_start_with("HK")
 
 # if sys.argv[1] == '-ticker':
 # dataSource.updateTickerList()

@@ -1,7 +1,7 @@
 from core.enum.ticker_k_type import TickerKType
 from core.service.ticker_indicator_repository import TickerIndicatorRepository
 
-from core.Indicator import Indicator
+from core.indicator import Indicator
 
 class TickerIndicator:
     updateTime = ''

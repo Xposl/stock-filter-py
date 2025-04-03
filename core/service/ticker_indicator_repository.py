@@ -5,7 +5,7 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from core.database.db_adapter import DbAdapter
-from core.Indicator import Indicator
+from core.indicator import Indicator
 from core.models.ticker_indicator import (
     TickerIndicator as TickerIndicatorModel,
     TickerIndicatorCreate,

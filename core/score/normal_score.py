@@ -1,4 +1,4 @@
-from core.Indicator import Indicator as Helper
+from core.indicator import Indicator as Helper
 from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
