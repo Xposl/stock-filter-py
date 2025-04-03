@@ -1,8 +1,4 @@
-from .NormalScore import NormalScore
-
-
-from core.utils import UtilsHelper
-import math
+from .normal_score import NormalScore
 
 class Score:
     rule = NormalScore()

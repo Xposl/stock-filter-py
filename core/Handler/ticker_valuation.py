@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Optional
 from core.service.ticker_valuation_repository import TickerValuationRepository
-from core.Valuation import Valuation
+from core.valuation import Valuation
 
 class TickerValuation:
     """

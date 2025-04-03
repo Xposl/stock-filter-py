@@ -7,7 +7,7 @@ from dateutil.parser import parse
 import datetime
 import json
 
-class ResearchReportValuation:
+class InvestorsobserverValuation:
                 
     def getKey(self):
         return 'Research_Report_Valuation'

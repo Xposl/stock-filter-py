@@ -5,7 +5,7 @@
 TickerScore处理程序 - 负责股票评分计算和数据库更新
 """
 
-from core.Score import Score
+from core.score import Score
 from core.service.ticker_score_repository import TickerScoreRepository
 
 class TickerScore:

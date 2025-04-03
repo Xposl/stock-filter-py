@@ -1,8 +1,8 @@
 from core.service.ticker_valuation_repository import TickerValuationRepository
-from .ResearchReportValuation import ResearchReportValuation
+from .investorsobserver_valuation import InvestorsobserverValuation
 
 defaultValuations = [
-   ResearchReportValuation()
+   InvestorsobserverValuation()
 ]
 
 class Valuation:
