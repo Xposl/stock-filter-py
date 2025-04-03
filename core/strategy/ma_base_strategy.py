@@ -4,7 +4,7 @@ MA均线策略模块
 from core.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
-class MABaseStrategy(BaseStrategy):
+class MaBaseStrategy(BaseStrategy):
     """MA均线策略实现类"""
     
     p1 = 13  # 短期均线周期

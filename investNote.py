@@ -2,6 +2,15 @@
 import sys
 from core.handler import DataSourceHelper
 import datetime
+from core.analysis.strategy_evaluator import StrategyEvaluator
+from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
+from core.strategy import (
+    ArtDLStrategy,
+    BollDLStrategy,
+    CCIMaStrategy,
+    CCIWmaStrategy,
+    MaBaseStrategy
+)
 
 def print_header():
     """打印程序标题"""
@@ -17,6 +26,7 @@ def print_main_menu():
     print("2. 分析股票")
     print("3. 分时分析股票")
     print("4. 批量更新股票数据")
+    print("5. 策略分析")
     print("0. 退出程序")
     print("-" * 50)
 
@@ -55,6 +65,89 @@ def get_ticker_code():
     
     return code
 
+def analyze_strategies(code, days=250):
+    """分析股票的多个策略表现"""
+    dataSource = DataSourceHelper()
+    
+    # 获取K线数据
+    kl_data = dataSource.get_kline_data(code, days)
+    if kl_data is None or len(kl_data) == 0:
+        print(f"无法获取股票 {code} 的K线数据")
+        return
+        
+    # 初始化策略评估器
+    evaluator = StrategyEvaluator()
+    # 设置回测引擎参数，包括跟踪止损等风险管理参数
+    evaluator.backtest_engine = AdvancedBacktestEngine(
+        initial_capital=100000,
+        position_sizing='fixed',
+        max_position_pct=0.2,
+        stop_loss_pct=0.05,
+        trailing_stop_pct=0.05,  # 添加跟踪止损参数
+        slippage_pct=0.001,
+        commission_pct=0.0003
+    )
+    
+    # 准备策略列表
+    strategies = [
+        ArtDLStrategy(),
+        BollDLStrategy(),
+        CCIMaStrategy(),
+        CCIWmaStrategy(),
+        MaBaseStrategy()
+    ]
+    
+    print(f"\n开始分析股票 {code} 的策略表现...")
+    print("-" * 50)
+    
+    # 评估所有策略
+    results = evaluator.evaluate_strategies(strategies, kl_data)
+    
+    # 打印评估结果
+    for strategy_name, result in results.items():
+        print(f"\n策略: {strategy_name}")
+        metrics = result['backtest_result']['metrics']
+        trades = result['backtest_result']['trades']
+        
+        # 打印策略总体表现
+        print("\n策略总体表现:")
+        print(f"总评分: {result['rating']['total_score']:.2f}")
+        print(f"评级: {result['rating']['rating']}")
+        print(f"交易次数: {len(trades)}")
+        print(f"胜率: {metrics['win_rate']:.2%}")
+        print(f"年化收益: {metrics['annual_return']:.2%}")
+        print(f"最大回撤: {metrics['max_drawdown']:.2%}")
+        print(f"夏普比率: {metrics['sharpe_ratio']:.2f}")
+        print(f"索提诺比率: {metrics['sortino_ratio']:.2f}")
+        print(f"波动率: {metrics['volatility']:.2%}")
+        
+        # 打印市场环境分析
+        if 'bull' in result['regime_analysis'] and 'bear' in result['regime_analysis']:
+            print("\n市场环境分析:")
+            print(f"牛市胜率: {result['regime_analysis']['bull']['win_rate']:.2%}")
+            print(f"熊市胜率: {result['regime_analysis']['bear']['win_rate']:.2%}")
+        
+        # 计算总收益和收益率
+        total_profit = sum(trade['profit'] for trade in trades)
+        initial_capital = evaluator.backtest_engine.initial_capital
+        total_return = total_profit / initial_capital if initial_capital > 0 else 0
+        
+        # 打印交易详情
+        print("\n交易记录:")
+        print("序号  操作      时间          价格      数量      收益")
+        print("-" * 60)
+        for i, trade in enumerate(trades, 1):
+            entry_date = trade['entry_date'].strftime('%Y-%m-%d') if hasattr(trade['entry_date'], 'strftime') else str(trade['entry_date'])
+            exit_date = trade['exit_date'].strftime('%Y-%m-%d') if hasattr(trade['exit_date'], 'strftime') else str(trade['exit_date'])
+            direction = "买入" if trade['direction'] == 1 else "卖空"
+            print(f"{i:2d}. {direction:6} {entry_date:10} {trade['entry_price']:9.3f} {trade['size']:8d}")
+            print(f"    {'平仓':6} {exit_date:10} {trade['exit_price']:9.3f} {trade['size']:8d} {trade['profit']:9.2f}")
+        
+        print("-" * 60)
+        print(f"总收益: {total_profit:,.2f}")
+        print(f"收益率: {total_return:.2%}")
+        print("-" * 60)
+
 def update_batch_tickers():
     """批量更新股票数据菜单"""
     print("\n请选择批量更新方式：")
@@ -84,7 +177,7 @@ def run_interactive_mode():
     
     while True:
         print_main_menu()
-        choice = input("请输入选择 (0-4): ")
+        choice = input("请输入选择 (0-5): ")
         
         dataSource = DataSourceHelper()
         
@@ -127,6 +220,19 @@ def run_interactive_mode():
                 
         elif choice == "4":
             update_batch_tickers()
+            
+        elif choice == "5":
+            code = get_ticker_code()
+            if code:
+                print(f"\n开始策略分析股票 {code}...")
+                days = input("请输入分析的天数 (默认250天): ")
+                try:
+                    days = int(days) if days.strip() else 250
+                except ValueError:
+                    days = 250
+                analyze_strategies(code, days)
+            else:
+                print("无效的股票代码")
             
         else:
             print("无效选择，请重新输入")
@@ -193,6 +299,34 @@ def run_command_line_mode():
         else:
             print("错误：缺少前缀参数")
     
+    elif sys.argv[1] == '-s':
+        code = None
+        if len(sys.argv) >= 4:
+            if sys.argv[2] == 'hk':
+                code = 'HK.%s'%sys.argv[3].zfill(5)
+            elif sys.argv[2] == 'zh':
+                code = sys.argv[3].zfill(6)
+                if code.startswith('0') or code.startswith('3'):
+                    code = 'SZ.%s'%code
+                elif code.startswith('6') or code.startswith('7') or code.startswith('9'):
+                    code = 'SH.%s'%code
+            elif sys.argv[2] == 'us':
+                code = 'US.%s'%sys.argv[3]
+
+            if code is not None:
+                days = 250
+                if len(sys.argv) > 4:
+                    try:
+                        days = int(sys.argv[4])
+                    except ValueError:
+                        pass
+                analyze_strategies(code, days)
+            else:
+                print("无效的股票代码")
+        else:
+            print("错误：缺少参数")
+            print_help()
+            
     elif sys.argv[1] == '-h' or sys.argv[1] == '--help':
         print_help()
     
@@ -208,6 +342,7 @@ def print_help():
     print("  -ao [市场] [代码] [天数]: 分时分析指定股票 (市场: zh/hk/us, 天数可选，默认400)")
     print("  -all:                 更新所有股票数据")
     print("  -prefix [前缀]:        更新指定前缀的股票数据")
+    print("  -s [市场] [代码] [天数]:  策略分析股票 (市场: zh/hk/us, 天数可选，默认250)")
     print("  -h, --help:           显示帮助信息")
     print("\n例子:")
     print("  python investNote.py               # 运行交互式菜单")

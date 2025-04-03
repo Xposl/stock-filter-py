@@ -4,7 +4,7 @@ ART双线策略模块
 from core.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
-class ARTDLStrategy(BaseStrategy):
+class ArtDLStrategy(BaseStrategy):
     """ART双线策略实现类"""
     
     day_count = 21  # 计算天数
