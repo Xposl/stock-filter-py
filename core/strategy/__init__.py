@@ -144,8 +144,8 @@ class Strategy:
                         result['loss_keep_days'] = keep_days
                     
                     trade_data.append({
-                        'start_date': start_time.strftime('%Y-%m-%d %H:%M:%S') if start_time is not None else '',
-                        'end_date': kl_data[i]['time_key'].strftime('%Y-%m-%d %H:%M:%S'),
+                        'start_date': start_time.strftime('%Y-%m-%d %H:%M:%S') if hasattr(start_time, 'strftime') else start_time,
+                        'end_date': kl_data[i]['time_key'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(kl_data[i]['time_key'], 'strftime') else kl_data[i]['time_key'],
                         'buy': start_price,
                         'unit': unit,
                         'sell': open_price,

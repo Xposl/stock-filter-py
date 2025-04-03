@@ -37,7 +37,7 @@ class TickerAnalysis:
         kLine.set_index(['dates'], inplace=True)
         kFullScore = pd.DataFrame(scoreData)
         score = kFullScore['score'].values
-        print('score:',score)
+
         maScore = UtilsHelper().WMA(kFullScore['score'].values,7)
         maScoreL = UtilsHelper().WMA(kFullScore['score'].values,21)
 

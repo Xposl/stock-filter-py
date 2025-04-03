@@ -6,15 +6,13 @@ from core.handler import DataSourceHelper
 # from custom.TickerHighValuation import TickerHighValuation
 import datetime
 
-projectId = 1
-endDate = datetime.datetime.now().strftime('%Y-%m-%d')
-endDate = '2022-12-16'
 
 dataSource = DataSourceHelper()
 # dataSource.setFilterRule(TickerHighValuation())
 
 # dataSource.updateTickerList()
-dataSource.analysis_ticker("HK.00700")
+# dataSource.analysis_ticker("HK.00700")
+dataSource.analysis_ticker("US.PRPH")
 # dataSource.update_tickers_start_with("HK")
 
 # if sys.argv[1] == '-ticker':

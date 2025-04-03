@@ -1,11 +1,11 @@
-from .SMAIndicator import SMAIndicator
-from .EMAIndicator import EMAIndicator
-from .CCIIndicator import CCIIndicator
-from .MACDIndicator import MACDIndicator
-from .KDJIndicator import KDJIndicator
-from .RSIIndicator import RSIIndicator
-from .WMSRIndicator import WMSRIndicator
-from .BullBearPowerIndicator import BullBearPowerIndicator
+from .sma_indicator import SMAIndicator
+from .ema_indicator import EMAIndicator
+from .cci_indicator import CCIIndicator
+from .macd_indicator import MACDIndicator
+from .kdj_indicator import KDJIndicator
+from .rsi_indicator import RSIIndicator
+from .wmsr_indicator import WMSRIndicator
+from .bull_bear_power_indicator import BullBearPowerIndicator
 
 defaultIndicators = [
     SMAIndicator(5),
