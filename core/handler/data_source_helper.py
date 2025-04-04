@@ -52,7 +52,7 @@ class DataSourceHelper:
         """
         TickerHandler().update_tickers()
 
-    def get_kline_data(self,code,days=250):
+    def get_kline_data(self,code,days=300):
         """
         获取指定股票的K线数据
         """
@@ -68,7 +68,7 @@ class DataSourceHelper:
         return kLineData
 
     # 分析项目数据
-    def update_ticker(self,ticker,days=250):
+    def update_ticker(self,ticker,days=300):
         # 统一获取和格式化日期
         current_date = datetime.datetime.now()
         endDate = current_date.strftime('%Y-%m-%d')

@@ -24,7 +24,7 @@ class AdvancedBacktestEngine:
                  max_position_pct=0.2, stop_loss_pct=0.05, trailing_stop_pct=None,
                  slippage_pct=0.001, commission_pct=0.0003, atr_period=14,
                  pyramid_factor=0.5, max_pyramid_levels=3, time_stop_days=10,
-                 shares_per_unit=1):
+                 shares_per_unit=100):
         """
         初始化回测引擎
         
@@ -83,6 +83,7 @@ class AdvancedBacktestEngine:
         
         # 获取策略生成的信号
         pos_data = strategy_obj.calculate(kl_data)
+        print(f"策略信号: {pos_data}")
         result['pos_data'] = pos_data
         length = len(kl_data)
         
@@ -233,9 +234,9 @@ class AdvancedBacktestEngine:
             result['equity_curve'].append(equity_point)
         
         # 如果结束时还有持仓，以最后价格平仓
-        if holdings != 0 and current_position:
-            last_price = kl_data[-1]['close']
-            self._close_position(result, current_position, holdings, last_price, kl_data[-1]['time_key'], 'end_of_data')
+        # if holdings != 0 and current_position:
+        #     last_price = kl_data[-1]['close']
+        #     self._close_position(result, current_position, holdings, last_price, kl_data[-1]['time_key'], 'end_of_data')
         
         # 计算绩效指标
         result['metrics'] = self._calculate_performance_metrics(result)

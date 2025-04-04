@@ -9,6 +9,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from core.handler.data_source_helper import DataSourceHelper
 from core.strategy.cci_macd_strategy import CCIMacdStrategy
+from core.strategy.cci_wma_strategy import CCIWmaStrategy
+from core.strategy.art_dl_strategy import ArtDLStrategy
 from core.analysis.strategy_evaluator import StrategyEvaluator
 from core.handler.ticker_strategy_handler import StrategyCalculator
 
@@ -43,7 +45,7 @@ def compare_backtest_results(ticker_code):
         return
     
     # 创建策略对象
-    strategy = CCIMacdStrategy()
+    strategy = ArtDLStrategy()
     
     # 1. 使用StrategyCalculator进行回测（原始方式）
     print("\n=== 使用原始StrategyCalculator进行回测 ===")
@@ -101,6 +103,8 @@ def compare_backtest_results(ticker_code):
     print("\n交易明细:")
     for i, trade in enumerate(advanced_result['trades']):
         print(f"交易 {i+1}:")
+        print(f"  开始时间: {trade['entry_date']}")
+        print(f"  结束时间: {trade['exit_date']}")
         print(f"  方向: {'做多' if trade['direction'] == 1 else '做空'}")
         print(f"  买入价: {trade['entry_price']:.2f}, 卖出价: {trade['exit_price']:.2f}")
         print(f"  数量: {trade['size']}")
