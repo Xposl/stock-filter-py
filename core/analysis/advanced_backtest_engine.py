@@ -23,7 +23,8 @@ class AdvancedBacktestEngine:
     def __init__(self, initial_capital=100000, position_sizing='fixed', 
                  max_position_pct=0.2, stop_loss_pct=0.05, trailing_stop_pct=None,
                  slippage_pct=0.001, commission_pct=0.0003, atr_period=14,
-                 pyramid_factor=0.5, max_pyramid_levels=3, time_stop_days=10):
+                 pyramid_factor=0.5, max_pyramid_levels=3, time_stop_days=10,
+                 shares_per_unit=1):
         """
         初始化回测引擎
         
@@ -39,6 +40,7 @@ class AdvancedBacktestEngine:
         pyramid_factor: 金字塔加仓因子
         max_pyramid_levels: 最大金字塔加仓级数
         time_stop_days: 时间止损天数
+        shares_per_unit: 每手股票数量，默认为1股/手
         """
         self.initial_capital = initial_capital
         self.position_sizing = PositionSizing(position_sizing)
@@ -51,6 +53,7 @@ class AdvancedBacktestEngine:
         self.pyramid_factor = pyramid_factor
         self.max_pyramid_levels = max_pyramid_levels
         self.time_stop_days = time_stop_days
+        self.shares_per_unit = shares_per_unit
         
         # 交易成本统计
         self.total_slippage = 0
@@ -154,6 +157,7 @@ class AdvancedBacktestEngine:
                             holdings = new_position['size']
                             highest_price = open_price
                             pyramid_level = 1
+                            day_traded = True
                             
                             # 更新可用资金
                             if current_signal == 1:  # 做多
@@ -190,23 +194,22 @@ class AdvancedBacktestEngine:
                                 current_capital -= (pyramid_position['commission'] + pyramid_position['slippage'])
             
             # 更新止损价格
-            if current_position:
+            if not day_traded and current_position:
                 stop_price = self._calculate_stop_loss(
                     current_position, high_price, low_price, current_atr, 
                     StopLossType.COMPOSITE
                 )
-                
                 # 检查是否触发止损
                 if ((current_position['direction'] == 1 and low_price <= stop_price) or
                     (current_position['direction'] == -1 and high_price >= stop_price)):
                     # 执行止损
                     self._close_position(result, current_position, holdings, stop_price, date, 'stop_loss')
-                    if current_position['direction'] == 1:
-                        current_capital += close_price * holdings
+                    current_capital = result['equity_curve'][-1]['capital']
                     current_position = None
                     holdings = 0
                     highest_price = 0
                     pyramid_level = 0
+                    day_traded = True
                 else:
                     # 更新跟踪止损价格
                     highest_price = max(highest_price, high_price) if current_position['direction'] == 1 else min(highest_price, low_price)
@@ -228,6 +231,11 @@ class AdvancedBacktestEngine:
                 'pyramid_level': pyramid_level
             }
             result['equity_curve'].append(equity_point)
+        
+        # 如果结束时还有持仓，以最后价格平仓
+        if holdings != 0 and current_position:
+            last_price = kl_data[-1]['close']
+            self._close_position(result, current_position, holdings, last_price, kl_data[-1]['time_key'], 'end_of_data')
         
         # 计算绩效指标
         result['metrics'] = self._calculate_performance_metrics(result)
@@ -327,7 +335,9 @@ class AdvancedBacktestEngine:
                 # 有新信号且不是中性信号，开仓
                 if current_signal != 0 and status == 0:
                     status = current_signal
-                    unit = int(initial_capital / open_price) if open_price > 0 else int(initial_capital)
+                    # 计算可买入的手数，然后乘以每手股数
+                    units_count = int(initial_capital / (open_price * self.shares_per_unit)) if open_price > 0 else int(initial_capital)
+                    unit = units_count * self.shares_per_unit
                     # 第二天开盘价买入
                     if i < length - 1:
                         continue
@@ -512,7 +522,10 @@ class AdvancedBacktestEngine:
         entry_price = self._apply_slippage(price, direction)
         
         # 计算可买入数量
-        max_shares = int(position_size / entry_price)
+        # 先计算可买入的手数
+        max_units = int(position_size / (entry_price * self.shares_per_unit))
+        # 再计算实际股数
+        max_shares = max_units * self.shares_per_unit
         if max_shares <= 0:
             return None
             

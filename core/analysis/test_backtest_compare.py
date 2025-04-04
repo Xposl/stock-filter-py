@@ -8,11 +8,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from core.handler.data_source_helper import DataSourceHelper
-from core.strategy.cci_ma_strategy import CCIMaStrategy
+from core.strategy.cci_macd_strategy import CCIMacdStrategy
 from core.analysis.strategy_evaluator import StrategyEvaluator
-from core.handler.ticker_k_line_handler import TickerKLineHandler
 from core.handler.ticker_strategy_handler import StrategyCalculator
-from core.enum.ticker_k_type import TickerKType
 
 def load_test_data(ticker_code):
     """加载测试用的K线数据
@@ -45,7 +43,7 @@ def compare_backtest_results(ticker_code):
         return
     
     # 创建策略对象
-    strategy = CCIMaStrategy()
+    strategy = CCIMacdStrategy()
     
     # 1. 使用StrategyCalculator进行回测（原始方式）
     print("\n=== 使用原始StrategyCalculator进行回测 ===")
@@ -77,7 +75,7 @@ def compare_backtest_results(ticker_code):
     # 3. 使用AdvancedBacktestEngine的高级模式进行回测
     print("\n=== 使用AdvancedBacktestEngine的高级模式进行回测 ===")
     # 将仓位管理从默认的20%改为80%
-    evaluator.backtest_engine.max_position_pct = 0.2
+    evaluator.backtest_engine.max_position_pct = 0.5
     advanced_evaluation = evaluator.evaluate_strategy(strategy, kl_data, simple_mode=False)
     advanced_result = advanced_evaluation['backtest_result']
     
@@ -133,5 +131,5 @@ def compare_backtest_results(ticker_code):
 
 if __name__ == "__main__":
     # 可以使用您的实际股票代码替换
-    ticker_code = "HK.00700"  # 示例代码
+    ticker_code = "SZ.000006"  # 示例代码
     compare_backtest_results(ticker_code)

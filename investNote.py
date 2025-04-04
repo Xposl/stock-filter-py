@@ -4,13 +4,7 @@ from core.handler import DataSourceHelper
 import datetime
 from core.analysis.strategy_evaluator import StrategyEvaluator
 from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
-from core.strategy import (
-    ArtDLStrategy,
-    BollDLStrategy,
-    CCIMaStrategy,
-    CCIWmaStrategy,
-    MaBaseStrategy
-)
+from core.strategy import DEFAULT_STRATEGIES
 
 def print_header():
     """打印程序标题"""
@@ -81,7 +75,7 @@ def analyze_strategies(code, days=250):
     evaluator.backtest_engine = AdvancedBacktestEngine(
         initial_capital=100000,
         position_sizing='fixed',
-        max_position_pct=0.2,
+        max_position_pct=1,
         stop_loss_pct=0.05,
         trailing_stop_pct=0.05,  # 添加跟踪止损参数
         slippage_pct=0.001,
@@ -89,13 +83,7 @@ def analyze_strategies(code, days=250):
     )
     
     # 准备策略列表
-    strategies = [
-        ArtDLStrategy(),
-        BollDLStrategy(),
-        CCIMaStrategy(),
-        CCIWmaStrategy(),
-        MaBaseStrategy()
-    ]
+    strategies = DEFAULT_STRATEGIES
     
     print(f"\n开始分析股票 {code} 的策略表现...")
     print("-" * 50)
