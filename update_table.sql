@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS ticker_score (
     strategy_score FLOAT DEFAULT 0,
     score FLOAT DEFAULT 0,
     status INTEGER DEFAULT 1,
+    history TEXT,  -- JSON 格式存储历史数据
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

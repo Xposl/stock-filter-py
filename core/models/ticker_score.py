@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 class TickerScoreBase(BaseModel):
@@ -19,6 +19,7 @@ class TickerScoreBase(BaseModel):
     strategy_sell: int = Field(default=0, description="策略卖出信号数")
     strategy_score: float = Field(default=0.0, description="策略分数")
     score: float = Field(default=0.0, description="综合分数")
+    history: Optional[Union[List[Any], Dict[str, Any]]] = Field(default=None, description="历史数据")
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,7 +40,7 @@ class TickerScoreUpdate(BaseModel):
     strategy_sell: Optional[int] = Field(default=None, description="策略卖出信号数")
     strategy_score: Optional[float] = Field(default=None, description="策略分数")
     score: Optional[float] = Field(default=None, description="综合分数")
-    
+    history: Optional[Union[List[Any], Dict[str, Any]]] = Field(default=None, description="历史数据")
     model_config = ConfigDict(from_attributes=True)
 
 class TickerScore(TickerScoreBase):
@@ -68,6 +69,11 @@ def ticker_score_to_dict(score: Any) -> dict:
     else:
         result = score.model_dump(exclude_none=True)
     
+    # 处理JSON字段
+    if 'history' in result and result['history'] is not None:
+        import json
+        result['history'] = json.dumps(result['history'])
+    
     return result
 
 def dict_to_ticker_score(data: dict) -> TickerScore:
@@ -82,6 +88,24 @@ def dict_to_ticker_score(data: dict) -> TickerScore:
     """
     # 创建数据的副本，避免修改原始数据
     processed_data = data.copy()
+    
+    # 处理JSON字段
+    if 'history' in processed_data:
+        json_value = processed_data['history']
+        
+        # 如果是None或空字符串，设为None
+        if json_value is None or (isinstance(json_value, str) and not json_value.strip()):
+            processed_data['history'] = None
+        # 如果已经是字典或列表对象，保持不变
+        elif isinstance(json_value, (dict, list)):
+            pass
+        # 尝试解析JSON字符串
+        elif isinstance(json_value, str):
+            try:
+                import json
+                processed_data['history'] = json.loads(json_value)
+            except (ValueError, json.JSONDecodeError):
+                processed_data['history'] = None
     
     # 确保必要字段存在并有默认值
     processed_data['status'] = int(processed_data.get('status', 1) or 1)

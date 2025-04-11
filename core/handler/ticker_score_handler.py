@@ -52,8 +52,27 @@ class TickerScoreHandler:
             valuationData: 估值数据
             
         Returns:
-            None
+            评分结果列表
         """
+        # 计算所有K线的评分结果
         result = self.calculate(ticker, kLineData, strategyData, indicatorData, valuationData)
-        TickerScoreRepository().update_items(ticker.id, result)
+        
+        if not result or len(result) == 0:
+            return result
+        
+        # 按照时间排序结果（确保最新数据在最后）
+        result.sort(key=lambda x: x['time_key'])
+        
+        # 获取最新的一条记录
+        latest_score = result[-1].copy()
+        
+        # 将除了最新记录之外的所有记录作为历史数据
+        history_data = result[:-1] if len(result) > 1 else []
+        
+        # 在最新记录中添加历史数据
+        latest_score['history'] = history_data
+        
+        # 只更新最新的一条记录到数据库
+        TickerScoreRepository().update_items(ticker.id, [latest_score])
+        
         return result
