@@ -19,7 +19,7 @@ class TickerScoreHandler:
         初始化TickerScore
         
         Args:
-            rule: 可选评分规则，默认使用NormalScore
+            rule: 可选评分规则
         """
         if rule is not None:
             self.rule = rule

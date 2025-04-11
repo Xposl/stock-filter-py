@@ -5,6 +5,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
+from core.service.ticker_score_repository import TickerScoreRepository
 from core.utils import UtilsHelper
 
 from .ticker_handler import TickerHandler
@@ -68,12 +69,12 @@ class DataSourceHelper:
         return kLineData
 
     # 分析项目数据
-    def update_ticker(self,ticker,days=600):
+    def update_ticker(self,ticker,days=600, source=None):
         # 统一获取和格式化日期
         current_date = datetime.datetime.now()
         endDate = current_date.strftime('%Y-%m-%d')
         startDate = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        kLineData = TickerKLineHandler().get_history_kl(ticker.code, source if source != None else ticker.source, startDate, endDate)
         if kLineData:
             # 使用格式化后的字符串日期
             strategyData = TickerStrategyHandler().update_ticker_strategy(ticker,kLineData, endDate)
@@ -86,14 +87,18 @@ class DataSourceHelper:
     # 更新指定股票数据
     def update_tickers(self,tickers,days=600):
         total = len(tickers)
+        current_date = datetime.datetime.now()
         for i in range(total):
             ticker = tickers[i]
             UtilsHelper().runProcess(i,total,"update({i}/{total})".format(i=i+1,total=total),"({id}){code}".format(
                 id = ticker.id,
                 code = ticker.code
             ))
-            self.update_ticker(ticker, days)
-            time.sleep(1)
+            kScore = TickerScoreRepository().get_items_by_ticker_id(ticker.id)
+            if kScore != None and len(kScore) > 0 and kScore[0].time_key == current_date.strftime('%Y-%m-%d'):
+                continue
+            self.update_ticker(ticker, days, i % 2 + 1)
+            time.sleep(0.5)
 
     def update_all_tickers(self):
         tickers = TickerRepository().get_all_available()

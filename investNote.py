@@ -1,7 +1,8 @@
 #coding=UTF-8
 import sys
+from core.score.normal_score import NormalScore
 from core.handler import DataSourceHelper
-import datetime
+
 from core.analysis.strategy_evaluator import StrategyEvaluator
 from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
 from core.strategy import DEFAULT_STRATEGIES

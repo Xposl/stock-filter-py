@@ -7,6 +7,7 @@ from .rsi_indicator import RSIIndicator
 from .wmsr_indicator import WMSRIndicator
 from .bull_bear_power_indicator import BullBearPowerIndicator
 from .volume_supertrend_ai_indicator import VolumeSuperTrendAIIndicator
+from .simple_nntrs_indicator import SimpleNNTRSIIndicator
 
 defaultIndicators = [
     SMAIndicator(5),
@@ -27,7 +28,8 @@ defaultIndicators = [
     RSIIndicator(),
     WMSRIndicator(14),
     BullBearPowerIndicator(),
-    VolumeSuperTrendAIIndicator()
+    VolumeSuperTrendAIIndicator(),
+    SimpleNNTRSIIndicator()
 ]
 
 class Indicator:

@@ -9,11 +9,11 @@ class TickerScoreBase(BaseModel):
     """评分基础模型，包含共有字段"""
     ticker_id: int = Field(..., description="股票ID")
     time_key: str = Field(..., description="时间键")
-    ma_buy: int = Field(default=0, description="MA买入信号数")
-    ma_sell: int = Field(default=0, description="MA卖出信号数")
+    ma_buy: float = Field(default=0.0, description="MA买入信号强度")
+    ma_sell: float = Field(default=0.0, description="MA卖出信号强度")
     ma_score: float = Field(default=0.0, description="MA分数")
-    in_buy: int = Field(default=0, description="指标买入信号数")
-    in_sell: int = Field(default=0, description="指标卖出信号数")
+    in_buy: float = Field(default=0.0, description="指标买入信号强度")
+    in_sell: float = Field(default=0.0, description="指标卖出信号强度")
     in_score: float = Field(default=0.0, description="指标分数")
     strategy_buy: int = Field(default=0, description="策略买入信号数")
     strategy_sell: int = Field(default=0, description="策略卖出信号数")
@@ -30,14 +30,14 @@ class TickerScoreCreate(TickerScoreBase):
 class TickerScoreUpdate(BaseModel):
     """用于更新评分的模型，所有字段都是可选的"""
     time_key: Optional[str] = Field(default=None, description="时间键")
-    ma_buy: Optional[int] = Field(default=None, description="MA买入信号数")
-    ma_sell: Optional[int] = Field(default=None, description="MA卖出信号数")
+    ma_buy: Optional[float] = Field(default=None, description="MA买入信号数")
+    ma_sell: Optional[float] = Field(default=None, description="MA卖出信号数")
     ma_score: Optional[float] = Field(default=None, description="MA分数")
-    in_buy: Optional[int] = Field(default=None, description="指标买入信号数")
-    in_sell: Optional[int] = Field(default=None, description="指标卖出信号数")
+    in_buy: Optional[float] = Field(default=None, description="指标买入信号数")
+    in_sell: Optional[float] = Field(default=None, description="指标卖出信号数")
     in_score: Optional[float] = Field(default=None, description="指标分数")
-    strategy_buy: Optional[int] = Field(default=None, description="策略买入信号数")
-    strategy_sell: Optional[int] = Field(default=None, description="策略卖出信号数")
+    strategy_buy: Optional[float] = Field(default=None, description="策略买入信号数")
+    strategy_sell: Optional[float] = Field(default=None, description="策略卖出信号数")
     strategy_score: Optional[float] = Field(default=None, description="策略分数")
     score: Optional[float] = Field(default=None, description="综合分数")
     history: Optional[Union[List[Any], Dict[str, Any]]] = Field(default=None, description="历史数据")
@@ -111,11 +111,11 @@ def dict_to_ticker_score(data: dict) -> TickerScore:
     processed_data['status'] = int(processed_data.get('status', 1) or 1)
     
     # 确保数值字段是正确的类型
-    for float_field in ['ma_score', 'in_score', 'strategy_score', 'score']:
+    for float_field in ['ma_buy', 'ma_sell', 'in_buy', 'in_sell', 'ma_score', 'in_score', 'strategy_score', 'score']:
         if float_field in processed_data and processed_data[float_field] is not None:
             processed_data[float_field] = float(processed_data[float_field])
     
-    for int_field in ['ma_buy', 'ma_sell', 'in_buy', 'in_sell', 'strategy_buy', 'strategy_sell']:
+    for int_field in ['strategy_buy', 'strategy_sell']:
         if int_field in processed_data and processed_data[int_field] is not None:
             processed_data[int_field] = int(processed_data[int_field])
     
