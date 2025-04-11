@@ -117,16 +117,16 @@ class AdvancedBacktestEngine:
             prev_signal = pos_data[i-1] if i > 0 else 0
             
             # 检查是否满足时间止损条件
-            if current_position and self.time_stop_days:
-                days_in_trade = (pd.to_datetime(date) - pd.to_datetime(current_position['entry_date'])).days
-                if days_in_trade >= self.time_stop_days:
-                    # 执行时间止损
-                    self._close_position(result, current_position, holdings, open_price, date, 'time_stop')
-                    current_capital = result['equity_curve'][-1]['capital']
-                    current_position = None
-                    holdings = 0
-                    highest_price = 0
-                    pyramid_level = 0
+            # if current_position and self.time_stop_days:
+            #     days_in_trade = (pd.to_datetime(date) - pd.to_datetime(current_position['entry_date'])).days
+            #     if days_in_trade >= self.time_stop_days:
+            #         # 执行时间止损
+            #         self._close_position(result, current_position, holdings, open_price, date, 'time_stop')
+            #         current_capital = result['equity_curve'][-1]['capital']
+            #         current_position = None
+            #         holdings = 0
+            #         highest_price = 0
+            #         pyramid_level = 0
             
             # 记录是否当天已有交易
             day_traded = False

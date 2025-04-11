@@ -13,6 +13,7 @@ from core.strategy.cci_wma_strategy import CCIWmaStrategy
 from core.strategy.art_dl_strategy import ArtDLStrategy
 from core.analysis.strategy_evaluator import StrategyEvaluator
 from core.handler.ticker_strategy_handler import StrategyCalculator
+from core.strategy.volume_supertrend_ai_strategy import VolumeSuperTrendAIStrategy
 
 def load_test_data(ticker_code):
     """加载测试用的K线数据
@@ -32,7 +33,7 @@ def load_test_data(ticker_code):
         print(f"加载K线数据失败: {e}")
         return []
 
-def compare_backtest_results(ticker_code):
+def compare_backtest_results(ticker_code, strategy_class):
     """比较简化模式与高级模式的回测结果
     
     Args:
@@ -45,7 +46,7 @@ def compare_backtest_results(ticker_code):
         return
     
     # 创建策略对象
-    strategy = ArtDLStrategy()
+    strategy = strategy_class()
     
     # 1. 使用StrategyCalculator进行回测（原始方式）
     print("\n=== 使用原始StrategyCalculator进行回测 ===")
@@ -105,6 +106,7 @@ def compare_backtest_results(ticker_code):
         print(f"交易 {i+1}:")
         print(f"  开始时间: {trade['entry_date']}")
         print(f"  结束时间: {trade['exit_date']}")
+        print(f"  类型: {trade['close_type']}")
         print(f"  方向: {'做多' if trade['direction'] == 1 else '做空'}")
         print(f"  买入价: {trade['entry_price']:.2f}, 卖出价: {trade['exit_price']:.2f}")
         print(f"  数量: {trade['size']}")
@@ -136,4 +138,4 @@ def compare_backtest_results(ticker_code):
 if __name__ == "__main__":
     # 可以使用您的实际股票代码替换
     ticker_code = "SZ.000006"  # 示例代码
-    compare_backtest_results(ticker_code)
+    compare_backtest_results(ticker_code, VolumeSuperTrendAIStrategy)

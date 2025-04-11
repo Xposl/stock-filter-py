@@ -6,6 +6,7 @@ from .kdj_indicator import KDJIndicator
 from .rsi_indicator import RSIIndicator
 from .wmsr_indicator import WMSRIndicator
 from .bull_bear_power_indicator import BullBearPowerIndicator
+from .volume_supertrend_ai_indicator import VolumeSuperTrendAIIndicator
 
 defaultIndicators = [
     SMAIndicator(5),
@@ -25,7 +26,8 @@ defaultIndicators = [
     KDJIndicator(),
     RSIIndicator(),
     WMSRIndicator(14),
-    BullBearPowerIndicator()
+    BullBearPowerIndicator(),
+    VolumeSuperTrendAIIndicator()
 ]
 
 class Indicator:
@@ -76,4 +78,3 @@ class Indicator:
                 break
             result['days'] += 1
         return result
-            
