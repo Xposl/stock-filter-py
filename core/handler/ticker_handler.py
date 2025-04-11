@@ -135,15 +135,6 @@ class TickerHandler:
                                 commit=False
                             )
                             processed_count += 1
-                    elif ticker.get("name") != existing_tickers[code].get("name"):
-                        new_ticker = self.get_ticker_detail(ticker)
-                        if new_ticker:
-                            self.ticker_repository.update(
-                                new_ticker["code"], 
-                                new_ticker["name"], 
-                                new_ticker, 
-                                commit=False
-                            )
 
                     # 每处理batch_size条记录提交一次
                     if (i + 1) % batch_size == 0:

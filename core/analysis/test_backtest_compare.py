@@ -137,5 +137,5 @@ def compare_backtest_results(ticker_code, strategy_class):
 
 if __name__ == "__main__":
     # 可以使用您的实际股票代码替换
-    ticker_code = "SZ.000006"  # 示例代码
+    ticker_code = "SZ.300840"  # 示例代码
     compare_backtest_results(ticker_code, VolumeSuperTrendAIStrategy)

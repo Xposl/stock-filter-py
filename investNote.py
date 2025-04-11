@@ -135,6 +135,16 @@ def analyze_strategies(code, days=250):
         print(f"总收益: {total_profit:,.2f}")
         print(f"收益率: {total_return:.2%}")
         print("-" * 60)
+        
+        # 检查是否有未平仓交易
+        last_equity_point = result['backtest_result']['equity_curve'][-1]
+        if last_equity_point['holdings'] != 0:
+            print("\n注意: 存在未平仓交易!")
+            print(f"持有方向: {'多头' if last_equity_point.get('pyramid_level', 0) > 0 and last_equity_point.get('holding_value', 0) > 0 else '空头'}")
+            print(f"持仓数量: {last_equity_point['holdings']}")
+            print(f"持仓价值: {last_equity_point['holding_value']}")
+            print(f"持仓时间: {last_equity_point['entry_date'].strftime('%Y-%m-%d')}")
+            print("-" * 60)
 
 def update_batch_tickers():
     """批量更新股票数据菜单"""

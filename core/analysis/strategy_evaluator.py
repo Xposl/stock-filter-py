@@ -232,7 +232,7 @@ class StrategyEvaluator:
         
         stability_score = 10 * np.mean(stability_factors)
         
-        # 综合评分 (满分100)
+        # 综合评分 (满分10)
         total_score = 0.4 * performance_score + 0.3 * risk_score + 0.3 * stability_score
         
         return {
@@ -240,7 +240,7 @@ class StrategyEvaluator:
             'risk_score': risk_score,
             'stability_score': stability_score,
             'total_score': total_score,
-            'rating': self._convert_score_to_rating(total_score)
+            'rating': self._convert_score_to_rating(total_score * 10)
         }
     
     def _convert_score_to_rating(self, score):
