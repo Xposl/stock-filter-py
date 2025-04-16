@@ -19,8 +19,8 @@ class TickerAnalysisHandler:
 
     def _setup_chinese_font(self):
         """设置matplotlib支持中文字体"""
-        # 使用系统默认中文字体
-        plt.rcParams['font.family'] = ['Arial Unicode MS', 'SimHei', 'Microsoft YaHei', 'sans-serif']
+        # 使用macOS系统中可用的中文字体
+        plt.rcParams['font.family'] = ['Arial Unicode MS', 'PingFang SC', 'STHeiti', 'Heiti SC', 'sans-serif']
         # 解决负号显示问题
         matplotlib.rcParams['axes.unicode_minus'] = False
 
@@ -61,15 +61,15 @@ class TickerAnalysisHandler:
         
         plt.fill_between(kLine['index'],0,30, facecolor='red',alpha=0.3)
         plt.fill_between(kLine['index'],70,100, facecolor='green',alpha=0.3)
-        plt.axis([kLine['index'][start],kLine['index'][len(kLine)-1]+1,0,100])
+        plt.axis([kLine['index'].iloc[start],kLine['index'].iloc[len(kLine)-1]+1,0,100])
         ax2.grid(True)
 
         plt.title('[{id}]({code}){name}:({price})({score})'.format(
             id = str(ticker.id),
             code = ticker.code,
             name = ticker.name,
-            price = kLine['close'][length-1],
-            score = kFullScore['score'][length - 1]
+            price = kLine['close'].iloc[length-1],
+            score = kFullScore['score'].iloc[length - 1]
         ))
         plt.xticks(rotation=30)
         plt.tight_layout()
@@ -78,6 +78,5 @@ class TickerAnalysisHandler:
         cursor = mplcursors.cursor(lines)
         @cursor.connect("add")
         def on_add(sel):
-            sel.annotation.set_text(kLine['close'][int(sel.index)])
+            sel.annotation.set_text(kLine['close'].iloc[int(sel.index)])
         plt.show()
-
