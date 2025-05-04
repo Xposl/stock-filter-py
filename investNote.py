@@ -1,5 +1,6 @@
 #coding=UTF-8
 import sys
+import os
 from core.score.normal_score import NormalScore
 from core.handler import DataSourceHelper
 
@@ -22,6 +23,7 @@ def print_main_menu():
     print("3. 分时分析股票")
     print("4. 批量更新股票数据")
     print("5. 策略分析")
+    print("6. 查看高评分股票")
     print("0. 退出程序")
     print("-" * 50)
 
@@ -176,7 +178,7 @@ def run_interactive_mode():
     
     while True:
         print_main_menu()
-        choice = input("请输入选择 (0-5): ")
+        choice = input("请输入选择 (0-6): ")
         
         dataSource = DataSourceHelper()
         
@@ -232,6 +234,37 @@ def run_interactive_mode():
                 analyze_strategies(code, days)
             else:
                 print("无效的股票代码")
+        
+        elif choice == "6":
+            from custom.high_score_tickers import print_high_score_tickers
+            score_threshold = input("\n请输入评分阈值 (默认75): ")
+            try:
+                score_threshold = float(score_threshold) if score_threshold.strip() else 75.0
+            except ValueError:
+                score_threshold = 75.0
+            
+            # 询问是否导出到JSON文件
+            export_choice = input("\n是否导出到JSON文件? (y/n, 默认n): ").strip().lower()
+            export_json = export_choice in ('y', 'yes', '1')
+            
+            file_path = None
+            if export_json:
+                # 询问是否使用自定义文件名
+                custom_filename = input("\n使用自定义文件名? (y/n, 默认n): ").strip().lower()
+                if custom_filename in ('y', 'yes', '1'):
+                    filename = input("请输入文件名 (不含路径): ").strip()
+                    if filename:
+                        # 确保output目录存在
+                        os.makedirs("output", exist_ok=True)
+                        file_path = f"output/{filename}"
+                        if not file_path.endswith('.json'):
+                            file_path += '.json'
+            
+            print(f"\n获取评分 >= {score_threshold} 的股票列表...")
+            json_path = print_high_score_tickers(score_threshold, export_json, file_path)
+            
+            if json_path:
+                print(f"数据已导出到: {json_path}")
             
         else:
             print("无效选择，请重新输入")
@@ -242,7 +275,82 @@ def run_command_line_mode():
     """运行命令行模式（保持原有功能）"""
     dataSource = DataSourceHelper()
 
-    if sys.argv[1] == '-ticker':
+    if sys.argv[1] == '-export-hs' or sys.argv[1] == '--export-high-score':
+        # 导入高评分股票模块
+        from custom.high_score_tickers import export_high_score_tickers_to_json
+        
+        # 获取评分阈值参数（如果有）
+        threshold = 75.0
+        output_path = None
+        
+        # 解析命令行参数
+        if len(sys.argv) > 2 and not sys.argv[2].startswith('-'):
+            try:
+                threshold = float(sys.argv[2])
+            except ValueError:
+                print(f"警告：无效的评分阈值 '{sys.argv[2]}'，使用默认值 75.0")
+        
+        # 检查是否指定了输出文件路径
+        for i in range(2, len(sys.argv)):
+            if sys.argv[i] in ('-o', '--output') and i + 1 < len(sys.argv):
+                output_path = sys.argv[i + 1]
+                break
+        
+        print(f"获取评分 >= {threshold} 的股票并导出到JSON...")
+        
+        # 执行导出
+        json_path = export_high_score_tickers_to_json(threshold, output_path)
+        
+        print(f"数据已导出到: {json_path}")
+        print(f"文件大小: {os.path.getsize(json_path) / 1024:.2f} KB")
+
+    elif sys.argv[1] == '-hs' or sys.argv[1] == '--high-score':
+        # 导入高评分股票模块
+        from custom.high_score_tickers import print_high_score_tickers
+        
+        # 获取评分阈值参数（如果有）
+        threshold = 75.0
+        export_json = False
+        file_path = None
+        
+        # 解析命令行参数
+        i = 2
+        while i < len(sys.argv):
+            arg = sys.argv[i]
+            
+            # 解析评分阈值
+            if not arg.startswith('-') and i == 2:
+                try:
+                    threshold = float(arg)
+                except ValueError:
+                    print(f"警告：无效的评分阈值 '{arg}'，使用默认值 75.0")
+                i += 1
+                continue
+            
+            # 解析导出选项
+            if arg in ('-e', '--export'):
+                export_json = True
+                i += 1
+                continue
+            
+            # 解析输出文件路径
+            if arg in ('-o', '--output') and i + 1 < len(sys.argv):
+                file_path = sys.argv[i + 1]
+                # 确保output目录存在
+                os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else "output", exist_ok=True)
+                i += 2
+                continue
+            
+            # 如果参数不匹配任何选项，跳过
+            i += 1
+        
+        print(f"获取评分 >= {threshold} 的股票列表...")
+        json_path = print_high_score_tickers(threshold, export_json, file_path)
+        
+        if json_path:
+            print(f"数据已导出到: {json_path}")
+    
+    elif sys.argv[1] == '-ticker':
         dataSource.update_ticker_list()
 
     elif sys.argv[1] == '-a':
@@ -342,6 +450,13 @@ def print_help():
     print("  -all:                 更新所有股票数据")
     print("  -prefix [前缀]:        更新指定前缀的股票数据")
     print("  -s [市场] [代码] [天数]:  策略分析股票 (市场: zh/hk/us, 天数可选，默认250)")
+    print("  -hs, --high-score [阈值] [-e/--export] [-o/--output 文件路径]: 显示高评分股票")
+    print("                        [阈值]: 评分阈值，可选，默认75")
+    print("                        [-e/--export]: 导出到JSON，可选")
+    print("                        [-o/--output]: 指定导出文件路径，可选") 
+    print("  -export-hs, --export-high-score [阈值] [-o/--output 文件路径]: 将高评分股票导出到JSON")
+    print("                        [阈值]: 评分阈值，可选，默认75")
+    print("                        [-o/--output]: 指定导出文件路径，可选")
     print("  -h, --help:           显示帮助信息")
     print("\n例子:")
     print("  python investNote.py               # 运行交互式菜单")
@@ -350,6 +465,11 @@ def print_help():
     print("  python investNote.py -a hk 00700   # 分析港股00700")
     print("  python investNote.py -a us AAPL    # 分析美股AAPL")
     print("  python investNote.py -ao zh 600000 600  # 分时分析上证股票600000，数据范围600天")
+    print("  python investNote.py -hs 80        # 显示评分大于等于80的股票")
+    print("  python investNote.py -hs 80 -e     # 显示评分大于等于80的股票并导出到JSON")
+    print("  python investNote.py -hs -e -o output/mystocks.json  # 导出评分大于等于75的股票到指定文件")
+    print("  python investNote.py -export-hs 80  # 将评分大于等于80的股票直接导出到JSON")
+    print("  python investNote.py -export-hs -o output/high_stocks.json  # 导出到指定文件")
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
