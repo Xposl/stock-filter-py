@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 项目结构与导航规则
+
+本项目为投资笔记与分析系统，主要目录结构如下：
+
+```
+InvestNote-py/
+├── main.py               # FastAPI 服务入口，启动 API 服务
+├── investNote.py         # 旧版命令行/交互入口（已弃用）
+├── requirements.txt      # 依赖列表
+├── core/                 # 核心功能模块
+│   ├── handler/          # 数据处理与调度（如 DataSourceHelper、K线、策略等）
+│   ├── analysis/         # 回测、策略评估与可视化
+│   ├── strategy/         # 策略实现
+│   ├── indicator/        # 技术指标实现
+│   ├── score/            # 评分体系
+│   ├── filter/           # 股票过滤器
+│   ├── valuation/        # 估值相关
+│   ├── enum/             # 枚举类型
+│   ├── models/           # 数据模型
+│   ├── service/          # 数据库与仓储服务
+│   ├── database/         # 数据库适配与工具
+│   └── utils.py          # 常用工具函数
+├── custom/               # 用户自定义扩展模块
+├── output/               # 结果输出（如 json、报告等）
+├── tools/                # 辅助脚本与工具
+├── api.py                # FastAPI 路由与接口定义
+├── README.md             # 项目说明
+```
+
+## 入口说明
+- 推荐使用 [main.py](mdc:main.py) 启动 FastAPI 服务，API 路由定义见 [api.py](mdc:api.py)。
+- 旧版命令行/交互入口为 [investNote.py](mdc:investNote.py)，包含丰富的分析与批量处理逻辑。
+
+## 核心数据流
+- 数据调度与处理主要通过 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper` 类完成。
+- 分析与可视化由 [core/handler/ticker_analysis_handler.py](mdc:core/handler/ticker_analysis_handler.py) 和 [core/analysis/](mdc:core/analysis) 相关模块实现。
+- 策略、指标、评分、过滤等均有独立子目录，便于扩展。
+
+## 扩展与自定义
+- 用户可在 [custom/](mdc:custom) 目录下添加自定义过滤器、评分、策略等。
+
+## 依赖与环境
+- 依赖见 [requirements.txt](mdc:requirements.txt)。
+- 数据库文件为 `investnote.db`，如需解锁可参考 README。

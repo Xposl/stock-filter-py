@@ -1,0 +1,33 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 后端开发规范
+
+## 1. API 设计
+- 所有 API 路由定义于 [api.py](mdc:api.py)，基于 FastAPI。
+- 主要接口：
+  - `/update/ticker-list`：更新股票列表
+  - `/analysis/ticker`：分析单只股票，支持实时与历史分析
+  - `/update/recommend`：更新推荐股票
+  - `/update/project/{project_id}`：批量更新项目下股票
+- 路由处理函数统一调用 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper` 进行数据调度。
+
+## 2. 模块职责
+- handler 子模块各司其职，严禁跨层直接操作数据库或其他 handler，统一通过 DataSourceHelper 协调。
+- 评分、策略、指标、估值、过滤等均有独立 handler，便于扩展和维护。
+- 数据库操作通过 service 层（如 ticker_repository、ticker_score_repository 等）完成。
+
+## 3. 扩展方式
+- 推荐在 [custom/](mdc:custom) 目录下添加自定义过滤器、评分、策略等，遵循 handler 设计模式。
+- 新增 handler 或 service 时，需在对应 __init__.py 注册导出。
+
+## 4. 部署与运行
+- 推荐使用 `python main.py` 启动 API 服务，支持参数自定义（host、port、reload、workers）。
+- 依赖见 [requirements.txt](mdc:requirements.txt)，需提前安装。
+- 数据库文件为 `investnote.db`，如遇锁定可参考 [README.md](mdc:README.md) 解除。
+
+## 5. 代码风格
+- 统一使用 PEP8 风格，注释清晰，类/函数/参数命名规范。
+- 重要流程、接口、扩展点需有中英文注释。
