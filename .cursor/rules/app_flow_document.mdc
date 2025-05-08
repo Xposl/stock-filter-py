@@ -24,7 +24,7 @@ alwaysApply: false
   4. 结果通过 API 返回，或写入数据库/输出目录。
 
 ## 2. 交互/命令行模式（兼容）
-- 入口：[investNote.py](mdc:investNote.py)
+- 入口：[invest_note.py](mdc:invest_note.py)
 - 支持菜单式交互、批量分析、策略回测等，底层同样依赖 core/handler 及核心分析模块。
 
 ## 数据流与调用链

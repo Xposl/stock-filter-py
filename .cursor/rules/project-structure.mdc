@@ -46,4 +46,3 @@ InvestNote-py/
 
 ## 依赖与环境
 - 依赖见 [requirements.txt](mdc:requirements.txt)。
-- 数据库文件为 `investnote.db`，如需解锁可参考 README。

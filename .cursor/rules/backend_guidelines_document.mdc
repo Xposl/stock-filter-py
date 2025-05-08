@@ -7,11 +7,6 @@ alwaysApply: false
 
 ## 1. API 设计
 - 所有 API 路由定义于 [api.py](mdc:api.py)，基于 FastAPI。
-- 主要接口：
-  - `/update/ticker-list`：更新股票列表
-  - `/analysis/ticker`：分析单只股票，支持实时与历史分析
-  - `/update/recommend`：更新推荐股票
-  - `/update/project/{project_id}`：批量更新项目下股票
 - 路由处理函数统一调用 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper` 进行数据调度。
 
 ## 2. 模块职责
