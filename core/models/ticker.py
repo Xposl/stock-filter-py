@@ -15,7 +15,13 @@ class TickerBase(BaseModel):
     status: Optional[int] = Field(default=1, description="状态")
     is_deleted: Optional[bool] = Field(default=False, description="是否删除")
     remark: Optional[str] = Field(default=None, description="备注信息")
-    
+
+    pe_forecast: Optional[float] = Field(default=None, description="预测市盈率")
+    pettm: Optional[float] = Field(default=None, description="市盈率")
+    pb: Optional[float] = Field(default=None, description="市净率")
+    total_share: Optional[float] = Field(default=None, description="总股本")
+    lot_size: Optional[int] = Field(default=100, description="每手股数")
+
     # K线相关字段
     time_key: Optional[str] = Field(default=None, description="时间键")
     open: Optional[float] = Field(default=None, description="开盘价")
@@ -43,6 +49,7 @@ class TickerUpdate(BaseModel):
     type: Optional[int] = Field(default=None, description="类型")
     source: Optional[int] = Field(default=None, description="数据来源")
     status: Optional[int] = Field(default=None, description="状态")
+    lot_size: Optional[int] = Field(default=None, description="每手股数")
     is_deleted: Optional[bool] = Field(default=None, description="是否删除")
     remark: Optional[str] = Field(default=None, description="备注信息")
     

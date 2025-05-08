@@ -3,6 +3,7 @@
 
 import copy
 import logging
+import os
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
@@ -13,6 +14,11 @@ from core.enum.ticker_group import get_group_id_by_code
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# 获取占位符类型
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
+# SQLite 使用 ? 占位符，其他数据库使用 %s
+PLACEHOLDER = '?' if DB_TYPE == 'sqlite' else '%s'
 
 class TickerRepository:
     """
@@ -43,7 +49,7 @@ class TickerRepository:
             Ticker对象或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE code = ?"
+            sql = f"SELECT * FROM {self.table} WHERE code = {PLACEHOLDER}"
             result = self.db.query_one(sql, (code,))
             if result:
                 return dict_to_ticker(result)
@@ -63,7 +69,7 @@ class TickerRepository:
             Ticker对象或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE code LIKE ?"
+            sql = f"SELECT * FROM {self.table} WHERE code LIKE {PLACEHOLDER}"
             result = self.db.query_one(sql, (f'%{code}%',))
             if result:
                 return dict_to_ticker(result)
@@ -119,7 +125,7 @@ class TickerRepository:
                 sql = f"""
                     SELECT * FROM {self.table} 
                     WHERE is_deleted = 0 
-                    AND (listed_date < ? OR listed_date IS NULL) 
+                    AND (listed_date < {PLACEHOLDER} OR listed_date IS NULL) 
                     AND status = 1 
                     ORDER BY group_id
                 """
@@ -143,7 +149,7 @@ class TickerRepository:
             sql = f"""
                 SELECT * FROM {self.table} 
                 WHERE is_deleted = 0 
-                AND code LIKE ? 
+                AND code LIKE {PLACEHOLDER} 
                 AND status = 1
             """
             results = self.db.query(sql, (f'{start_key}%',))
@@ -176,9 +182,9 @@ class TickerRepository:
                         ELSE t.update_date
                     END AS update_time
                 FROM {self.table} AS t 
-                LEFT JOIN ticker_strategy AS ts ON ts.ticker_id = t.id AND ts.kl_type = ?
-                LEFT JOIN ticker_indicator AS ti ON ti.ticker_id = t.id AND ti.kl_type = ?
-                WHERE t.code = ?
+                LEFT JOIN ticker_strategy AS ts ON ts.ticker_id = t.id AND ts.kl_type = {PLACEHOLDER}
+                LEFT JOIN ticker_indicator AS ti ON ti.ticker_id = t.id AND ti.kl_type = {PLACEHOLDER}
+                WHERE t.code = {PLACEHOLDER}
             """
             result = self.db.query_one(sql, (kl_type, kl_type, code))
             if result and result['update_time']:
@@ -234,12 +240,10 @@ class TickerRepository:
             
             # 构建SQL参数和占位符
             fields = []
-            placeholders = []
             values = []
             
             for key, value in entity.items():
                 fields.append(key)
-                placeholders.append('?')
                 
                 # 处理布尔值
                 if isinstance(value, bool):
@@ -251,7 +255,8 @@ class TickerRepository:
                     values.append(value)
             
             # 构建SQL
-            sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
+            placeholders = ','.join([PLACEHOLDER] * len(fields))
+            sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({placeholders})"
             
             # 执行SQL
             self.db.execute(sql, tuple(values))
@@ -316,7 +321,7 @@ class TickerRepository:
             values = []
             
             for key, value in filtered_entity.items():
-                set_clauses.append(f"{key} = ?")
+                set_clauses.append(f"{key} = {PLACEHOLDER}")
                 
                 # 处理布尔值
                 if isinstance(value, bool):
@@ -331,7 +336,7 @@ class TickerRepository:
             values.append(code)
             
             # 构建SQL
-            sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE code = ?"
+            sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE code = {PLACEHOLDER}"
             
             # 执行SQL并提交
             self.db.execute(sql, tuple(values))
@@ -384,7 +389,7 @@ class TickerRepository:
             是否成功删除
         """
         try:
-            sql = f"DELETE FROM {self.table} WHERE id = ?"
+            sql = f"DELETE FROM {self.table} WHERE id = {PLACEHOLDER}"
             self.db.execute(sql, (id,))
             self.db.commit()
             return True

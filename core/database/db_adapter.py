@@ -17,13 +17,17 @@ class DbAdapter:
         """
         初始化数据库适配器
         """
-        # 默认使用SQLite，除非环境变量明确指定使用PostgreSQL
+        # 默认使用SQLite，除非环境变量明确指定使用PostgreSQL或MySQL
         db_type = os.getenv('DB_TYPE', 'sqlite').lower()
         
         if db_type == 'postgres' or db_type == 'postgresql':
             # 使用PostgreSQL
             from .db_helper import DbHelper
             self.db = DbHelper()
+        elif db_type == 'mysql':
+            # 使用MySQL
+            from .mysql_helper import MysqlHelper
+            self.db = MysqlHelper()
         else:
             # 使用SQLite
             from .sqlite_helper import SqliteHelper

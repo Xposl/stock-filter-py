@@ -5,6 +5,7 @@ import datetime
 import pandas as pd
 import asyncio
 import urllib.request
+import ssl
 from pyppeteer import launch
 
 from core.enum.ticker_type import TickerType
@@ -77,6 +78,9 @@ class Xueqiu:
         try:
             from http.cookiejar import CookieJar
             
+            # 创建一个不验证证书的SSL上下文
+            context = ssl._create_unverified_context()
+            
             cookie = CookieJar()
             handler = urllib.request.HTTPCookieProcessor(cookie)
             opener = urllib.request.build_opener(handler)
@@ -84,7 +88,9 @@ class Xueqiu:
                 ('Host','xueqiu.com'),
                 ('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'),
             ]
-            opener.open('https://xueqiu.com/')
+            
+            # 使用SSL上下文打开URL
+            opener.open('https://xueqiu.com/', context=context)
             
             for item in cookie:
                 if item.name == 'xqat':
@@ -148,8 +154,11 @@ class Xueqiu:
         }
         
         try:
+            # 创建一个不验证证书的SSL上下文（注意：在生产环境中不推荐这么做）
+            context = ssl._create_unverified_context()
+            
             r = urllib.request.Request(url, headers=headers)
-            response = urllib.request.urlopen(r)
+            response = urllib.request.urlopen(r, context=context)
             return gzip.decompress(response.read()).decode('utf-8')
         except Exception as e:
             # 如果请求失败且允许重试，则尝试重新获取token并重试

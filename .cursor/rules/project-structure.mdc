@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # 项目结构与导航规则
 
@@ -10,7 +10,7 @@ alwaysApply: false
 ```
 InvestNote-py/
 ├── main.py               # FastAPI 服务入口，启动 API 服务
-├── investNote.py         # 旧版命令行/交互入口（已弃用）
+├── invest_note.py         # 旧版命令行/交互入口
 ├── requirements.txt      # 依赖列表
 ├── core/                 # 核心功能模块
 │   ├── handler/          # 数据处理与调度（如 DataSourceHelper、K线、策略等）
@@ -34,7 +34,7 @@ InvestNote-py/
 
 ## 入口说明
 - 推荐使用 [main.py](mdc:main.py) 启动 FastAPI 服务，API 路由定义见 [api.py](mdc:api.py)。
-- 旧版命令行/交互入口为 [investNote.py](mdc:investNote.py)，包含丰富的分析与批量处理逻辑。
+- 旧版命令行/交互入口为 [invest_note.py](mdc:invest_note.py)，包含丰富的分析与批量处理逻辑。
 
 ## 核心数据流
 - 数据调度与处理主要通过 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper` 类完成。

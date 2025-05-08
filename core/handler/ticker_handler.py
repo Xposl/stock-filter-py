@@ -3,7 +3,7 @@
 """
 import datetime
 import logging
-from time import time
+from time import time, sleep
 
 from .data_sources.xueqiu_api import Xueqiu
 from core.utils import UtilsHelper
@@ -80,12 +80,10 @@ class TickerHandler:
                 "is_deleted", "time_key", "open", "close", "high", "low", 
                 "volume", "turnover", "turnover_rate", "update_date", 
                 "listed_date", "pe_forecast", "pettm", "pb", "total_share",
-                "lot_size", "modify_time", "remark"
+                "lot_size", "remark"
             ]
             
             filtered_ticker = {k: v for k, v in new_ticker.items() if k in allowed_fields}
-            
-            filtered_ticker["modify_time"] = datetime.datetime.now().strftime("%Y-%m-%d")
             filtered_ticker["source"] = ticker_info.get("source", 1)
                 
             return filtered_ticker
@@ -140,7 +138,7 @@ class TickerHandler:
                     if (i + 1) % batch_size == 0:
                         try:
                             db_adapter.commit()
-                            time.sleep(0.1)  # 短暂暂停
+                            sleep(0.1)  # 短暂暂停
                         except Exception as e:
                             logger.error(f"提交批量数据出错: {str(e)}")
                             db_adapter.rollback()
