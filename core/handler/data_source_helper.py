@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 import akshare as ak
 from core.enum.ticker_type import TickerType
 
@@ -6,6 +7,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
+from core.models.ticker import Ticker
 from core.service.ticker_score_repository import TickerScoreRepository
 from core.utils import UtilsHelper
 
@@ -32,22 +34,40 @@ class DataSourceHelper:
     scoreRule = None
     filterRulle = None
 
-    def set_strategies(self,strategies):
+    def set_strategies(self,strategies: Optional[list]=None):
+        """
+        设置策略
+        """
         self.strategies = strategies
 
-    def set_indicators(self,indicators):
+    def set_indicators(self,indicators: Optional[list]=None):
+        """
+        设置指标
+        """
         self.indicators = indicators
 
-    def set_score_rule(self,scoreRule):
+    def set_score_rule(self,scoreRule: Optional[list]=None):
+        """
+        设置评分规则
+        """
         self.scoreRule = scoreRule
     
-    def set_filter_rule(self,filterRulle):
+    def set_filter_rule(self,filterRulle: Optional[list]=None):
+        """
+        设置过滤规则
+        """
         self.filterRulle = filterRulle
 
-    def set_valuations(self,valuations):
+    def set_valuations(self,valuations: Optional[list]=None):
+        """
+        设置估值规则
+        """
         self.valuations = valuations
 
     def _get_end_date(self):
+        """
+        获取最后交易日
+        """
         # A股最后交易日
         try:
             stock_sse_summary_df = ak.stock_sse_summary()
@@ -61,7 +81,7 @@ class DataSourceHelper:
             print("获取失败")
             return datetime.datetime.now()
         
-    def _calc_start_end_date(self,days=600):
+    def _calc_start_end_date(self,days: Optional[int]=600):
         """
         计算开始和结束日期
         :param days: 天数
@@ -71,28 +91,8 @@ class DataSourceHelper:
         startDate = (datetime.datetime.strptime(endDate, '%Y-%m-%d') - relativedelta(days=days)).strftime('%Y-%m-%d')
         return startDate, endDate
 
-
-    ## 更新股票列表
-    def update_ticker_list(self):
-        """
-        更新股票列表
-        """
-        TickerHandler().update_tickers()
-
-    def get_kline_data(self,code,days=600):
-        """
-        获取指定股票的K线数据
-        """
-        ticker = TickerRepository().get_by_code(code)
-        if ticker is None:
-            print("未找到目标数据")
-            return
-        # 统一获取和格式化日期
-        startDate, endDate = self._calc_start_end_date(days)
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
-        return kLineData
     
-    def _get_on_time_kline_data(self,ticker,days=600):
+    def _get_on_time_kline_data(self,ticker: Ticker, days: Optional[int]=600):
         """
         获取指定股票的K线数据
         """
@@ -118,7 +118,7 @@ class DataSourceHelper:
                 kLineData[len(kLineData) - 1] = onTimeData
         return time_key, kLineData
 
-    def _update_ticker_data(self,ticker, endDate, kLineData):
+    def _update_ticker_data(self,ticker: Ticker, endDate: str, kLineData: Optional[list]=None):
         """
         更新指定股票的分析数据
         """
@@ -130,16 +130,20 @@ class DataSourceHelper:
             scoreData = TickerScoreHandler(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
         return ticker,kLineData,scoreData
 
-    # 分析项目数据
-    def _update_ticker(self,ticker,days=600, source=None):
+    def _update_ticker(self,ticker: Ticker,days: Optional[int]=600, source: Optional[int]=None):
+        """
+        更新指定股票数据
+        """
         # 统一获取和格式化日期
         startDate, endDate = self._calc_start_end_date(days)
         kLineData = TickerKLineHandler().get_history_kl(ticker.code, source if source != None else ticker.source, startDate, endDate)
         return self._update_ticker_data(ticker, endDate, kLineData)
 
 
-    # 更新指定股票数据
-    def update_tickers(self,tickers,days=600):
+    def _update_tickers(self,tickers: Optional[list]=None,days: Optional[int]=600):
+        """
+        更新指定股票数据
+        """
         total = len(tickers)
         end_date = self._get_end_date()
         for i in range(total):
@@ -158,28 +162,72 @@ class DataSourceHelper:
                 print("更新数据失败[{id}]{code} {error}".format(id=ticker.id,code=ticker.code,error=str(e)))
             time.sleep(1)
 
-    def update_all_tickers(self):
-        tickers = TickerRepository().get_all_available()
-        self.update_tickers(tickers)
+    def get_ticker_code(self,market: str,ticker_code: str):
+        """
+        计算股票代码
+        :param market: 市场
+        :param ticker_code: 股票代码
+        :return: 股票代码
+        """
+        code = None
+        if market == "hk":
+            code = f"HK.{ticker_code.zfill(5)}"
+        elif market == "zh":
+            code = ticker_code.zfill(6)
+            if code.startswith('0') or code.startswith('3'):
+                code = f"SZ.{code}"
+            elif code.startswith('6') or code.startswith('7') or code.startswith('9'):
+                code = f"SH.{code}"
+        elif market == "us":
+            code = f"US.{ticker_code}"
+        
+        return code
 
-    # 根据更新startKey开头的数据
-    def update_tickers_start_with(self,startKey):
-        print('更新'+startKey+'开头的项目的数据')
-        tickers = TickerRepository().get_all_available_start_with(startKey)
-        self.update_tickers(tickers)
+    def update_ticker_list(self):
+        """
+        更新股票列表
+        """
+        TickerHandler().update_tickers()
 
-    # 分析项目数据
-    def analysis_ticker(self,code,days=250):
+    def get_kline_data(self,code: str,days: Optional[int]=600):
+        """
+        获取指定股票的K线数据
+        """
         ticker = TickerRepository().get_by_code(code)
         if ticker is None:
             print("未找到目标数据")
             return
-        
-        ticker,kLineData,scoreData = self._update_ticker(ticker,days)
-        TickerAnalysisHandler().run(ticker,kLineData,scoreData)
+        # 统一获取和格式化日期
+        startDate, endDate = self._calc_start_end_date(days)
+        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        return kLineData
+    
+    def update_all_tickers(self):
+        """
+        更新所有股票数据
+        """
+        tickers = TickerRepository().get_all_available()
+        self._update_tickers(tickers)
 
-    # 分析即时项目数据
-    def get_ticker_on_time_data(self,code,days=250,kLineData=None):
+    def update_tickers_start_with(self,startKey):
+        """
+        更新startKey开头的数据
+        """
+        print('更新'+startKey+'开头的项目的数据')
+        tickers = TickerRepository().get_all_available_start_with(startKey)
+        self._update_tickers(tickers)
+
+    def get_ticker_data(self, code: str, days: Optional[int]=600) -> Optional[tuple]:
+        """
+        获取指定股票数据
+        """
+        ticker = TickerRepository().get_by_code(code)
+        return self._update_ticker(ticker,days)
+    
+    def get_ticker_data_on_time(self,code: str,days: Optional[int]=600) -> Optional[tuple]:
+        """
+        获取即时项目数据
+        """
         ticker = TickerRepository().get_by_code(code)
         if ticker is None:
             print("未找到目标数据")
@@ -191,8 +239,24 @@ class DataSourceHelper:
         indicatorData = TickerIndicatorHandler(time_key).calculate(kLineData)
         scoreData = TickerScoreHandler(self.scoreRule).calculate(ticker,kLineData,strategyData,indicatorData,None)
         return ticker,kLineData,scoreData
+
+    def analysis_ticker(self,code: str,days: Optional[int]=600):
+        """
+        分析项目数据
+        """
+        ticker = TickerRepository().get_by_code(code)
+        if ticker is None:
+            print("未找到目标数据")
+            return
+        
+        ticker,kLineData,scoreData = self._update_ticker(ticker,days)
+        TickerAnalysisHandler().run(ticker,kLineData,scoreData)
+
     
-    def analysis_ticker_on_time(self,code,days=250,kLineData=None): 
+    def analysis_ticker_on_time(self,code: str,days: Optional[int]=600,kLineData=None): 
+        """
+        分析即时项目数据
+        """
         ticker,kLineData,scoreData = self.get_ticker_on_time_data(code,days,kLineData)
         TickerAnalysisHandler().run(ticker,kLineData,scoreData)
 

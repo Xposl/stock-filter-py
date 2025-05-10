@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 from typing import List, Dict, Any, Optional
 
 from core.database.db_adapter import DbAdapter
@@ -16,6 +17,10 @@ from core.models.ticker_score import (
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# 获取占位符类型
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
+PLACEHOLDER = '?' if DB_TYPE == 'sqlite' else '%s'
 
 class TickerScoreRepository:
     """
@@ -45,7 +50,7 @@ class TickerScoreRepository:
             评分记录列表
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = ? ORDER BY time_key DESC"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} ORDER BY time_key DESC"
             results = self.db.query(sql, (ticker_id,))
             return [dict_to_ticker_score(item) for item in results]
         except Exception as e:
@@ -62,7 +67,7 @@ class TickerScoreRepository:
             None
         """
         try:
-            sql = f"DELETE FROM {self.table} WHERE ticker_id = ?"
+            sql = f"DELETE FROM {self.table} WHERE ticker_id = {PLACEHOLDER}"
             self.db.execute(sql, (ticker_id,))
             self.db.commit()
         except Exception as e:
@@ -90,7 +95,7 @@ class TickerScoreRepository:
             
             for key, value in db_data.items():
                 fields.append(key)
-                placeholders.append('?')
+                placeholders.append(PLACEHOLDER)
                 values.append(value)
             
             # 构建SQL
@@ -147,7 +152,7 @@ class TickerScoreRepository:
             first_dict = ticker_score_to_dict(first_item)
             
             fields = list(first_dict.keys())
-            placeholders = ', '.join(['?'] * len(fields))
+            placeholders = ', '.join([PLACEHOLDER] * len(fields))
             field_str = ', '.join(fields)
             
             # 构建批量插入VALUES部分

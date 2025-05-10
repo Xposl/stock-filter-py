@@ -5,6 +5,8 @@
 TickerScore处理程序 - 负责股票评分计算和数据库更新
 """
 
+from typing import Optional
+from core.models.ticker import Ticker
 from core.score import Score
 from core.service.ticker_score_repository import TickerScoreRepository
 
@@ -14,7 +16,7 @@ class TickerScoreHandler:
     """
     rule = None
     
-    def __init__(self, rule=None):
+    def __init__(self, rule: Optional[list]=None):
         """
         初始化TickerScore
         
@@ -24,7 +26,7 @@ class TickerScoreHandler:
         if rule is not None:
             self.rule = rule
     
-    def calculate(self, ticker, kLineData, strategyData, indicatorData, valuationData):
+    def calculate(self, ticker: Ticker, kLineData: Optional[list]=None, strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
         """
         计算股票评分
         

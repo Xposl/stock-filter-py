@@ -10,7 +10,7 @@ alwaysApply: true
 ```
 InvestNote-py/
 ├── main.py               # FastAPI 服务入口，启动 API 服务
-├── invest_note.py         # 旧版命令行/交互入口
+├── invest_note.py        # 旧版命令行/交互入口
 ├── requirements.txt      # 依赖列表
 ├── core/                 # 核心功能模块
 │   ├── handler/          # 数据处理与调度（如 DataSourceHelper、K线、策略等）
@@ -28,6 +28,7 @@ InvestNote-py/
 ├── custom/               # 用户自定义扩展模块
 ├── output/               # 结果输出（如 json、报告等）
 ├── tools/                # 辅助脚本与工具
+├── sql/                  # 相关sql脚本
 ├── api.py                # FastAPI 路由与接口定义
 ├── README.md             # 项目说明
 ```

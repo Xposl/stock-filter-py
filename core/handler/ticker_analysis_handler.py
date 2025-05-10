@@ -1,3 +1,4 @@
+from typing import Optional
 import pandas as pd
 import mplfinance as mpf
 import matplotlib.pyplot as plt
@@ -6,13 +7,17 @@ import mplcursors
 from matplotlib.font_manager import FontProperties
 import matplotlib
 
+from core.models.ticker import Ticker
 from core.utils import UtilsHelper
 
 class TickerAnalysisHandler:
     source = []
     days = 300
 
-    def __init__(self,days = None):
+    def __init__(self,days: Optional[int]=None):
+        """
+        初始化
+        """
         if days is not None:
             self.days = days
         self._setup_chinese_font()
@@ -24,7 +29,7 @@ class TickerAnalysisHandler:
         # 解决负号显示问题
         matplotlib.rcParams['axes.unicode_minus'] = False
 
-    def run(self,ticker,kLineData,scoreData):
+    def run(self,ticker: Ticker,kLineData: Optional[list]=None,scoreData: Optional[list]=None):
         if ticker is None or ticker.is_deleted == 1 or ticker.status == 0:
             raise Exception('项目已经删除或不生效[{id}]{code}'.format(id=ticker.id,code=ticker.code))
 

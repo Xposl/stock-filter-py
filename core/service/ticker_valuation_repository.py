@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 from typing import List, Dict, Any, Optional
 
 from core.database.db_adapter import DbAdapter
@@ -16,6 +17,10 @@ from core.models.ticker_valuation import (
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# 获取占位符类型
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
+PLACEHOLDER = '?' if DB_TYPE == 'sqlite' else '%s'
 
 class TickerValuationRepository:
     """
@@ -45,7 +50,7 @@ class TickerValuationRepository:
             估值记录列表
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = ?"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER}"
             results = self.db.query(sql, (ticker_id,))
             return [dict_to_ticker_valuation(item) for item in results]
         except Exception as e:
@@ -62,7 +67,7 @@ class TickerValuationRepository:
             时间字符串
         """
         try:
-            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = ?"
+            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id,))
             return result['time'] if result and 'time' in result else None
         except Exception as e:
@@ -80,7 +85,7 @@ class TickerValuationRepository:
             估值记录或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = ? AND valuation_key = ?"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND valuation_key = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, valuation_key))
             return dict_to_ticker_valuation(result) if result else None
         except Exception as e:
@@ -128,7 +133,7 @@ class TickerValuationRepository:
                 
                 for key, value in db_data.items():
                     fields.append(key)
-                    placeholders.append('?')
+                    placeholders.append(PLACEHOLDER)
                     values.append(value)
                 
                 # 构建SQL
@@ -166,14 +171,14 @@ class TickerValuationRepository:
                 values = []
                 
                 for key, value in filtered_data.items():
-                    set_clauses.append(f"{key} = ?")
+                    set_clauses.append(f"{key} = {PLACEHOLDER}")
                     values.append(value)
                 
                 # 添加条件参数
                 values.extend([ticker_id, valuation_key])
                 
                 # 构建SQL
-                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = ? AND valuation_key = ?"
+                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND valuation_key = {PLACEHOLDER}"
                 
                 # 执行SQL
                 self.db.execute(sql, tuple(values))

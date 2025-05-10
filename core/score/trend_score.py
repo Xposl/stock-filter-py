@@ -1,7 +1,10 @@
+from typing import Optional
 from core.indicator import Indicator as Helper
 from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
+
+from core.models.ticker import Ticker
 
 class TrendScore:
     """
@@ -21,7 +24,7 @@ class TrendScore:
         self.min_data_points = 30  # 最小数据点数，用于Z分数计算
         self.time_decay_window = 10  # 时间衰减应用窗口（最近N天的信号权重更高）
 
-    def calculate(self, ticker, kLineData, strategyData, indicatorData, valuationData):
+    def calculate(self, ticker: Ticker, kLineData: Optional[list]=None, strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
         """
         计算趋势增强型评分
         
@@ -202,7 +205,7 @@ class TrendScore:
         
         return result
     
-    def _calculate_indicator_weights(self, indicator_data, kLineData):
+    def _calculate_indicator_weights(self, indicator_data: Optional[list]=None, kLineData: Optional[list]=None):
         """
         计算每个指标的权重，基于其历史准确率或特性
         
@@ -264,7 +267,7 @@ class TrendScore:
         
         return decayed_signals
     
-    def _calculate_trend_factors(self, kLineData):
+    def _calculate_trend_factors(self, kLineData: Optional[list]=None):
         """
         计算趋势强度和持续性
         
@@ -356,7 +359,7 @@ class TrendScore:
         
         return factors
     
-    def _calculate_enhanced_strategy_factor(self, data_point):
+    def _calculate_enhanced_strategy_factor(self, data_point: dict):
         """
         增强的策略影响因子计算
         

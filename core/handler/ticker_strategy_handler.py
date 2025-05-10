@@ -1,3 +1,6 @@
+from typing import Optional
+from core.models.ticker import Ticker
+from core.models.ticker_strategy import TickerStrategy
 from core.utils import UtilsHelper
 import math
 from core.enum.ticker_k_type import TickerKType
@@ -35,7 +38,7 @@ class StrategyCalculator:
             result[item.get_key()] = res
         return result
 
-    def calculate_by_key(self, strategy_key, kl_data):
+    def calculate_by_key(self, strategy_key: str, kl_data: Optional[list]=None):
         """根据策略键名计算策略结果
 
         Args:
@@ -49,7 +52,7 @@ class StrategyCalculator:
             raise Exception('error，找不到策略', strategy_key)
         return self.calculate_strategy(self.group_map[strategy_key], kl_data)
 
-    def calculate_strategy(self, strategy_obj, kl_data):
+    def calculate_strategy(self, strategy_obj: TickerStrategy, kl_data: Optional[list]=None):
         """计算单个策略的交易结果
 
         Args:
@@ -191,13 +194,22 @@ class TickerStrategyHandler:
     updateTime = ''
     strategies = None
 
-    def __init__(self,strategies = None):
+    def __init__(self,strategies: Optional[list]=None):
+        """
+        初始化
+        """
         self.strategies = strategies if strategies is not None else DEFAULT_STRATEGIES
 
-    def calculate(self,kl_data):
+    def calculate(self,kl_data: Optional[list]=None):
+        """
+        计算策略
+        """
         return StrategyCalculator(self.strategies).calculate(kl_data)
 
-    def update_ticker_strategy(self,ticker,kl_data, updateTime):
+    def update_ticker_strategy(self,ticker: Ticker,kl_data: Optional[list]=None, updateTime: str=None):
+        """
+        更新策略
+        """
         print('更新策略',ticker.code)
         length = len(kl_data)
         if length == 0:

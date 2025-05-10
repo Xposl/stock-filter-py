@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 from typing import List, Dict, Any, Optional
 
 from core.database.db_adapter import DbAdapter
@@ -17,6 +18,10 @@ from core.models.ticker_indicator import (
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# 获取占位符类型
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
+PLACEHOLDER = '?' if DB_TYPE == 'sqlite' else '%s'
 
 class TickerIndicatorRepository:
     """
@@ -51,7 +56,7 @@ class TickerIndicatorRepository:
         """
         try:
             # 使用指标键名，不再需要联表查询
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = ? and kl_type = ?"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} and kl_type = {PLACEHOLDER}"
             results = self.db.query(sql, (ticker_id, kl_type))
             return [dict_to_ticker_indicator(item) for item in results]
         except Exception as e:
@@ -69,7 +74,7 @@ class TickerIndicatorRepository:
             时间字符串
         """
         try:
-            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = ? AND kl_type = ?"
+            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, kl_type))
             return result['time'] if result and 'time' in result else None
         except Exception as e:
@@ -88,7 +93,7 @@ class TickerIndicatorRepository:
             指标记录或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = ? AND indicator_key = ? AND kl_type = ?"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, indicator_key, kl_type))
             return dict_to_ticker_indicator(result) if result else None
         except Exception as e:
@@ -137,7 +142,7 @@ class TickerIndicatorRepository:
                 
                 for key, value in db_data.items():
                     fields.append(key)
-                    placeholders.append('?')
+                    placeholders.append(PLACEHOLDER)
                     values.append(value)
                 
                 # 构建SQL
@@ -172,14 +177,14 @@ class TickerIndicatorRepository:
                 values = []
                 
                 for key, value in filtered_data.items():
-                    set_clauses.append(f"{key} = ?")
+                    set_clauses.append(f"{key} = {PLACEHOLDER}")
                     values.append(value)
                 
                 # 添加条件参数
                 values.extend([ticker_id, indicator_key, kl_type])
                 
                 # 构建SQL
-                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = ? AND indicator_key = ? AND kl_type = ?"
+                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
                 
                 # 执行SQL
                 self.db.execute(sql, tuple(values))

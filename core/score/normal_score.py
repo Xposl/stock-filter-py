@@ -1,11 +1,17 @@
+from typing import Optional
 from core.indicator import Indicator as Helper
 from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
 
+from core.models.ticker import Ticker
+
 class NormalScore:
 
-    def calculate(self,ticker,kLineData,strategyData,indicatorData,valuationData):
+    def calculate(self,ticker: Ticker,kLineData: Optional[list]=None,strategyData: Optional[list]=None,indicatorData: Optional[list]=None,valuationData: Optional[list]=None):
+        """
+        计算普通评分
+        """
         tickerId = ticker.id
         length = len(kLineData)
         if length == 0:

@@ -1,3 +1,4 @@
+from typing import Any, Dict, Optional
 from core.enum.indicator_group import IndicatorGroup
 from core.utils import UtilsHelper
 
@@ -5,13 +6,16 @@ class BullBearPowerIndicator:
     dayCount = 50
     atrDay = 5
 
-    def getKey(self):
+    def getKey(self) -> str:
         return 'BUll_BEAR_POWER_indicator'
 
-    def getGroup(self):
+    def getGroup(self) -> IndicatorGroup:
         return IndicatorGroup.POWER
     
-    def calculate(self,klData):
+    def calculate(self,klData: Optional[list]=None) -> Dict[str, Any]:
+        """
+        计算指标
+        """
         length = len(klData)
         closeData = []
         highData = []

@@ -1,4 +1,5 @@
 
+from typing import Optional
 from .ticker_k_line_handler import TickerKLineHandler
 
 from core.enum.ticker_k_type import TickerKType
@@ -10,13 +11,19 @@ from dateutil.relativedelta import relativedelta
 class TickerFilterHandler:
     rule = None
 
-    def __init__(self,rule = None):
+    def __init__(self,rule: Optional[list]=None):
+        """
+        初始化
+        """
         if rule is not None:
             self.rule = rule
         self.endDate = datetime.date.today().strftime('%Y-%m-%d')
         self.startDate = (datetime.date.today() - relativedelta(years=3)).strftime('%Y-%m-%d')
 
-    def run(self,tickers):
+    def run(self,tickers: Optional[list]=None):
+        """
+        运行
+        """
         result = []
         total = len(tickers)
         for i in range(total):

@@ -56,7 +56,7 @@ class DongcaiKLineSource(KLineDataSource):
             'turnover_rate': data['换手率'][index]
         }
 
-    def convert_on_time_data(self, data, index):
+    def convert_on_time_data(self, data: Any, index: int) -> Dict[str, Any]:
         """转换实时数据为统一格式
         
         Args:
@@ -77,7 +77,7 @@ class DongcaiKLineSource(KLineDataSource):
             'turnover_rate': 0
         }
 
-    def convert_us_on_time_data(self, data, index):
+    def convert_us_on_time_data(self, data: Any, index: int) -> Dict[str, Any]:
         """转换美股实时数据为统一格式
         
         Args:
@@ -98,7 +98,7 @@ class DongcaiKLineSource(KLineDataSource):
             'turnover_rate': 0
         }
 
-    def get_zh_on_time_data(self):
+    def get_zh_on_time_data(self) -> Optional[Dict[str, Any]]:
         """获取中国A股实时数据"""
         tickers = ak.stock_zh_a_spot_em()
         for i in range(len(tickers)):
@@ -111,7 +111,7 @@ class DongcaiKLineSource(KLineDataSource):
                 return self.convert_on_time_data(tickers, i)
         return None
 
-    def get_hk_on_time_data(self):
+    def get_hk_on_time_data(self) -> Optional[Dict[str, Any]]:
         """获取港股实时数据"""
         tickers = ak.stock_hk_spot_em()
         for i in range(len(tickers)):
@@ -120,7 +120,7 @@ class DongcaiKLineSource(KLineDataSource):
                 return self.convert_on_time_data(tickers, i)
         return None
 
-    def get_us_on_time_data(self):
+    def get_us_on_time_data(self) -> Optional[Dict[str, Any]]:
         """获取美股实时数据"""
         tickers = ak.stock_us_spot_em()
         for i in range(len(tickers)):

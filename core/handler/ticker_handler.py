@@ -40,7 +40,7 @@ class TickerHandler:
         return data
 
     @retry_on_exception(max_retries=3, delay=5, backoff=2)
-    def update_ticker_detail(self, code, name):
+    def update_ticker_detail(self, code: str, name: str):
         """更新单个股票详情
         
         Args:
@@ -59,7 +59,7 @@ class TickerHandler:
             logger.error(f"获取股票详情出错 ({code}): {str(e)}")
             raise
 
-    def get_ticker_detail(self, ticker_info):
+    def get_ticker_detail(self, ticker_info: dict):
         """获取股票详情
         
         Args:

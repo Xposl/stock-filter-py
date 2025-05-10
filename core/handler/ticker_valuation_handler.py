@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from core.service.ticker_valuation_repository import TickerValuationRepository
 from core.valuation import Valuation
 
@@ -9,7 +9,7 @@ class TickerValuationHandler:
     updateTime = ''
     valuations = None
 
-    def __init__(self, updateTime: str, valuations=None):
+    def __init__(self, updateTime: str, valuations: Optional[list]=None):
         """
         初始化TickerValuation处理类
         
@@ -22,7 +22,7 @@ class TickerValuationHandler:
         if valuations is not None:
             self.valuations = valuations
 
-    def calculate(self, ticker: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate(self, ticker: Optional[Dict[str, Any]]=None) -> Dict[str, Any]:
         """
         计算股票的估值
         
@@ -34,7 +34,7 @@ class TickerValuationHandler:
         """
         return Valuation(self.updateTime, self.valuations).calculate(ticker)
 
-    def update_ticker_valuation(self, ticker) -> Dict[str, Any]:
+    def update_ticker_valuation(self, ticker: Optional[Dict[str, Any]]=None) -> Dict[str, Any]:
         """
         更新股票估值并保存到数据库
         

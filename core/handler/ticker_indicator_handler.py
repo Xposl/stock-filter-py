@@ -1,4 +1,6 @@
+from typing import Optional
 from core.enum.ticker_k_type import TickerKType
+from core.models.ticker import Ticker
 from core.service.ticker_indicator_repository import TickerIndicatorRepository
 
 from core.indicator import Indicator
@@ -7,15 +9,21 @@ class TickerIndicatorHandler:
     updateTime = ''
     indicators = None
 
-    def __init__(self,updateTime,indicators = None):
+    def __init__(self,updateTime: str,indicators: Optional[list]=None):
         self.updateTime = updateTime
         if indicators is not None:
             self.indicators = indicators
 
-    def calculate(self,kLineData):
+    def calculate(self,kLineData: Optional[list]=None):
+        """
+        计算指标
+        """
         return Indicator(self.indicators).calculate(kLineData)
 
-    def update_ticker_indicator(self,ticker,kLineData):
+    def update_ticker_indicator(self,ticker: Ticker,kLineData: Optional[list]=None):
+        """
+        更新指标
+        """
         length = len(kLineData)
         if length == 0:
             print('无数据')

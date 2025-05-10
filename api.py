@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from core.handler.data_source_helper import DataSourceHelper
-import datetime
 
 app = FastAPI(title="InvestNote API")
 dataSource = DataSourceHelper()
@@ -24,11 +23,16 @@ async def root():
 
 
 
-@app.post("/update/project/{project_id}")
-async def update_project(project_id: int, start_key: Optional[str] = None):
+@app.get("/ticker/{market}/{ticker_code}")
+async def get_ticker_data(market: str, ticker_code: str, days: Optional[int] = 600):
     try:
-        tickers = dataSource.getProjectTickers(project_id, start_key)
-        dataSource.updateTickers(tickers)
-        return {"status": "success", "tickers": tickers}
+        code = dataSource.get_ticker_code(market,ticker_code)
+        ticker,kLineData,scoreData = dataSource.get_ticker_data(market,code,days)
+        return {
+            "status": "success", 
+            "ticker": ticker,
+            "kLineData": kLineData,
+            "scoreData": scoreData
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
