@@ -16,7 +16,7 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # 导入高评分股票模块
-from custom.high_score_tickers import export_high_score_tickers_to_json
+from tools.high_score_tickers import export_high_score_tickers_to_json
 
 def main():
     """

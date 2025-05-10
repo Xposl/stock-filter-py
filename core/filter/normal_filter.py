@@ -1,7 +1,7 @@
 import pandas as pd
 
 from core.enum.ticker_type import TickerType
-from core.libs.utils import UtilsHelper
+from ..utils.utils import UtilsHelper
 from core.service.ticker_score_repository import TickerScoreRepository
 
 class NormalFilter:

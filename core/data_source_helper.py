@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
 from core.models.ticker import Ticker
 from core.service.ticker_score_repository import TickerScoreRepository
-from core.libs.utils import UtilsHelper
+from core.utils.utils import UtilsHelper
 
 from .handler.ticker_handler import TickerHandler
 from .handler.ticker_k_line_handler import TickerKLineHandler

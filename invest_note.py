@@ -1,8 +1,8 @@
 #coding=UTF-8
 import sys
 import os
+from core.data_source_helper import DataSourceHelper
 from core.score.normal_score import NormalScore
-from core.handler import DataSourceHelper
 
 from core.analysis.strategy_evaluator import StrategyEvaluator
 from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
@@ -236,7 +236,7 @@ def run_interactive_mode():
                 print("无效的股票代码")
         
         elif choice == "6":
-            from custom.high_score_tickers import print_high_score_tickers
+            from tools.high_score_tickers import print_high_score_tickers
             score_threshold = input("\n请输入评分阈值 (默认75): ")
             try:
                 score_threshold = float(score_threshold) if score_threshold.strip() else 75.0
@@ -277,7 +277,7 @@ def run_command_line_mode():
 
     if sys.argv[1] == '-export-hs' or sys.argv[1] == '--export-high-score':
         # 导入高评分股票模块
-        from custom.high_score_tickers import export_high_score_tickers_to_json
+        from tools.high_score_tickers import export_high_score_tickers_to_json
         
         # 获取评分阈值参数（如果有）
         threshold = 75.0
@@ -306,7 +306,7 @@ def run_command_line_mode():
 
     elif sys.argv[1] == '-hs' or sys.argv[1] == '--high-score':
         # 导入高评分股票模块
-        from custom.high_score_tickers import print_high_score_tickers
+        from tools.high_score_tickers import print_high_score_tickers
         
         # 获取评分阈值参数（如果有）
         threshold = 75.0

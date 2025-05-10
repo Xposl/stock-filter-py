@@ -1,7 +1,7 @@
 """
 ART双线策略模块
 """
-from core.libs.utils import UtilsHelper
+from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
 class ArtDLStrategy(BaseStrategy):

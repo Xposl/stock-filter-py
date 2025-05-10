@@ -1,5 +1,12 @@
 """
 Handler模块通用工具函数
+Args:
+    max_retries: 最大重试次数
+    delay: 初始延迟时间（秒）
+    backoff: 延迟时间的倍数增长
+    exceptions: 需要捕获的异常类型
+Returns:
+    函数执行结果或者在达到最大重试次数后抛出异常
 """
 import random
 import time

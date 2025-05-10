@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
 from typing import Optional, List, Dict
 from dotenv import load_dotenv

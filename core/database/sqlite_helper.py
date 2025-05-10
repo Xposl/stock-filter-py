@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import sqlite3
 from typing import Optional, List, Dict, Any, Tuple
 from sqlite3 import Connection, Cursor

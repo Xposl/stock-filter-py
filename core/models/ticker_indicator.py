@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+"""
+股票指标模型
+"""
 from datetime import datetime
 from typing import Optional, Union, Dict, Any, List
 from pydantic import BaseModel, Field, ConfigDict

@@ -3,7 +3,7 @@ Volume SuperTrend AI策略模块
 """
 from core.strategy.base_strategy import BaseStrategy
 from core.indicator.volume_supertrend_ai_indicator import VolumeSuperTrendAIIndicator
-from core.libs.utils import UtilsHelper
+from core.utils.utils import UtilsHelper
 
 class VolumeSuperTrendAIStrategy(BaseStrategy):
     """Volume SuperTrend AI策略实现类"""

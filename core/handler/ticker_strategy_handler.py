@@ -2,7 +2,7 @@ from typing import Optional
 from core.models.ticker import Ticker
 from core.models.ticker_strategy import TickerStrategy
 from core.strategy.base_strategy import BaseStrategy
-from core.libs.utils import UtilsHelper
+from core.utils.utils import UtilsHelper
 import math
 from core.enum.ticker_k_type import TickerKType
 from core.strategy import DEFAULT_STRATEGIES

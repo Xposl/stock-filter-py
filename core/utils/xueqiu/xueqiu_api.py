@@ -2,37 +2,25 @@ import os
 import gzip
 import json
 import datetime
+from typing import Optional
 import pandas as pd
 import asyncio
 import urllib.request
 import ssl
 from pyppeteer import launch
 
-from core.enum.ticker_type import TickerType
+from core.utils.xueqiu.xueqiu_company import XueqiuHkCompany, XueqiuUsCompany, XueqiuZhCompany, xueqiu_hk_company_from_dict, xueqiu_us_company_from_dict, xueqiu_zh_company_from_dict
+from core.utils.xueqiu.xueqiu_stock_quote import XueqiuStockQuote, xueqiu_stock_quote_from_dict
 
-class Xueqiu:
 
-    type = {
-        0: TickerType.STOCK,
-        4: TickerType.ETF,
-        5: TickerType.STOCK,
-        6: TickerType.STOCK,
-        11: TickerType.STOCK,
-        30: TickerType.STOCK,
-        32: TickerType.WARRANT,
-        33: TickerType.ETF,
-        34: TickerType.BOND,
-        82: TickerType.STOCK,
-    }
+class XueqiuApi:
 
-    status = {
-        0: 0, #未上市
-        1: 1, #正常
-        2: 0, #停牌
-        3: 0, #退市
-    }
+    def __init__(self):
+        """初始化Xueqiu类，初始token为None，只在需要时获取"""
+        # 初始化时不获取token，只在真正需要时才获取
+        self.xqat = None
 
-    async def get_token_with_puppeteer(self):
+    async def _get_token_with_puppeteer(self) -> Optional[str]:
         """使用pyppeteer获取雪球的token"""
         try:
             # 获取环境变量或使用默认设置
@@ -73,7 +61,7 @@ class Xueqiu:
             print(f"使用puppeteer获取token失败: {e}")
             return None
 
-    def get_token_with_urllib(self):
+    def _get_token_with_urllib(self):
         """使用urllib获取雪球token（备用方法）"""
         try:
             from http.cookiejar import CookieJar
@@ -101,23 +89,18 @@ class Xueqiu:
             print(f"使用urllib获取token失败: {e}")
             return None
 
-    def __init__(self):
-        """初始化Xueqiu类，初始token为None，只在需要时获取"""
-        # 初始化时不获取token，只在真正需要时才获取
-        self.xqat = None
-
     def _get_token(self):
         """获取雪球token，如果还没有获取过或之前获取失败"""
         if self.xqat:
             return True
             
         # 首先尝试使用puppeteer获取token
-        self.xqat = asyncio.get_event_loop().run_until_complete(self.get_token_with_puppeteer())
+        self.xqat = asyncio.get_event_loop().run_until_complete(self._get_token_with_puppeteer())
         
         # 如果puppeteer失败，尝试使用urllib作为备用方法
         if not self.xqat:
             print("使用puppeteer获取token失败，尝试使用备用方法...")
-            self.xqat = self.get_token_with_urllib()
+            self.xqat = self._get_token_with_urllib()
         
         # 如果两种方法都失败，返回False
         if not self.xqat:
@@ -156,7 +139,6 @@ class Xueqiu:
         try:
             # 创建一个不验证证书的SSL上下文（注意：在生产环境中不推荐这么做）
             context = ssl._create_unverified_context()
-            
             r = urllib.request.Request(url, headers=headers)
             response = urllib.request.urlopen(r, context=context)
             return gzip.decompress(response.read()).decode('utf-8')
@@ -175,172 +157,69 @@ class Xueqiu:
                 print(f"重试失败: {e}")
                 return None
 
-    def getSymbol(self,code):
+    def _get_symbol(self,code):
+        """转化股票代码"""
         if code.startswith('SZ') or code.startswith('SH'):
             return '%s%s'%(code[:2],code[3:])
         return code[3:]
-    
-    def checkSymbolStartswith(self,code,filters):
-        symbol = self.getSymbol(code)
-        for filter in filters:
-            if symbol.startswith(filter):
-                return True
-        return False
 
-    def checkNameWithStr(self,name,filters):
-        for filter in filters:
-            if name.find(filter) > -1:
-                return True
-        return False
-
-    def getStockStatus(self,code):
-        symbol = self.getSymbol(code)
+    def get_stock_quote(self,code: str) -> Optional[XueqiuStockQuote]:
+        """获取股票状态"""
+        symbol = self._get_symbol(code)
         url = 'https://stock.xueqiu.com/v5/stock/quote.json?symbol=%s&extend=detail'%symbol
         
         content = self._request(url)
         if content is None:
             return None
-        jsonData = json.loads(content)
-        # 增加数据检查，避免'data'或'quote'键不存在的情况
-        if 'data' not in jsonData or jsonData['data'] is None or 'quote' not in jsonData['data'] or jsonData['data']['quote'] is None:
+        json_data = json.loads(content)
+        if 'data' not in json_data or json_data['data'] is None or 'quote' not in json_data['data'] or json_data['data']['quote'] is None:
             return None
-        return jsonData['data']['quote']
-
-    def getZHStockDetail(self,code,name):
-        symbol = self.getSymbol(code)
+        return xueqiu_stock_quote_from_dict(json_data['data'])
+    
+    def get_zh_stock_company(self, code: str) -> Optional[XueqiuZhCompany]:
+        """获取A股公司详情"""
+        symbol = self._get_symbol(code)
         url = 'https://stock.xueqiu.com/v5/stock/f10/cn/company.json?symbol=%s'%symbol
         
         content = self._request(url)
         if content is None:
             return None
-        jsonData = json.loads(content)
-        listedDate = None
-
-        result = {
-            'code': code,
-            'name': name
-        }
-        
+        json_data = json.loads(content)
         # 增加数据检查，避免'company'键不存在的情况
-        if 'data' not in jsonData or jsonData['data'] is None or 'company' not in jsonData['data'] or jsonData['data']['company'] is None:
-            return result
-
-        if jsonData['data']['company']['org_cn_introduction'] is not None:
-            result['remark'] = jsonData['data']['company']['org_cn_introduction']
-
-        if jsonData['data']['company']['listed_date'] is not None:
-            listedDate = jsonData['data']['company']['listed_date']
-        elif jsonData['data']['company']['established_date'] is not None: 
-            listedDate = jsonData['data']['company']['established_date']
-
-        if listedDate is not None:
-            if listedDate < 0:
-                listedDate = '1970-01-01'
-            else:
-                result['listed_date'] = datetime.datetime.fromtimestamp(listedDate/1000).strftime('%Y-%m-%d')
-
-        return result
-
-    def getHKStockDetail(self,code,name):
-        symbol = self.getSymbol(code)
+        if 'data' not in json_data or json_data['data'] is None or 'company' not in json_data['data'] or json_data['data']['company'] is None:
+            return None
+        return xueqiu_zh_company_from_dict(json_data['data']['company'])
+    
+    def get_hk_stock_company(self,code :str) -> Optional[XueqiuHkCompany]:
+        """获取港股公司详情"""
+        symbol = self._get_symbol(code)
         url = 'https://stock.xueqiu.com/v5/stock/f10/hk/company.json?symbol=%s'%symbol
     
         content = self._request(url)
         if content is None:
             return None
-        jsonData = json.loads(content)
-
-        result = {
-            'code': code,
-            'name': name
-        }
-
+        json_data = json.loads(content)
         # 增加数据检查，避免'company'键不存在的情况
-        if 'data' not in jsonData or jsonData['data'] is None or 'company' not in jsonData['data'] or jsonData['data']['company'] is None:
-            return result
-        
-        if jsonData['data']['company']['comintr'] is not None:
-            result['remark'] = jsonData['data']['company']['comintr']
-
-        return result
-
-    def getUSStockDetail(self,code,name):
-        symbol = self.getSymbol(code)
+        if 'data' not in json_data or json_data['data'] is None or 'company' not in json_data['data'] or json_data['data']['company'] is None:
+            return None
+        return xueqiu_hk_company_from_dict(json_data['data']['company'])
+    
+    def get_us_stock_company(self,code :str) -> Optional[XueqiuUsCompany]:
+        """获取美股公司详情"""
+        symbol = self._get_symbol(code)
         url = 'https://stock.xueqiu.com/v5/stock/f10/us/company.json?symbol=%s'%symbol
         
         content = self._request(url)
         if content is None:
             return None
-        jsonData = json.loads(content)
-
-        result = {
-            'code': code,
-            'name': name
-        }
-
+        json_data = json.loads(content)
         # 增加数据检查，避免'company'键不存在的情况
-        if 'data' not in jsonData or jsonData['data'] is None or 'company' not in jsonData['data'] or jsonData['data']['company'] is None:
-            return result
-        
-        if jsonData['data']['company']['org_cn_introduction'] is not None:
-            result['remark'] = jsonData['data']['company']['org_cn_introduction']
-
-        listedDate = None
-        if jsonData['data']['company']['listed_date'] is not None:
-            listedDate = jsonData['data']['company']['listed_date']
-        elif jsonData['data']['company']['established_date'] is not None: 
-            listedDate = jsonData['data']['company']['established_date']
-
-        if listedDate is not None:
-            if listedDate < 0:
-                listedDate = '1970-01-01'
-            else:
-                result['listed_date'] = datetime.datetime.fromtimestamp(listedDate/1000).strftime('%Y-%m-%d')
-          
-        return result
-
-    def getStockDetail(self,code,name):
-        data = None
-        if code.startswith('US'):
-            data = self.getUSStockDetail(code,name)
-        elif code.startswith('HK'):
-            data = self.getHKStockDetail(code,name)
-        elif code.startswith('SZ') or code.startswith('SH'):
-            data = self.getZHStockDetail(code,name)
-
-        if data is not None:
-            quote = self.getStockStatus(code)
-            if quote is None:
-                data['type'] = TickerType.DEL
-                data['is_deleted'] = 1
-                data['status'] = 0
-                return data
-
-            if quote['status'] in self.status:
-                if quote['status'] == 0:
-                    data['is_deleted'] = 1
-                elif quote['status'] == 3:
-                    data['delist'] = 1
-                    data['is_deleted'] = 1
-                data['status'] = self.status[quote['status']] if quote['open'] is not None else 0
-            else:
-                raise Exception('Unknown status',quote['status'])
-
-            if quote['type'] in self.type:
-                if quote['type'] == 32:
-                    data['status'] = 0
-                data['type'] = self.type[quote['type']]
-            else:
-                raise Exception('Unknown Type',quote['type'])
-            
-            data['lot_size'] = quote['lot_size'] if 'lot_size' in quote and quote['lot_size'] is not None else -1
-            data['pe_forecast'] = quote['pe_forecast'] if 'pe_forecast' in quote and quote['pe_forecast'] is not None else -1
-            data['pettm'] = quote['pe_ttm'] if 'pe_ttm' in quote and quote['pe_ttm'] is not None else -1
-            data['pb'] = quote['pb'] if 'pb' in quote and quote['pb'] is not None else -1
-            data['total_share'] = quote['total_shares'] if quote['total_shares'] is not None else -1
-        return data
-
-    def getStockHistory(self,code,startDate):
+        if 'data' not in json_data or json_data['data'] is None or 'company' not in json_data['data'] or json_data['data']['company'] is None:
+            return None
+        return xueqiu_us_company_from_dict(json_data['data']['company'])
+    
+    def get_stock_history(self,code: str,startDate: str) -> Optional[pd.DataFrame]:
+        """获取股票历史数据"""
         startDate = datetime.datetime.strptime(startDate, "%Y-%m-%d")
         today = datetime.datetime.now()
         diff = int((today - startDate).days * 5/7)
@@ -350,11 +229,11 @@ class Xueqiu:
         content = self._request(url)
         if content is None:
             return None
-        jsonData = json.loads(content)
+        json_data = json.loads(content)
         # 增加数据检查，避免'data'键不存在的情况
-        if jsonData is None or 'data' not in jsonData or jsonData['data'] is None or 'item' not in jsonData['data']:
+        if json_data is None or 'data' not in json_data or json_data['data'] is None or 'item' not in json_data['data']:
             return None
-        temp_df = pd.DataFrame(jsonData["data"]["item"])
+        temp_df = pd.DataFrame(json_data["data"]["item"])
         temp_df.columns = ["日期","成交量","开盘","最高","最低","收盘","chg","涨跌幅","换手率","成交额","volume_post","amount_post"]
         temp_df.reset_index(inplace=True)
         temp_df['index'] = range(1, len(temp_df)+1)
@@ -371,3 +250,5 @@ class Xueqiu:
             "成交额"
         ]]
         return temp_df
+
+
