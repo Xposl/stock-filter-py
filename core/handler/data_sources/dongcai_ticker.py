@@ -3,7 +3,7 @@
 """
 import akshare as ak
 import logging
-from ..utils import retry_on_exception
+from ...libs.retry_on_exception import retry_on_exception
 
 logger = logging.getLogger(__name__)
 

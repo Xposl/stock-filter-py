@@ -9,7 +9,7 @@ from core.strategy.cci_macd_strategy import CCIMacdStrategy
 from core.strategy.art_dl_strategy import ArtDLStrategy
 from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
 from core.analysis.backtest_visualizer import BacktestVisualizer
-from core.handler.data_source_helper import DataSourceHelper
+from core.data_source_helper import DataSourceHelper
 from core.strategy import DEFAULT_STRATEGIES
 
 

@@ -1,7 +1,8 @@
 from typing import Optional
 from core.models.ticker import Ticker
 from core.models.ticker_strategy import TickerStrategy
-from core.utils import UtilsHelper
+from core.strategy.base_strategy import BaseStrategy
+from core.libs.utils import UtilsHelper
 import math
 from core.enum.ticker_k_type import TickerKType
 from core.strategy import DEFAULT_STRATEGIES
@@ -10,7 +11,7 @@ from core.service.ticker_strategy_repository import TickerStrategyRepository
 class StrategyCalculator:
     """策略组合管理类"""
 
-    def __init__(self, group=None):
+    def __init__(self, group: Optional[list[BaseStrategy]]=None):
         """初始化策略组合
 
         Args:

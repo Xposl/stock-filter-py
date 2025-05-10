@@ -9,7 +9,6 @@ from .ticker_indicator_handler import TickerIndicatorHandler
 from .ticker_score_handler import TickerScoreHandler
 from .ticker_filter_handler import TickerFilterHandler
 from .ticker_valuation_handler import TickerValuationHandler
-from .data_source_helper import DataSourceHelper
 
 __all__ = [
     'TickerHandler',
@@ -19,5 +18,4 @@ __all__ = [
     'TickerScoreHandler',
     'TickerFilterHandler',
     'TickerValuationHandler',
-    'DataSourceHelper'
 ]

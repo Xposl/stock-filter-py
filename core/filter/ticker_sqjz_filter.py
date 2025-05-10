@@ -1,7 +1,7 @@
 import pandas as pd
 
 from core.enum.ticker_type import TickerType
-from core.utils import UtilsHelper
+from core.libs.utils import UtilsHelper
 from core.service import APIHelper
 
 class TickerSQJZFilter:

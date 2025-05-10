@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 from core.enum.indicator_group import IndicatorGroup
-from core.utils import UtilsHelper
+from core.libs.utils import UtilsHelper
 
 class BullBearPowerIndicator:
     dayCount = 50

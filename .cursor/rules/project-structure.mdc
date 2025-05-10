@@ -24,12 +24,12 @@ InvestNote-py/
 │   ├── models/           # 数据模型
 │   ├── service/          # 数据库与仓储服务
 │   ├── database/         # 数据库适配与工具
-│   └── utils.py          # 常用工具函数
+│   └── libs/             # 常用工具
 ├── custom/               # 用户自定义扩展模块
 ├── output/               # 结果输出（如 json、报告等）
 ├── tools/                # 辅助脚本与工具
 ├── sql/                  # 相关sql脚本
-├── api.py                # FastAPI 路由与接口定义
+├── web/                  # FastAPI 路由与接口定义
 ├── README.md             # 项目说明
 ```
 
@@ -38,8 +38,7 @@ InvestNote-py/
 - 旧版命令行/交互入口为 [invest_note.py](mdc:invest_note.py)，包含丰富的分析与批量处理逻辑。
 
 ## 核心数据流
-- 数据调度与处理主要通过 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper` 类完成。
-- 分析与可视化由 [core/handler/ticker_analysis_handler.py](mdc:core/handler/ticker_analysis_handler.py) 和 [core/analysis/](mdc:core/analysis) 相关模块实现。
+- 数据调度与处理主要通过 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper` 类完成。
 - 策略、指标、评分、过滤等均有独立子目录，便于扩展。
 
 ## 扩展与自定义

@@ -6,12 +6,12 @@ import datetime
 from typing import Dict, Any, Optional, Union
 import pandas as pd
 
-from . import KLineDataSource
+from .k_line_data_source import KLineDataSource
 
 class DongcaiKLineSource(KLineDataSource):
     """东方财富数据源K线数据处理类"""
     
-    def __init__(self, code, start_date=None, end_date=None):
+    def __init__(self, code: str, start_date: Optional[str]=None, end_date: Optional[str]=None):
         """初始化数据源
         
         Args:
@@ -143,7 +143,7 @@ class DongcaiKLineSource(KLineDataSource):
             data['id'] = 0
         return data
 
-    def get_kl(self) -> Optional[Union[Dict[str, Any], pd.DataFrame]]:
+    def get_kl(self) -> pd.DataFrame:
         """获取K线数据"""
         # 如果没有提供日期范围，直接返回实时数据
         if self.start_date is None or self.end_date is None:

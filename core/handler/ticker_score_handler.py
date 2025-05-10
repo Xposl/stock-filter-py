@@ -42,7 +42,7 @@ class TickerScoreHandler:
         """
         return Score(self.rule).calculate(ticker, kLineData, strategyData, indicatorData, valuationData)
     
-    def update_ticker_score(self, ticker, kLineData, strategyData, indicatorData, valuationData):
+    def update_ticker_score(self, ticker : Ticker, kLineData: Optional[list]=None, strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
         """
         更新股票评分
         
@@ -57,7 +57,7 @@ class TickerScoreHandler:
             评分结果列表
         """
         # 计算所有K线的评分结果
-        result = self.calculate(ticker, kLineData, strategyData, indicatorData, valuationData)
+        result = self.calculate(ticker, kLineData , strategyData, indicatorData, valuationData)
         
         if not result or len(result) == 0:
             return result
@@ -67,12 +67,6 @@ class TickerScoreHandler:
         
         # 获取最新的一条记录
         latest_score = result[-1].copy()
-        
-        # 将除了最新记录之外的所有记录作为历史数据
-        history_data = result[:-1] if len(result) > 1 else []
-        
-        # 在最新记录中添加历史数据
-        latest_score['history'] = history_data
         
         # 只更新最新的一条记录到数据库
         TickerScoreRepository().update_items(ticker.id, [latest_score])

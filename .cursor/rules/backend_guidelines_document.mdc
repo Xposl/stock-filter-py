@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## 1. API 设计
 - 所有 API 路由定义于 [api.py](mdc:api.py)，基于 FastAPI。
-- 路由处理函数统一调用 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper` 进行数据调度。
+- 路由处理函数统一调用 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper` 进行数据调度。
 
 ## 2. 模块职责
 - handler 子模块各司其职，严禁跨层直接操作数据库或其他 handler，统一通过 DataSourceHelper 协调。

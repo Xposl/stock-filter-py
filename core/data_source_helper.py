@@ -9,14 +9,14 @@ from dateutil.relativedelta import relativedelta
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
 from core.models.ticker import Ticker
 from core.service.ticker_score_repository import TickerScoreRepository
-from core.utils import UtilsHelper
+from core.libs.utils import UtilsHelper
 
-from .ticker_handler import TickerHandler
-from .ticker_k_line_handler import TickerKLineHandler
-from .ticker_strategy_handler import TickerStrategyHandler
-from .ticker_indicator_handler import TickerIndicatorHandler
-from .ticker_score_handler import TickerScoreHandler
-from .ticker_valuation_handler import TickerValuationHandler
+from .handler.ticker_handler import TickerHandler
+from .handler.ticker_k_line_handler import TickerKLineHandler
+from .handler.ticker_strategy_handler import TickerStrategyHandler
+from .handler.ticker_indicator_handler import TickerIndicatorHandler
+from .handler.ticker_score_handler import TickerScoreHandler
+from .handler.ticker_valuation_handler import TickerValuationHandler
 
 from core.service.ticker_repository import TickerRepository
 
@@ -222,9 +222,16 @@ class DataSourceHelper:
         获取指定股票数据
         """
         ticker = TickerRepository().get_by_code(code)
-        return self._update_ticker(ticker,days)
+        ticker,kLineData,scoreData =  self._update_ticker(ticker,days)
+        scores = []
+        for score in scoreData:
+            scores.append({
+                'time_key': score['time_key'],
+                'score': score['score']
+            })
+        return ticker,kLineData,scores
     
-    def get_ticker_data_on_time(self,code: str,days: Optional[int]=600) -> Optional[tuple]:
+    def get_ticker_data_on_time(self, code: str,days: Optional[int]=600) -> Optional[tuple]:
         """
         获取即时项目数据
         """
@@ -257,7 +264,7 @@ class DataSourceHelper:
         """
         分析即时项目数据
         """
-        ticker,kLineData,scoreData = self.get_ticker_on_time_data(code,days,kLineData)
+        ticker,kLineData,scoreData = self.get_ticker_data_on_time(code,days,kLineData)
         TickerAnalysisHandler().run(ticker,kLineData,scoreData)
 
     

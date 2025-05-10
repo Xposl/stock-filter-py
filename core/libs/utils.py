@@ -66,7 +66,6 @@ class UtilsHelper:
                 result = False
         return result
 
-
     def SUM(self,data,dayCount):
         result = []
         length = len(data)

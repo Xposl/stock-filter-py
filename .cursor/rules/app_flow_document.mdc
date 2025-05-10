@@ -11,7 +11,7 @@ alwaysApply: false
 - 入口：[main.py](mdc:main.py) 启动 FastAPI 服务，加载 [api.py](mdc:api.py) 路由。
 - 主要流程：
   1. 客户端通过 HTTP 请求调用 API。
-  2. API 路由调用 [core/handler/data_source_helper.py](mdc:core/handler/data_source_helper.py) 的 `DataSourceHelper`，完成数据调度。
+  2. API 路由调用 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper`，完成数据调度。
   3. 数据调度涉及股票列表更新、K线数据获取、策略/指标/评分/估值分析，依次调用 handler 子模块：
      - 股票列表：[core/handler/ticker_handler.py](mdc:core/handler/ticker_handler.py)
      - K线数据：[core/handler/ticker_k_line_handler.py](mdc:core/handler/ticker_k_line_handler.py)

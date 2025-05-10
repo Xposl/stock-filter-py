@@ -6,9 +6,9 @@ import logging
 from time import time, sleep
 
 from .data_sources.xueqiu_api import Xueqiu
-from core.utils import UtilsHelper
+from core.libs.utils import UtilsHelper
 from core.service.ticker_repository import TickerRepository
-from .utils import retry_on_exception
+from ..libs.retry_on_exception import retry_on_exception
 from .data_sources.dongcai_ticker import DongCaiTicker
 
 # 配置日志

@@ -8,7 +8,7 @@ from matplotlib.font_manager import FontProperties
 import matplotlib
 
 from core.models.ticker import Ticker
-from core.utils import UtilsHelper
+from core.libs.utils import UtilsHelper
 
 class TickerAnalysisHandler:
     source = []

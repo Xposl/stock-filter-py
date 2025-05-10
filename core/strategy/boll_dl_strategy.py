@@ -1,7 +1,7 @@
 """
 布林带双线策略模块
 """
-from core.utils import UtilsHelper
+from core.libs.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
 class BollDLStrategy(BaseStrategy):

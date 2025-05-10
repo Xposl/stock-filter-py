@@ -8,12 +8,12 @@ import pandas as pd
 
 from .xueqiu_api import Xueqiu
 
-from . import KLineDataSource
+from .k_line_data_source import KLine, KLineDataSource
 
 class XueqiuKLineSource(KLineDataSource):
     """雪球数据源K线数据处理类"""
     
-    def __init__(self, code, start_date=None, end_date=None):
+    def __init__(self, code: str, start_date: Optional[str]=None, end_date: Optional[str]=None):
         """初始化数据源
         
         Args:
@@ -39,7 +39,7 @@ class XueqiuKLineSource(KLineDataSource):
         timestamp = data['日期'][index]
         return datetime.datetime.fromtimestamp(timestamp/1000).strftime('%Y-%m-%d')
 
-    def convert_data(self, data: Any, index: int) -> Dict[str, Any]:
+    def convert_data(self, data: Any, index: int) -> Dict[str, KLine]:
         """转换K线数据为统一格式
         
         Args:
@@ -60,7 +60,7 @@ class XueqiuKLineSource(KLineDataSource):
             'turnover_rate': 0 if math.isnan(data['换手率'][index]) else data['换手率'][index]
         }
 
-    def get_kline_data(self):
+    def get_kline_data(self) -> pd.DataFrame:
         """获取历史K线数据
         
         Returns:
@@ -110,7 +110,7 @@ class XueqiuKLineSource(KLineDataSource):
             print(f"获取雪球实时数据失败: {e}")
             return None
             
-    def get_kl(self) -> Optional[Union[Dict[str, Any], pd.DataFrame]]:
+    def get_kl(self) -> pd.DataFrame:
         """获取K线数据
         
         Returns:

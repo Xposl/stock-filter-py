@@ -14,7 +14,7 @@ class BaseStrategy(ABC):
         """
         return {}
 
-    def set_params(self, param):
+    def set_params(self, param: dict):
         """设置策略参数，可选实现
 
         Args:
@@ -23,7 +23,7 @@ class BaseStrategy(ABC):
         pass
 
     @abstractmethod
-    def get_key(self):
+    def get_key(self) -> str:
         """获取策略键名，必须实现
 
         Returns:

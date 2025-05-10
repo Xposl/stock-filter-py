@@ -1,5 +1,5 @@
 import uvicorn
-from api import app
+from web.api import app
 import argparse
 import logging
 from typing import Optional
