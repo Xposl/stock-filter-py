@@ -1,6 +1,8 @@
 """
 Volume SuperTrend AI策略模块
 """
+from typing import List
+from core.schema.k_line import KLine
 from core.strategy.base_strategy import BaseStrategy
 from core.indicator.volume_supertrend_ai_indicator import VolumeSuperTrendAIIndicator
 from core.utils.utils import UtilsHelper
@@ -125,7 +127,7 @@ class VolumeSuperTrendAIStrategy(BaseStrategy):
         """
         return 'Volume_SuperTrend_AI_strategy'
     
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算Volume SuperTrend AI策略
 
         Args:
@@ -147,16 +149,16 @@ class VolumeSuperTrendAIStrategy(BaseStrategy):
         closeData = []
         volumeData = []
         for klItem in kl_data:
-            closeData.append(klItem['close'])
-            volumeData.append(klItem['volume'])
+            closeData.append(klItem.close)
+            volumeData.append(klItem.volume)
         
         # 计算成交量均值用于过滤
         utils = UtilsHelper()
-        volume_ma = utils.SMA(volumeData, 20)
+        volume_ma = utils.sma(volumeData, 20)
         
         # 计算长期趋势用于过滤
         if self.trend_filter:
-            ma_long = utils.EMA(closeData, self.ma_period)
+            ma_long = utils.ema(closeData, self.ma_period)
         
         # 生成交易信号
         pos_data = []

@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import List, Optional
 from core.models.ticker import Ticker
 from core.models.ticker_strategy import TickerStrategy
+from core.schema.k_line import KLine
 from core.strategy.base_strategy import BaseStrategy
 from core.utils.utils import UtilsHelper
 import math
@@ -24,7 +25,7 @@ class StrategyCalculator:
         for item in self.group:
             self.group_map[item.get_key()] = item
 
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算所有策略结果
 
         Args:
@@ -39,7 +40,7 @@ class StrategyCalculator:
             result[item.get_key()] = res
         return result
 
-    def calculate_by_key(self, strategy_key: str, kl_data: Optional[list]=None):
+    def calculate_by_key(self, strategy_key: str, kl_data: List[KLine]):
         """根据策略键名计算策略结果
 
         Args:
@@ -53,7 +54,7 @@ class StrategyCalculator:
             raise Exception('error，找不到策略', strategy_key)
         return self.calculate_strategy(self.group_map[strategy_key], kl_data)
 
-    def calculate_strategy(self, strategy_obj: TickerStrategy, kl_data: Optional[list]=None):
+    def calculate_strategy(self, strategy_obj: TickerStrategy, kl_data: List[KLine]):
         """计算单个策略的交易结果
 
         Args:
@@ -102,19 +103,19 @@ class StrategyCalculator:
         
         trade_data = []
         for i in range(length):
-            open_price = kl_data[i]['open']
-            close = kl_data[i]['close']
+            open_price = kl_data[i].open
+            close = kl_data[i].close
 
             # 出现信号第二天，进行操作
             if result['days'] == 1 and status == 1:
-                unit = UtilsHelper().calcuInteger(self.profit_init, abs(open_price))
+                unit = UtilsHelper().calcu_integer(self.profit_init, abs(open_price))
                 if unit > 0:  # 判断资金是否足够买入
                     # 做多,以开盘价进行操作
                     if ini_price is None:
                         ini_price = open_price
                     start_price = open_price
                     start_k_index = i
-                    start_time = kl_data[i]['time_key']
+                    start_time = kl_data[i].time_key
                     profit = 0
 
             elif result['days'] == 1 and status == -1:
@@ -135,20 +136,20 @@ class StrategyCalculator:
                     
                     trade_data.append({
                         'start_date': start_time.strftime('%Y-%m-%d %H:%M:%S') if hasattr(start_time, 'strftime') else start_time,
-                        'end_date': kl_data[i]['time_key'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(kl_data[i]['time_key'], 'strftime') else kl_data[i]['time_key'],
+                        'end_date': kl_data[i].time_key.strftime('%Y-%m-%d %H:%M:%S') if hasattr(kl_data[i].time_key, 'strftime') else kl_data[i].time_key,
                         'buy': start_price,
                         'unit': unit,
                         'sell': open_price,
                         'keep_days': keep_days,
                         'profit': profit,
-                        'percent': UtilsHelper().calcuPercent((open_price - start_price), abs(start_price))
+                        'percent': UtilsHelper().calcu_percent((open_price - start_price), abs(start_price))
                     })
 
                 # 记录做空时的状态
                 start_price = open_price
-                start_time = kl_data[i]['time_key']
+                start_time = kl_data[i].time_key
                 profit = 0
-                unit = UtilsHelper().calcuInteger(self.profit_init, abs(start_price))
+                unit = UtilsHelper().calcu_integer(self.profit_init, abs(start_price))
             
             # 如果交易状态发生变更，表示出现买卖点
             if pos_data[i] != status:
@@ -179,10 +180,10 @@ class StrategyCalculator:
             result['hold_return'] = (close - ini_price) * unit
             result['hold_return_pre'] = round(result['hold_return']/self.profit_init * 100, 2)
         
-        result['avg_win_pre'] = UtilsHelper().calcuPercent(result['gross_profit_pre'], result['win_trades'])/100
-        result['avg_loss_pre'] = UtilsHelper().calcuPercent(result['gross_loss_pre'], result['loss_trades'])/100
-        result['profitable'] = UtilsHelper().calcuPercent(result['win_trades'], result['trades'])
-        result['ratio'] = UtilsHelper().calcuPercent(result['avg_win_pre'], result['avg_loss_pre'])
+        result['avg_win_pre'] = UtilsHelper().calcu_percent(result['gross_profit_pre'], result['win_trades'])/100
+        result['avg_loss_pre'] = UtilsHelper().calcu_percent(result['gross_loss_pre'], result['loss_trades'])/100
+        result['profitable'] = UtilsHelper().calcu_percent(result['win_trades'], result['trades'])
+        result['ratio'] = UtilsHelper().calcu_percent(result['avg_win_pre'], result['avg_loss_pre'])
 
         result['data'] = trade_data
         result['pos_data'] = pos_data
@@ -201,13 +202,13 @@ class TickerStrategyHandler:
         """
         self.strategies = strategies if strategies is not None else DEFAULT_STRATEGIES
 
-    def calculate(self,kl_data: Optional[list]=None):
+    def calculate(self, kl_data: List[KLine]):
         """
         计算策略
         """
         return StrategyCalculator(self.strategies).calculate(kl_data)
 
-    def update_ticker_strategy(self,ticker: Ticker,kl_data: Optional[list]=None, updateTime: str=None):
+    def update_ticker_strategy(self, ticker: Ticker, kl_data: List[KLine], updateTime: str=None):
         """
         更新策略
         """

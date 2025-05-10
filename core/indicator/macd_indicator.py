@@ -1,4 +1,6 @@
+from typing import List
 from core.enum.indicator_group import IndicatorGroup
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 
 class MACDIndicator:
@@ -17,22 +19,22 @@ class MACDIndicator:
     def getGroup(self):
         return IndicatorGroup.POWER
     
-    def calculate(self,klData):
+    def calculate(self,klData: List[KLine]):
         length = len(klData)
         closeData = []
         dif = []
         macd = []
         posData = []
         for klItem in klData:
-            closeData.append(klItem['close'])
+            closeData.append(klItem.close)
             
-        emaS = UtilsHelper().EMA(closeData,self.difCount)
-        emaL = UtilsHelper().EMA(closeData,self.dayCount)
+        emaS = UtilsHelper().ema(closeData,self.difCount)
+        emaL = UtilsHelper().ema(closeData,self.dayCount)
         
         for i in range(length):
             dif.append(emaS[i] - emaL[i])
         
-        emaDif =  UtilsHelper().EMA(dif,self.m)
+        emaDif =  UtilsHelper().ema(dif,self.m)
 
 
         for i in range(length):

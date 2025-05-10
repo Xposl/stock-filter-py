@@ -43,8 +43,8 @@ class TickerAnalysisHandler:
         kFullScore = pd.DataFrame(scoreData)
         score = kFullScore['score'].values
 
-        maScore = UtilsHelper().WMA(kFullScore['score'].values,7)
-        maScoreL = UtilsHelper().WMA(kFullScore['score'].values,21)
+        maScore = UtilsHelper().wma(kFullScore['score'].values,7)
+        maScoreL = UtilsHelper().wma(kFullScore['score'].values,21)
 
         kLine.head()
         fig, (ax1, ax2) = plt.subplots(2, sharex=True, figsize=(15,6))

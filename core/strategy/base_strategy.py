@@ -2,6 +2,9 @@
 策略基类模块
 """
 from abc import ABC, abstractmethod
+from typing import List
+
+from core.schema.k_line import KLine
 
 class BaseStrategy(ABC):
     """策略基类，定义了策略类的基本接口"""
@@ -32,7 +35,7 @@ class BaseStrategy(ABC):
         pass
 
     @abstractmethod
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算策略结果，必须实现
 
         Args:

@@ -28,7 +28,7 @@ class TickerFilterHandler:
         total = len(tickers)
         for i in range(total):
             ticker = tickers[i]
-            UtilsHelper().runProcess(i,total,"recommend","[total:{total}]({id}){code}".format(
+            UtilsHelper().run_process(i,total,"recommend","[total:{total}]({id}){code}".format(
                 id = ticker['id'],
                 code = ticker['code'],
                 total = len(result)

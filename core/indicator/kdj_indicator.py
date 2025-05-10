@@ -1,4 +1,6 @@
+from typing import List
 from core.enum.indicator_group import IndicatorGroup
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 
 class KDJIndicator:
@@ -12,7 +14,7 @@ class KDJIndicator:
     def getGroup(self):
         return IndicatorGroup.POWER
     
-    def calculate(self,klData):
+    def calculate(self,klData: List[KLine]):
         length = len(klData)
         closeData = []
         highData = []
@@ -21,12 +23,12 @@ class KDJIndicator:
         jData = []
         posData = []
         for klItem in klData:
-            highData.append(klItem['high'])
-            lowData.append(klItem['low'])
-            closeData.append(klItem['close'])
+            highData.append(klItem.high)
+            lowData.append(klItem.low)
+            closeData.append(klItem.close)
 
-        lowestData = UtilsHelper().LOWEST(lowData,self.P1)
-        highestData = UtilsHelper().HIGHEST(highData,self.P1)
+        lowestData = UtilsHelper().lowest(lowData,self.P1)
+        highestData = UtilsHelper().highest(highData,self.P1)
 
         for i in range(length):
             divid = highestData[i]-lowestData[i]
@@ -34,8 +36,8 @@ class KDJIndicator:
             rsv = rsv * 100
             rsvData.append(rsv)
             
-        kData = UtilsHelper().MA(rsvData,self.P2,1)
-        dData = UtilsHelper().MA(kData,self.P3,1)
+        kData = UtilsHelper().ma(rsvData,self.P2,1)
+        dData = UtilsHelper().ma(kData,self.P3,1)
  
         for i in range(length):
             jValue = 3 * kData[i] - 2 * dData[i]

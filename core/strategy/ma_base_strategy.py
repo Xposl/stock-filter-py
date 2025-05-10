@@ -1,6 +1,8 @@
 """
 MA均线策略模块
 """
+from typing import List
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
@@ -36,7 +38,7 @@ class MaBaseStrategy(BaseStrategy):
     def get_key(self):
         return 'MA_Base_strategy'
     
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算MA策略
 
         Args:
@@ -49,10 +51,10 @@ class MaBaseStrategy(BaseStrategy):
         close_data = []
         pos_data = []
         for kl_item in kl_data:
-            close_data.append(kl_item['close'])
+            close_data.append(kl_item.close)
             
-        ma_m = UtilsHelper().EMA(close_data, self.p2)
-        ma_l = UtilsHelper().EMA(close_data, self.p3)
+        ma_m = UtilsHelper().ema(close_data, self.p2)
+        ma_l = UtilsHelper().ema(close_data, self.p3)
         
         status = 0
         for i in range(length):

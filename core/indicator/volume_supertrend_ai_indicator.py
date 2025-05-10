@@ -1,4 +1,6 @@
+from typing import List
 from core.enum.indicator_group import IndicatorGroup
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 
 class VolumeSuperTrendAIIndicator:
@@ -28,7 +30,7 @@ class VolumeSuperTrendAIIndicator:
     def getGroup(self):
         return IndicatorGroup.POWER
     
-    def calculate(self, klData):
+    def calculate(self, klData: List[KLine]):
         length = len(klData)
         if length < max(self.len, self.KNN_PriceLen, self.KNN_STLen) + self.n:
             # 数据不足
@@ -43,10 +45,10 @@ class VolumeSuperTrendAIIndicator:
         highData = []
         lowData = []
         for klItem in klData:
-            close_data.append(klItem['close'])
-            volume_data.append(klItem['volume'])
-            highData.append(klItem['high'])
-            lowData.append(klItem['low'])
+            close_data.append(klItem.close)
+            volume_data.append(klItem.volume)
+            highData.append(klItem.high)
+            lowData.append(klItem.low)
         
         # 计算super_trend
         posData = []
@@ -102,15 +104,15 @@ class VolumeSuperTrendAIIndicator:
             vol_price.append(close_data[i] * volume_data[i])
         
         if self.maSrc == "SMA":
-            vwma = [utils.SMA(vol_price, self.len)[i] / utils.SMA(volume_data, self.len)[i] if utils.SMA(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
+            vwma = [utils.sma(vol_price, self.len)[i] / utils.sma(volume_data, self.len)[i] if utils.sma(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
         elif self.maSrc == "EMA":
-            vwma = [utils.EMA(vol_price, self.len)[i] / utils.EMA(volume_data, self.len)[i] if utils.EMA(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
+            vwma = [utils.ema(vol_price, self.len)[i] / utils.ema(volume_data, self.len)[i] if utils.ema(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
         elif self.maSrc == "WMA":
-            vwma = [utils.WMA(vol_price, self.len)[i] / utils.WMA(volume_data, self.len)[i] if utils.WMA(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
+            vwma = [utils.wma(vol_price, self.len)[i] / utils.wma(volume_data, self.len)[i] if utils.wma(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
         elif self.maSrc == "RMA":
-            vwma = [utils.RMA(vol_price, self.len)[i] / utils.RMA(volume_data, self.len)[i] if utils.RMA(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
+            vwma = [utils.rma(vol_price, self.len)[i] / utils.rma(volume_data, self.len)[i] if utils.rma(volume_data, self.len)[i] > 0 else close_data[i] for i in range(length)]
         else:  # VWMA
-            vwma = utils.VWMA(vol_price, self.len)
+            vwma = utils.wma(vol_price, self.len)
         
         # 计算ATR
         tr_data = []
@@ -121,7 +123,7 @@ class VolumeSuperTrendAIIndicator:
                 tr = max(highData[i] - lowData[i], abs(close_data[i-1] - highData[i]), abs(close_data[i-1] - lowData[i]))
                 tr_data.append(tr)
         
-        atr = utils.RMA(tr_data, self.len)
+        atr = utils.rma(tr_data, self.len)
         
         # 计算上下轨
         upper_band = [0] * length
@@ -148,7 +150,7 @@ class VolumeSuperTrendAIIndicator:
     
     def _calculate_wma(self, data, dayCount):
         utils = UtilsHelper()
-        return utils.WMA(data, dayCount)
+        return utils.wma(data, dayCount)
     
     def _distance(self, x1, x2):
         return abs(x1 - x2)

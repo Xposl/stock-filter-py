@@ -36,18 +36,18 @@ class TickerScoreFilter:
         
 
         # 7天交易额均线, 成交量放大
-        maTurnover = UtilsHelper().SMA(kLine['turnover'].values,len5)
+        maTurnover = UtilsHelper().sma(kLine['turnover'].values,len5)
         if maTurnover[length-1] < 5 * 1000 * 1000:
             return False
 
         KScoreData = TickerScoreRepository().get_items_by_ticker_id(ticker['id'])
         kScore = pd.DataFrame(KScoreData)
-        maS = UtilsHelper().WMA(kScore['score'].values,len5)
-        maM = UtilsHelper().WMA(kScore['score'].values,len10)
-        maL = UtilsHelper().WMA(kScore['score'].values,len20)
+        maS = UtilsHelper().wma(kScore['score'].values,len5)
+        maM = UtilsHelper().wma(kScore['score'].values,len10)
+        maL = UtilsHelper().wma(kScore['score'].values,len20)
 
-        weekMa5 = UtilsHelper().EMA(weekKLine['close'].values,len5)
-        ma20 = UtilsHelper().EMA(kLine['close'].values,len20)
+        weekMa5 = UtilsHelper().ema(weekKLine['close'].values,len5)
+        ma20 = UtilsHelper().ema(kLine['close'].values,len20)
         
         lastIndex = length - 1
         lastWeekIndex = weekLength - 1

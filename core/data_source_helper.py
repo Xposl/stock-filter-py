@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import List, Optional
 import akshare as ak
 from core.enum.ticker_type import TickerType
 
@@ -7,12 +7,14 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
+from core.handler.ticker_k_line_handler import TickerKLineHandler
 from core.models.ticker import Ticker
+from core.schema.k_line import KLine
 from core.service.ticker_score_repository import TickerScoreRepository
 from core.utils.utils import UtilsHelper
 
 from .handler.ticker_handler import TickerHandler
-from .handler.ticker_k_line_handler import TickerKLineHandler
+
 from .handler.ticker_strategy_handler import TickerStrategyHandler
 from .handler.ticker_indicator_handler import TickerIndicatorHandler
 from .handler.ticker_score_handler import TickerScoreHandler
@@ -64,7 +66,7 @@ class DataSourceHelper:
         """
         self.valuations = valuations
 
-    def _get_end_date(self):
+    def _get_end_date(self) -> str:
         """
         获取最后交易日
         """
@@ -79,17 +81,17 @@ class DataSourceHelper:
                 return f"{report_time_str[:4]}-{report_time_str[4:6]}-{report_time_str[6:]}"
         except Exception as e:
             print("获取失败")
-            return datetime.datetime.now()
+            return datetime.datetime.now().strftime('%Y-%m-%d')
         
-    def _calc_start_end_date(self,days: Optional[int]=600):
+    def _calc_start_end_date(self,days: Optional[int]=600) -> tuple[str,str]:
         """
         计算开始和结束日期
         :param days: 天数
         :return: 开始和结束日期
         """
-        endDate = self._get_end_date()
-        startDate = (datetime.datetime.strptime(endDate, '%Y-%m-%d') - relativedelta(days=days)).strftime('%Y-%m-%d')
-        return startDate, endDate
+        end_date = self._get_end_date()
+        start_date = (datetime.datetime.strptime(end_date, '%Y-%m-%d') - relativedelta(days=days)).strftime('%Y-%m-%d')
+        return start_date, end_date
 
     
     def _get_on_time_kline_data(self,ticker: Ticker, days: Optional[int]=600):
@@ -98,14 +100,14 @@ class DataSourceHelper:
         """
         # 从在线API获取K线数据和实时数据
         current_date = datetime.datetime.now()
-        endDate = current_date.strftime('%Y-%m-%d')
-        startDate = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
+        end_date = current_date.strftime('%Y-%m-%d')
+        start_date = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
         
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, start_date, end_date)
         onTimeData = TickerKLineHandler().get_kl(ticker.code, ticker.source)
         
         # 确保时间是字符串格式
-        time_key = endDate
+        time_key = end_date
         if onTimeData is not None:
             ontime_date = onTimeData['time_key']
             if isinstance(ontime_date, (datetime.datetime, datetime.date)):
@@ -118,26 +120,26 @@ class DataSourceHelper:
                 kLineData[len(kLineData) - 1] = onTimeData
         return time_key, kLineData
 
-    def _update_ticker_data(self,ticker: Ticker, endDate: str, kLineData: Optional[list]=None):
+    def _update_ticker_data(self,ticker: Ticker, end_date: str, kl_data: List[KLine]):
         """
         更新指定股票的分析数据
         """
-        if kLineData:
+        if kl_data:
             # 使用格式化后的字符串日期
-            strategyData = TickerStrategyHandler().update_ticker_strategy(ticker,kLineData, endDate)
-            indicatorData = TickerIndicatorHandler(endDate,self.indicators).update_ticker_indicator(ticker,kLineData)
-            valuationData = TickerValuationHandler(endDate,self.valuations).update_ticker_valuation(ticker)
-            scoreData = TickerScoreHandler(self.scoreRule).update_ticker_score(ticker,kLineData,strategyData,indicatorData,valuationData)
-        return ticker,kLineData,scoreData
+            strategyData = TickerStrategyHandler().update_ticker_strategy(ticker,kl_data, end_date)
+            indicatorData = TickerIndicatorHandler(end_date,self.indicators).update_ticker_indicator(ticker,kl_data)
+            valuationData = TickerValuationHandler(end_date,self.valuations).update_ticker_valuation(ticker)
+            scoreData = TickerScoreHandler(self.scoreRule).update_ticker_score(ticker,kl_data,strategyData,indicatorData,valuationData)
+        return ticker,kl_data,scoreData
 
     def _update_ticker(self,ticker: Ticker,days: Optional[int]=600, source: Optional[int]=None):
         """
         更新指定股票数据
         """
         # 统一获取和格式化日期
-        startDate, endDate = self._calc_start_end_date(days)
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, source if source != None else ticker.source, startDate, endDate)
-        return self._update_ticker_data(ticker, endDate, kLineData)
+        start_date, end_date = self._calc_start_end_date(days)
+        kl_data = TickerKLineHandler().get_kl(ticker.code, source if source != None else ticker.source, start_date, end_date)
+        return self._update_ticker_data(ticker, end_date, kl_data)
 
 
     def _update_tickers(self,tickers: Optional[list]=None,days: Optional[int]=600):
@@ -148,7 +150,7 @@ class DataSourceHelper:
         end_date = self._get_end_date()
         for i in range(total):
             ticker = tickers[i]
-            UtilsHelper().runProcess(i,total,"update({i}/{total})".format(i=i+1,total=total),"({id}){code}".format(
+            UtilsHelper().run_process(i,total,"update({i}/{total})".format(i=i+1,total=total),"({id}){code}".format(
                 id = ticker.id,
                 code = ticker.code
             ))
@@ -198,8 +200,8 @@ class DataSourceHelper:
             print("未找到目标数据")
             return
         # 统一获取和格式化日期
-        startDate, endDate = self._calc_start_end_date(days)
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, startDate, endDate)
+        start_date, end_date = self._calc_start_end_date(days)
+        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, start_date, end_date)
         return kLineData
     
     def update_all_tickers(self):

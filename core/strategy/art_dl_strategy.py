@@ -1,6 +1,8 @@
 """
 ART双线策略模块
 """
+from typing import List
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
@@ -21,7 +23,7 @@ class ArtDLStrategy(BaseStrategy):
             'multi': self.multi
         }
 
-    def set_params(self, param):
+    def set_params(self, param: dict):
         """设置策略参数
 
         Args:
@@ -38,7 +40,7 @@ class ArtDLStrategy(BaseStrategy):
         """
         return 'ART_DL_strategy'
 
-    def calculate(self, kl_data):
+    def calculate(self, kl_data:List[KLine]):
         """计算ART双线策略
 
         Args:
@@ -47,14 +49,14 @@ class ArtDLStrategy(BaseStrategy):
         Returns:
             list: 策略仓位数据列表 [-1, 0, 1]
         """
-        art_data = UtilsHelper().RATR(kl_data, self.day_count)
+        art_data = UtilsHelper().ratr(kl_data, self.day_count)
         loss_data = []
         close_data = []
 
         for kl_item in kl_data:
-            close_data.append(kl_item['close'])
+            close_data.append(kl_item.close)
 
         for art_item in art_data:
             loss_data.append(art_item * self.multi)
 
-        return UtilsHelper().doubleLinePos(close_data, close_data, loss_data)
+        return UtilsHelper().double_line_pos(close_data, close_data, loss_data)

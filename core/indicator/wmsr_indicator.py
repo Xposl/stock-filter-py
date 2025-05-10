@@ -20,8 +20,8 @@ class WMSRIndicator:
         posData = []
         data = []
         Kline = pd.DataFrame(klData)
-        lowestData = UtilsHelper().LOWEST(Kline['low'].values,self.dayCount)
-        highestData = UtilsHelper().HIGHEST(Kline['high'].values,self.dayCount)
+        lowestData = UtilsHelper().lowest(Kline['low'].values,self.dayCount)
+        highestData = UtilsHelper().highest(Kline['high'].values,self.dayCount)
             
         for i in range(length):
             temp1 = highestData[i] - Kline['close'][i]

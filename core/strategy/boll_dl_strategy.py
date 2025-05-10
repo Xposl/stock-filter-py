@@ -1,6 +1,8 @@
 """
 布林带双线策略模块
 """
+from typing import List
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
@@ -38,7 +40,7 @@ class BollDLStrategy(BaseStrategy):
         """
         return 'BOLL_DL_strategy'
 
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算布林带双线策略
 
         Args:
@@ -51,12 +53,12 @@ class BollDLStrategy(BaseStrategy):
         close_data = []
 
         for kl_item in kl_data:
-            close_data.append(kl_item['close'])
+            close_data.append(kl_item.close)
 
-        sma_data = UtilsHelper().SMA(close_data, self.day_count)
-        dev_data = UtilsHelper().STDDEV(close_data, self.day_count)
+        sma_data = UtilsHelper().sma(close_data, self.day_count)
+        dev_data = UtilsHelper().stddev(close_data, self.day_count)
 
         for dev_item in dev_data:
             loss_data.append(dev_item * self.multi)
 
-        return UtilsHelper().doubleLinePos(close_data, sma_data, dev_data)
+        return UtilsHelper().double_line_pos(close_data, sma_data, dev_data)

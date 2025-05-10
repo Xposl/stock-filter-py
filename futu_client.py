@@ -94,7 +94,6 @@ if sys.argv[1] == '-testo':
         if startKey != None:
             if code.startswith(startKey) == False:
                 continue
-        print(code)
         dataSource.updateTickerByCode(code,True)
         dataSource.analysisTickerOnTime(code,250)
 

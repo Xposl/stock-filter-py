@@ -1,5 +1,6 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from core.enum.indicator_group import IndicatorGroup
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 
 class BullBearPowerIndicator:
@@ -12,7 +13,7 @@ class BullBearPowerIndicator:
     def getGroup(self) -> IndicatorGroup:
         return IndicatorGroup.POWER
     
-    def calculate(self,klData: Optional[list]=None) -> Dict[str, Any]:
+    def calculate(self,klData: List[KLine]) -> Dict[str, Any]:
         """
         计算指标
         """
@@ -22,13 +23,13 @@ class BullBearPowerIndicator:
         lowData = []
         posData = []
         for klItem in klData:
-            highData.append(klItem['high'])
-            lowData.append(klItem['low'])
-            closeData.append(klItem['close'])
+            highData.append(klItem.high)
+            lowData.append(klItem.low)
+            closeData.append(klItem.close)
         
-        atrData = UtilsHelper().RATR(klData,self.atrDay)
-        lowestData = UtilsHelper().LOWEST(lowData,self.dayCount)
-        highestData = UtilsHelper().HIGHEST(highData,self.dayCount)
+        atrData = UtilsHelper().ratr(klData,self.atrDay)
+        lowestData = UtilsHelper().lowest(lowData,self.dayCount)
+        highestData = UtilsHelper().highest(highData,self.dayCount)
         
         score = 0
         for i in range(length):

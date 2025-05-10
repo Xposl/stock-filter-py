@@ -17,7 +17,7 @@ class DongcaiKLineSource(BaseSource):
         """获取中国A股实时数据"""
         tickers = ak.stock_zh_a_spot_em()
         for i in range(len(tickers)):
-            ticker_code = tickers['代码'][i]
+            ticker_code:str = tickers['代码'][i]
             if ticker_code.startswith('0') or ticker_code.startswith('3'):
                 ticker_code = f'SZ.{str(ticker_code)}'
             elif ticker_code.startswith('6') or ticker_code.startswith('7') or ticker_code.startswith('9'):
@@ -98,7 +98,7 @@ class DongcaiKLineSource(BaseSource):
             
         if data is not None:
             return [KLine(
-                time_key=datetime.datetime.fromtimestamp(data['日期'][index]/1000).strftime('%Y-%m-%d'),
+                time_key= data['日期'][index].strftime('%Y-%m-%d') if isinstance(data['日期'][index],datetime.date) else data['日期'][index],
                 high=data['最高'][index],
                 low=data['最低'][index],
                 open=data['开盘'][index],

@@ -29,8 +29,8 @@ class RSIIndicator:
             upTemp.append(max(close - lastClose,0))
             downTemp.append(abs(close - lastClose))
         
-        maUP = UtilsHelper().MA(upTemp,self.dayCount,1)
-        maDown = UtilsHelper().MA(downTemp,self.dayCount,1)
+        maUP = UtilsHelper().ma(upTemp,self.dayCount,1)
+        maDown = UtilsHelper().ma(downTemp,self.dayCount,1)
         for i in range(length):
             if i < 1:
                 posData.append(0)

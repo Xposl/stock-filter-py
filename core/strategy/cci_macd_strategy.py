@@ -1,6 +1,8 @@
 """
 CCI-MACD策略模块
 """
+from typing import List
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
@@ -53,7 +55,7 @@ class CCIMacdStrategy(BaseStrategy):
         """
         return 'CCI_MACD_strategy'
     
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算CCI-MACD策略
 
         Args:
@@ -68,28 +70,28 @@ class CCIMacdStrategy(BaseStrategy):
         utils = UtilsHelper()
 
         for kl_item in kl_data:
-            close_data.append(kl_item['close'])
+            close_data.append(kl_item.close)
         
         # 计算CCI指标
-        cci_1 = utils.CCI(kl_data, self.cci_p1)
-        cci_2 = utils.CCI(kl_data, self.cci_p2)
+        cci_1 = utils.cci(kl_data, self.cci_p1)
+        cci_2 = utils.cci(kl_data, self.cci_p2)
         
         # 计算TED (CCI1 + CCI2的EMA)
         cci_sum = []
         for i in range(length):
             cci_sum.append(cci_1[i] + cci_2[i])
         
-        ted = utils.EMA(cci_sum, self.cci_m)
+        ted = utils.ema(cci_sum, self.cci_m)
         
         # 计算MACD
-        ema_short = utils.EMA(close_data, self.macd_short)
-        ema_long = utils.EMA(close_data, self.macd_long)
+        ema_short = utils.ema(close_data, self.macd_short)
+        ema_long = utils.ema(close_data, self.macd_long)
         
         dif = []
         for i in range(length):
             dif.append(ema_short[i] - ema_long[i])
         
-        dea = utils.EMA(dif, self.macd_m)
+        dea = utils.ema(dif, self.macd_m)
         
         macd = []
         for i in range(length):

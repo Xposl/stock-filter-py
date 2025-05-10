@@ -17,7 +17,7 @@ class CCIIndicator:
         length = len(klData)
         posData = []
  
-        cci = UtilsHelper().CCI(klData,self.dayCount)
+        cci = UtilsHelper().cci(klData,self.dayCount)
         
         for i in range(length):
             if i < 2:

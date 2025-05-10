@@ -18,9 +18,9 @@ class SMAIndicator:
         closeData = []
         posData = []
         for klItem in klData:
-            closeData.append(klItem['close'])
+            closeData.append(klItem.close)
             
-        ma = UtilsHelper().SMA(closeData,self.dayCount)
+        ma = UtilsHelper().sma(closeData,self.dayCount)
         for i in range(length):
             if i < 2:
                 posData.append(0)

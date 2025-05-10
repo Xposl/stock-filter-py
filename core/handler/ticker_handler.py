@@ -67,7 +67,7 @@ class TickerHandler:
                 
             for i, code in enumerate(new_tickers):
                 try:
-                    UtilsHelper().runProcess(i, total, "处理项目", f"{code}")
+                    UtilsHelper().run_process(i, total, "处理项目", f"{code}")
                     ticker = new_tickers[code]
                     if code not in existing_tickers:
                         # 获取新股详情
@@ -97,11 +97,11 @@ class TickerHandler:
                             if DB_TYPE == 'sqlite':
                                 sleep(0.1)  # 短暂暂停
                         except Exception as e:
-                            logger.error(f"提交批量数据出错: {str(e)}")
+                            logger.error(f"提交批量数据出错: {e}", exc_info=True)
                             db_adapter.rollback()
                             
                 except Exception as e:
-                    logger.error(f"处理股票 {code} 时出错: {str(e)}")
+                    logger.error(f"处理股票 {code} 时出错: {e}", exc_info=True)
                     continue
 
             # 提交最后一批数据
@@ -114,7 +114,7 @@ class TickerHandler:
             # 处理已删除的股票
             for i, code in enumerate(existing_tickers):
                 if code not in new_tickers:
-                    UtilsHelper().runProcess(i, len(existing_tickers), "删除项目", f"{code}")
+                    UtilsHelper().run_process(i, len(existing_tickers), "删除项目", f"{code}")
                     self.ticker_repository.update(
                         code, 
                         existing_tickers[code].name, 

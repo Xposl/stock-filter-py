@@ -11,7 +11,7 @@ class NormalFilter:
             return False
   
         length = len(kLineData)
-        weekKLineData = UtilsHelper().getWeekLine(kLineData)
+        weekKLineData = UtilsHelper().get_week_line(kLineData)
         kLine = pd.DataFrame(kLineData)
         weekKLine = pd.DataFrame(weekKLineData)
         
@@ -29,7 +29,7 @@ class NormalFilter:
 
         
         # 7天交易额均线
-        maTurnover = UtilsHelper().SMA(kLine['turnover'].values,len13)
+        maTurnover = UtilsHelper().sma(kLine['turnover'].values,len13)
         nt = 0
         for i in range(length):
             if length - i - 2 < 0:
@@ -43,13 +43,13 @@ class NormalFilter:
 
         KScoreData = TickerScoreRepository().get_items_by_ticker_id(ticker['id'])
         kScore = pd.DataFrame(KScoreData)
-        maS = UtilsHelper().WMA(kScore['score'].values,len7)
-        maM = UtilsHelper().WMA(kScore['score'].values,len13)
-        maL = UtilsHelper().WMA(kScore['score'].values,len21)
+        maS = UtilsHelper().wma(kScore['score'].values,len7)
+        maM = UtilsHelper().wma(kScore['score'].values,len13)
+        maL = UtilsHelper().wma(kScore['score'].values,len21)
 
-        weekMa = UtilsHelper().EMA(weekKLine['close'].values,len13)
-        ma13 = UtilsHelper().EMA(kLine['close'].values,len13)
-        ma144 = UtilsHelper().EMA(kLine['close'].values,len144)
+        weekMa = UtilsHelper().ema(weekKLine['close'].values,len13)
+        ma13 = UtilsHelper().ema(kLine['close'].values,len13)
+        ma144 = UtilsHelper().ema(kLine['close'].values,len144)
         
         lastIndex = length - 1
         close = kLine['close'][lastIndex]

@@ -1,266 +1,332 @@
-
 import math
 import sys
+from typing import List
+
+from core.schema.k_line import KLine
 
 class UtilsHelper:
+    """
+    工具类，提供常用的数学和数据处理方法。
+    """
 
-    def runProcess(self,index,total,title,message):
-        print("\r", end="")  # \r移回行首，\033[K清除从光标到行尾的内容
-        process = int(index/(total-1) * 100) if total > 1 else 100
-        print("{title}: {process}%: ".format(
-            title = title,
-            process= process
-        ), "▋" * (process // 2), message, end="")
+    def run_process(self, index: int, total: int, title: str, message: str) -> None:
+        """
+        打印进度条。
+        """
+        print("\r", end="")
+        process = int(index / (total - 1) * 100) if total > 1 else 100
+        print(f"{title}: {process}%: ", "▋" * (process // 2), message, end="")
         sys.stdout.flush()
 
-    def calcuPercent(self,dividend,divisor):
-        return round(dividend/divisor * 100,2) if divisor > 0 else 0
-    
-    def calcuInteger(self,dividend,divisor):
-        return math.floor(dividend/divisor) if divisor > 0 else 0
+    def calcu_percent(self, dividend: float, divisor: float) -> float:
+        """
+        计算百分比。
+        """
+        return round(dividend / divisor * 100, 2) if divisor > 0 else 0
 
-    def keepUpTrend(self,data,sign,day,length):
-        result = True
+    def calcu_integer(self, dividend: float, divisor: float) -> int:
+        """
+        计算整数商。
+        """
+        return math.floor(dividend / divisor) if divisor > 0 else 0
+
+    def keep_up_trend(self, data: List[float], sign: float, day: int, length: int) -> bool:
+        """
+        判断是否持续上涨。
+        """
         start = day - length if day - length > 0 else 0
         for i in range(start, day):
             if data[i] < sign:
-                result = False
-        return result
+                return False
+        return True
 
-    # 通道交易点计算函数
-    def doubleLinePos(self,priceData,adjustBaseData,adjustData):
-        stopData = []
-        posData = []
-        for i in range(len(priceData)):
-            price = priceData[i]
-            adjustBasse = adjustBaseData[i]
-            adjust = adjustData[i]
+    def double_line_pos(self, price_data: List[float], adjust_base_data: List[float], adjust_data: List[float]) -> List[int]:
+        """
+        通道交易点计算函数。
+        """
+        stop_data = []
+        pos_data = []
+        for i in range(len(price_data)):
+            price = price_data[i]
+            adjust_base = adjust_base_data[i]
+            adjust = adjust_data[i]
             if i == 0:
-                stopData.append(adjustBasse - adjust)
+                stop_data.append(adjust_base - adjust)
                 continue
-            lastPrice = priceData[i-1]
-            lastStopData = stopData[i-1]
-            v1 = adjustBasse - adjust if price > lastStopData else adjustBasse + adjust
-            v2 = min(adjustBasse + adjust, lastStopData) if price < lastStopData and lastPrice < lastStopData else v1
-            v3 = max(adjustBasse - adjust, lastStopData) if price > lastStopData and lastPrice > lastStopData else v2
-            stopData.append(v3)
+            last_price = price_data[i - 1]
+            last_stop_data = stop_data[i - 1]
+            v1 = adjust_base - adjust if price > last_stop_data else adjust_base + adjust
+            v2 = min(adjust_base + adjust, last_stop_data) if price < last_stop_data and last_price < last_stop_data else v1
+            v3 = max(adjust_base - adjust, last_stop_data) if price > last_stop_data and last_price > last_stop_data else v2
+            stop_data.append(v3)
 
-        for i in range(len(priceData)):
+        for i in range(len(price_data)):
             if i == 0:
-                posData.append(0)
+                pos_data.append(0)
                 continue
-            price = priceData[i]
-            lastPrice = priceData[i-1]
-            lastStopData = stopData[i-1]
-            lastPosData = posData[i-1]
-            v1 = -1 if lastPrice > lastStopData and price < lastStopData else lastPosData
-            v2 = 1 if lastPrice < lastStopData and price > lastStopData else v1
-            posData.append(v2)
-        return posData
+            price = price_data[i]
+            last_price = price_data[i - 1]
+            last_stop_data = stop_data[i - 1]
+            last_pos_data = pos_data[i - 1]
+            v1 = -1 if last_price > last_stop_data and price < last_stop_data else last_pos_data
+            v2 = 1 if last_price < last_stop_data and price > last_stop_data else v1
+            pos_data.append(v2)
+        return pos_data
 
-    def keepDownTrend(self,data,sign,day,length):
-        result = True
+    def keep_down_trend(self, data: List[float], sign: float, day: int, length: int) -> bool:
+        """
+        判断是否持续下跌。
+        """
         start = day - length if day - length > 0 else 0
         for i in range(start, day):
             if data[i] > sign:
-                result = False
-        return result
+                return False
+        return True
 
-    def SUM(self,data,dayCount):
+    def sum_list(self, data: List[float], day_count: int) -> List[float]:
+        """
+        计算滑动求和。
+        """
         result = []
         length = len(data)
         for i in range(length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            sum = 0
-            for j in range(calcuDay):
-                sum += data[i-j]
-            result.append(sum)
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            s = 0
+            for j in range(calcu_day):
+                s += data[i - j]
+            result.append(s)
         return result
-    
-    def AVEDEV(self,data,dayCount):
+
+    def avedev(self, data: List[float], day_count: int) -> List[float]:
+        """
+        平均绝对偏差。
+        """
         result = [0]
         length = len(data)
-        smaData = self.SMA(data,dayCount)
-        for i in range(1,length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            sum = 0
-            for j in range(calcuDay):
-                sum += abs(data[i-j] - smaData[i])
-            result.append(sum/calcuDay)
+        sma_data = self.sma(data, day_count)
+        for i in range(1, length):
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            s = 0
+            for j in range(calcu_day):
+                s += abs(data[i - j] - sma_data[i])
+            result.append(s / calcu_day)
         return result
 
-    def STDDEV(self,data,dayCount):
+    def stddev(self, data: List[float], day_count: int) -> List[float]:
+        """
+        标准差。
+        """
         result = [0]
         length = len(data)
-        smaData = self.SMA(data,dayCount)
-        for i in range(1,length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            sum = 0
-            for j in range(calcuDay):
-                sum += abs(data[i-j] - smaData[i]) * abs(data[i-j] - smaData[i])
-            result.append(math.sqrt(sum/calcuDay))
+        sma_data = self.sma(data, day_count)
+        for i in range(1, length):
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            s = 0
+            for j in range(calcu_day):
+                s += (data[i - j] - sma_data[i]) ** 2
+            result.append(math.sqrt(s / calcu_day))
         return result
 
-    def HIGHEST(self,data,dayCount):
+    def highest(self, data: List[float], day_count: int) -> List[float]:
+        """
+        滑动最高值。
+        """
         result = []
         length = len(data)
         for i in range(length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            subArr = data[i-calcuDay+1:i+1]
-            result.append(max(subArr))
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            sub_arr = data[i - calcu_day + 1:i + 1]
+            result.append(max(sub_arr))
         return result
 
-    def LOWEST(self,data,dayCount):
+    def lowest(self, data: List[float], day_count: int) -> List[float]:
+        """
+        滑动最低值。
+        """
         result = []
         length = len(data)
         for i in range(length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            subArr = data[i - calcuDay + 1:i+1]
-            result.append(min(subArr))
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            sub_arr = data[i - calcu_day + 1:i + 1]
+            result.append(min(sub_arr))
         return result
 
-    def RMA(self, data, dayCount):
+    def rma(self, data: List[float], day_count: int) -> List[float]:
+        """
+        RMA 平滑移动平均。
+        """
         result = []
         length = len(data)
         for i in range(length):
-            if(i == 0):
+            if i == 0:
                 result.append(0)
                 continue
-            alpha = dayCount
-            res = (data[i] + (alpha - 1) * result[i-1])/alpha
+            alpha = day_count
+            res = (data[i] + (alpha - 1) * result[i - 1]) / alpha
             result.append(res)
-        return result
-    
-    def SMA(self, data, dayCount):
-        result = [data[0]]
-        length = len(data)
-        for i in range(1,length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            sum = 0
-            for j in range(calcuDay):
-                sum += data[i-j]
-            result.append(sum/calcuDay)
         return result
 
-    def EMA(self, data, dayCount):
-        result = [data[0]]
-        length = len(data)
-        for i in range(1,length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            res = (2 * data[i] + (calcuDay - 1) * result[i-1])/(calcuDay + 1)
-            result.append(res)
-        return result
-    
-    def WMA(self,data,dayCount):
+    def sma(self, data: List[float], day_count: int) -> List[float]:
+        """
+        简单移动平均。
+        """
         result = [data[0]]
         length = len(data)
         for i in range(1, length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            norm = 0
-            sum = 0
-            for j in range(calcuDay):
-                weight = (calcuDay - j) * calcuDay
-                norm = norm + weight
-                sum = sum + data[i-j] * weight
-            result.append(sum/norm)
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            s = 0
+            for j in range(calcu_day):
+                s += data[i - j]
+            result.append(s / calcu_day)
         return result
 
-    def MA(self, data, dayCount, weight):
+    def ema(self, data: List[float], day_count: int) -> List[float]:
+        """
+        指数移动平均。
+        """
         result = [data[0]]
         length = len(data)
-        for i in range(1,length):
-            calcuDay = dayCount
-            if i < dayCount - 1:
-                calcuDay = i + 1
-            res = (weight * data[i] + (calcuDay - weight) * result[i-1])/calcuDay
+        for i in range(1, length):
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            res = (2 * data[i] + (calcu_day - 1) * result[i - 1]) / (calcu_day + 1)
             result.append(res)
         return result
-    
-    def HMA(self, data, dayCount):
+
+    def wma(self, data: List[float], day_count: int) -> List[float]:
+        """
+        加权移动平均。
+        """
+        result = [data[0]]
         length = len(data)
-        alphaData = []
-        halfDay = int(round(dayCount/2,0))
-        sqrtDay = int(round(math.sqrt(dayCount),0))
-        halfData = self.WMA(data,halfDay)
-        wmaData = self.WMA(data,dayCount)
+        for i in range(1, length):
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            norm = 0
+            s = 0
+            for j in range(calcu_day):
+                weight = (calcu_day - j) * calcu_day
+                norm += weight
+                s += data[i - j] * weight
+            result.append(s / norm)
+        return result
+
+    def ma(self, data: List[float], day_count: int, weight: float) -> List[float]:
+        """
+        一般移动平均。
+        """
+        result = [data[0]]
+        length = len(data)
+        for i in range(1, length):
+            calcu_day = day_count
+            if i < day_count - 1:
+                calcu_day = i + 1
+            res = (weight * data[i] + (calcu_day - weight) * result[i - 1]) / calcu_day
+            result.append(res)
+        return result
+
+    def hma(self, data: List[float], day_count: int) -> List[float]:
+        """
+        Hull 移动平均。
+        """
+        length = len(data)
+        alpha_data = []
+        half_day = int(round(day_count / 2, 0))
+        sqrt_day = int(round(math.sqrt(day_count), 0))
+        half_data = self.wma(data, half_day)
+        wma_data = self.wma(data, day_count)
         for i in range(length):
-            alpha = 2 * halfData[i] - wmaData[i]
-            alphaData.append(alpha)
-        return self.WMA(alphaData,sqrtDay)
-            
-            
-    def VWMA(self, kLineData, dayCount):
+            alpha = 2 * half_data[i] - wma_data[i]
+            alpha_data.append(alpha)
+        return self.wma(alpha_data, sqrt_day)
+
+    def vwma(self, kl_data: List[KLine], day_count: int) -> List[float]:
+        """
+        成交量加权移动平均。
+        """
         result = []
         data = []
-        volumeData = []
-        length = len(kLineData)
-        for klItem in kLineData:
-            volumeData.append(klItem['volume'])
-            data.append(klItem['close'] * klItem['volume'])
-        maData = self.SMA(data,dayCount)
-        maVolume = self.SMA(volumeData,dayCount)
+        volume_data = []
+        length = len(kl_data)
+        for kl_item in kl_data:
+            volume_data.append(kl_item.volume)
+            data.append(kl_item.close * kl_item.volume)
+        ma_data = self.sma(data, day_count)
+        ma_volume = self.sma(volume_data, day_count)
         for i in range(length):
-            vwma = maData[i]/maVolume[i] if maVolume[i] > 0 else 0
+            vwma = ma_data[i] / ma_volume[i] if ma_volume[i] > 0 else 0
             result.append(vwma)
-
         return result
 
-    def TR(self,kLineData):
+    def tr(self, kl_data: List[KLine]) -> List[float]:
+        """
+        真实波动幅度（True Range）。
+        """
         result = []
-        length = len(kLineData)
+        length = len(kl_data)
         for i in range(length):
-            dayVal = kLineData[i]
-            lastDayVal = kLineData[i-1]
-            high = dayVal['high']
-            low = dayVal['low']
-            lastClose = lastDayVal['close']
-            res = max(max((high-low),abs(lastClose - high)),abs(lastClose-low))
+            day_value = kl_data[i]
+            last_day_value = kl_data[i - 1]
+            high = day_value.high
+            low = day_value.low
+            last_close = last_day_value.close
+            res = max(max((high - low), abs(last_close - high)), abs(last_close - low))
             result.append(res)
         return result
-    
-    def RATR(self,kLineData,dayCount):
-        trData = self.TR(kLineData)
-        return self.RMA(trData,dayCount)
-    
-    def TYP(self,kLineData):
+
+    def ratr(self, kl_data: List[KLine], day_count: int) -> List[float]:
+        """
+        计算真实波动幅度均值（RATR）。
+        """
+        tr_data = self.tr(kl_data)
+        return self.rma(tr_data, day_count)
+
+    def typ(self, kl_data: List[KLine]) -> List[float]:
+        """
+        典型价格。
+        """
         result = []
-        length = len(kLineData)
+        length = len(kl_data)
         for i in range(length):
-            dayValue = kLineData[i]
-            high = dayValue['high']
-            low = dayValue['low']
-            close = dayValue['close']
-            result.append((high + low + close)/3)
+            day_value = kl_data[i]
+            high = day_value.high
+            low = day_value.low
+            close = day_value.close
+            result.append((high + low + close) / 3)
         return result
 
-    def CCI(self,kLineData,dayCount):
+    def cci(self, kl_data: List[KLine], day_count: int) -> List[float]:
+        """
+        商品通道指数（CCI）。
+        """
         result = [0]
-        length = len(kLineData)
-        typData = self.TYP(kLineData)
-        typMaData = self.SMA(typData,dayCount)
-        typeAveData = self.AVEDEV(typData,dayCount)
-        for i in range(1,length):
-            cci = (typData[i] - typMaData[i])/(0.015 * typeAveData[i]) if typeAveData[i] > 0 else 0
+        length = len(kl_data)
+        typ_data = self.typ(kl_data)
+        typ_ma_data = self.sma(typ_data, day_count)
+        type_ave_data = self.avedev(typ_data, day_count)
+        for i in range(1, length):
+            cci = (typ_data[i] - typ_ma_data[i]) / (0.015 * type_ave_data[i]) if type_ave_data[i] > 0 else 0
             result.append(cci)
         return result
 
-    def getWeekLine(self,kLineData):
+    def get_week_line(self, kl_data: List[KLine]) -> List[dict]:
+        """
+        获取周线数据。
+        """
         result = []
         data = {
             'time_key': '',
@@ -270,25 +336,25 @@ class UtilsHelper:
             'close': 0,
             'volume': 0
         }
-        curWeek = ''
+        cur_week = ''
         index = -1
-        for kdata in kLineData:
-            week = kdata['time_key'].strftime('%Y-%W')
-            if curWeek != week:
+        for kdata in kl_data:
+            week = kdata.time_key.strftime('%Y-%W')
+            if cur_week != week:
                 data = {
-                    'time_key': kdata['time_key'],
-                    'high': kdata['high'],
-                    'low': kdata['low'],
-                    'open': kdata['open'],
-                    'close': kdata['close'],
-                    'volume': kdata['volume']
+                    'time_key': kdata.time_key,
+                    'high': kdata.high,
+                    'low': kdata.low,
+                    'open': kdata.open,
+                    'close': kdata.close,
+                    'volume': kdata.volume
                 }
                 index += 1
-                curWeek = week
+                cur_week = week
                 result.append(data)
             else:
-                data['high'] = data['high'] if data['high'] > kdata['high'] else kdata['high']
-                data['low'] = data['low'] if data['low'] < kdata['low'] else kdata['low']
+                data['high'] = max(data['high'], kdata['high'])
+                data['low'] = min(data['low'], kdata['low'])
                 data['close'] = kdata['close']
                 data['volume'] += kdata['volume']
                 result[index] = data

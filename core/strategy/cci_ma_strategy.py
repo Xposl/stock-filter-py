@@ -1,6 +1,8 @@
 """
 CCI-MA策略模块
 """
+from typing import List
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
 
@@ -44,7 +46,7 @@ class CCIMaStrategy(BaseStrategy):
         """
         return 'CCI_MA_strategy'
     
-    def calculate(self, kl_data):
+    def calculate(self, kl_data: List[KLine]):
         """计算CCI-MA策略
 
         Args:
@@ -59,15 +61,15 @@ class CCIMaStrategy(BaseStrategy):
         pos_data = []
 
         for kl_item in kl_data:
-            close_data.append(kl_item['close'])
+            close_data.append(kl_item.close)
             
-        cci_s = UtilsHelper().CCI(kl_data, self.cci_s_len)
-        cci_m = UtilsHelper().CCI(kl_data, self.cci_m_len)
-        cci_l = UtilsHelper().CCI(kl_data, self.cci_l_len)
+        cci_s = UtilsHelper().cci(kl_data, self.cci_s_len)
+        cci_m = UtilsHelper().cci(kl_data, self.cci_m_len)
+        cci_l = UtilsHelper().cci(kl_data, self.cci_l_len)
 
-        ma_s = UtilsHelper().EMA(close_data, self.cci_s_len)
-        ma_m = UtilsHelper().EMA(close_data, self.cci_m_len)
-        ma_l = UtilsHelper().EMA(close_data, self.cci_l_len)
+        ma_s = UtilsHelper().ema(close_data, self.cci_s_len)
+        ma_m = UtilsHelper().ema(close_data, self.cci_m_len)
+        ma_l = UtilsHelper().ema(close_data, self.cci_l_len)
 
         # 计算趋势停损点
         for i in range(2, len(kl_data)):
@@ -78,12 +80,12 @@ class CCIMaStrategy(BaseStrategy):
         status = 0
         for i in range(length):
             # 检查各周期CCI趋势
-            cci_up_s = UtilsHelper().keepUpTrend(cci_s, 100, i, self.day_wait)
-            cci_up_m = UtilsHelper().keepUpTrend(cci_m, -100, i, self.day_wait)
-            cci_up_l = UtilsHelper().keepUpTrend(cci_l, -100, i, self.day_wait)
-            cci_down_s = UtilsHelper().keepDownTrend(cci_s, -100, i, self.day_wait)
-            cci_down_m = UtilsHelper().keepDownTrend(cci_m, 100, i, self.day_wait)
-            cci_down_l = UtilsHelper().keepDownTrend(cci_l, 100, i, self.day_wait)
+            cci_up_s = UtilsHelper().keep_up_trend(cci_s, 100, i, self.day_wait)
+            cci_up_m = UtilsHelper().keep_up_trend(cci_m, -100, i, self.day_wait)
+            cci_up_l = UtilsHelper().keep_up_trend(cci_l, -100, i, self.day_wait)
+            cci_down_s = UtilsHelper().keep_down_trend(cci_s, -100, i, self.day_wait)
+            cci_down_m = UtilsHelper().keep_down_trend(cci_m, 100, i, self.day_wait)
+            cci_down_l = UtilsHelper().keep_down_trend(cci_l, 100, i, self.day_wait)
 
             # 合成多空信号
             cci_long = cci_up_s and cci_up_m and cci_up_l

@@ -1,4 +1,6 @@
+from typing import List
 from core.enum.indicator_group import IndicatorGroup
+from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 import pandas as pd
 import numpy as np
@@ -37,7 +39,7 @@ class SimpleNNTRSIIndicator:
         """获取指标所属的组"""
         return IndicatorGroup.POWER
     
-    def _calculate_rsi(self, klData):
+    def _calculate_rsi(self, klData: List[KLine]):
         """计算RSI
         
         与原始ThinkorSwim版本一致，使用标准RSI计算方法
