@@ -1,12 +1,13 @@
-from typing import Optional
+from typing import List, Optional
 from core.indicator import Indicator as Helper
 from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
-
 from core.models.ticker import Ticker
+from core.schema.k_line import KLine
+from core.score.base_score import BaseScore
 
-class TrendScore:
+class TrendScore(BaseScore):
     """
     改进的趋势评分系统，针对做多股票选择优化
     主要改进：
@@ -24,13 +25,13 @@ class TrendScore:
         self.min_data_points = 30  # 最小数据点数，用于Z分数计算
         self.time_decay_window = 10  # 时间衰减应用窗口（最近N天的信号权重更高）
 
-    def calculate(self, ticker: Ticker, kLineData: Optional[list]=None, strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
+    def calculate(self, ticker: Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
         """
         计算趋势增强型评分
         
         Args:
             ticker: 股票信息
-            kLineData: K线数据
+            kl_data: K线数据
             strategyData: 策略数据
             indicatorData: 指标数据
             valuationData: 估值数据
@@ -39,7 +40,7 @@ class TrendScore:
             包含评分的结果列表
         """
         tickerId = ticker.id
-        length = len(kLineData)
+        length = len(kl_data)
         if length == 0:
             print('无数据')
             return
@@ -48,9 +49,7 @@ class TrendScore:
         result = []
         for i in range(length):
             result.append({
-                'id': kLineData[i].get('id', 0),  # 使用get方法，如果没有id键则默认为0
-                'time_key': kLineData[i]['time_key'].strftime('%Y-%m-%d') if hasattr(kLineData[i]['time_key'], 'strftime') else kLineData[i]['time_key'],
-                'ticker_id': tickerId,
+                'time_key': kl_data[i].time_key,
                 'ma_buy': 0.0,  # 浮点型，表示买入信号强度
                 'ma_sell': 0.0,  # 浮点型，表示卖出信号强度
                 'ma_score': 0.0,
@@ -81,7 +80,7 @@ class TrendScore:
                 result[i]['strategy_sell'] += 1 if posData[i] == -1 else 0  # 整数
         
         # 计算指标重要性权重（仅用于最终评分计算）
-        indicator_weights = self._calculate_indicator_weights(indicatorData, kLineData)
+        indicator_weights = self._calculate_indicator_weights(indicatorData, kl_data)
         
         # 处理指标数据 - 直接使用加权信号
         for indicatorKey in indicatorData:
@@ -122,10 +121,10 @@ class TrendScore:
                             result[i]['in_sell'] -= weighted_signal  # 加权浮点值（取负数的相反数）
         
         # 2. 计算趋势强度
-        trend_strength, trend_persistence = self._calculate_trend_factors(kLineData)
+        trend_strength, trend_persistence = self._calculate_trend_factors(kl_data)
         
         # 3. 计算价格-交易量确认因子
-        volume_price_factors = self._calculate_volume_price_confirmation(kLineData)
+        volume_price_factors = self._calculate_volume_price_confirmation(kl_data)
         
         # 收集原始分数
         raw_scores = []
@@ -205,7 +204,7 @@ class TrendScore:
         
         return result
     
-    def _calculate_indicator_weights(self, indicator_data: Optional[list]=None, kLineData: Optional[list]=None):
+    def _calculate_indicator_weights(self, indicator_data: Optional[list]=None, kl_data: Optional[list]=None):
         """
         计算每个指标的权重，基于其历史准确率或特性
         
@@ -267,18 +266,18 @@ class TrendScore:
         
         return decayed_signals
     
-    def _calculate_trend_factors(self, kLineData: Optional[list]=None):
+    def _calculate_trend_factors(self, kl_data: List[KLine]):
         """
         计算趋势强度和持续性
         
         Returns:
             tuple: (趋势强度列表, 趋势持续性列表)
         """
-        if not kLineData:
+        if not kl_data:
             return [], []
             
-        closes = [item['close'] for item in kLineData]
-        volumes = [item['volume'] for item in kLineData]
+        closes = [item.close for item in kl_data]
+        volumes = [item.volume for item in kl_data]
         
         trend_strength = []
         trend_persistence = []
@@ -328,21 +327,21 @@ class TrendScore:
         
         return trend_strength, trend_persistence
     
-    def _calculate_volume_price_confirmation(self, kLineData):
+    def _calculate_volume_price_confirmation(self, kl_data: List[KLine]):
         """
         计算价格和交易量的确认关系
         
         Returns:
             list: 价格-交易量确认因子列表
         """
-        if len(kLineData) < 2:
-            return [0] * len(kLineData)
+        if len(kl_data) < 2:
+            return [0] * len(kl_data)
             
         factors = [0]  # 第一个点没有前一天数据
         
-        for i in range(1, len(kLineData)):
-            price_change = kLineData[i]['close'] - kLineData[i-1]['close']
-            volume_change = kLineData[i]['volume'] - kLineData[i-1]['volume']
+        for i in range(1, len(kl_data)):
+            price_change = kl_data[i].close - kl_data[i-1].close
+            volume_change = kl_data[i].volume - kl_data[i-1].volume
             
             # 价格上涨且成交量增加是强烈的做多信号 (+1.0)
             if price_change > 0 and volume_change > 0:

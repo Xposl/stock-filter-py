@@ -3,28 +3,30 @@
 from dataclasses import dataclass
 from typing import TypedDict
 
+import numpy as np
+
 @dataclass
 class KLine:
     """K线数据"""
     time_key: str
-    high: float
-    low: float
-    open: float
-    close: float
-    volume: float
-    turnover: float
-    turnover_rate: float
+    high: np.float64
+    low: np.float64
+    open: np.float64
+    close: np.float64
+    volume: np.float64
+    turnover: np.float64
+    turnover_rate: np.float64
 
 class KLineDict(TypedDict):
     """K线数据字典"""
     time_key: str
-    high: float
-    low: float
-    open: float
-    close: float
-    volume: float
-    turnover: float
-    turnover_rate: float
+    high: np.float64
+    low: np.float64
+    open: np.float64
+    close: np.float64
+    volume: np.float64
+    turnover: np.float64
+    turnover_rate: np.float64
 
 # 用于序列化和反序列化的辅助函数
 def K_line_to_dict(kLine: KLine) -> KLineDict:

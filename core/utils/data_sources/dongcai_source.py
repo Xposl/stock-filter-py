@@ -99,7 +99,7 @@ class DongcaiKLineSource(BaseSource):
         if data is not None:
             return [KLine(
                 time_key= data['日期'][index].strftime('%Y-%m-%d') if isinstance(data['日期'][index],datetime.date) else data['日期'][index],
-                high=data['最高'][index],
+                high= data['最高'][index],
                 low=data['最低'][index],
                 open=data['开盘'][index],
                 close=data['收盘'][index],

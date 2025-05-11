@@ -27,12 +27,23 @@ async def root():
 async def get_ticker_data(market: str, ticker_code: str, days: Optional[int] = 600):
     try:
         code = dataSource.get_ticker_code(market,ticker_code)
-        ticker,kLineData,scores = dataSource.get_ticker_data(code,days)
+        ticker,kl_data,scoreData = dataSource.get_ticker_data(code,days)
        
         return {
             "status": "success", 
             "ticker": ticker.code,
-            "scores": scores
+            "kl_data": [{
+                "time_key": kl.time_key,
+                "open": float(kl.open),
+                "high": float(kl.high),
+                "low": float(kl.low),
+                "close": float(kl.close),
+                "volume": float(kl.volume)
+            } for kl in kl_data],
+            "scores": [{
+                "time_key": scores['time_key'],
+                "score": scores['score'],
+            } for scores in scoreData]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

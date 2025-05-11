@@ -1,8 +1,9 @@
 from core.enum.indicator_group import IndicatorGroup
 from core.utils.utils import UtilsHelper
 import pandas as pd
+from core.indicator.base_indicator import BaseIndicator
 
-class RSIIndicator:
+class RSIIndicator(BaseIndicator):
     dayCount = 14
 
     def getKey(self):

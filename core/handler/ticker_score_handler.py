@@ -5,8 +5,9 @@
 TickerScore处理程序 - 负责股票评分计算和数据库更新
 """
 
-from typing import Optional
+from typing import List, Optional
 from core.models.ticker import Ticker
+from core.schema.k_line import KLine
 from core.score import Score
 from core.service.ticker_score_repository import TickerScoreRepository
 
@@ -26,13 +27,13 @@ class TickerScoreHandler:
         if rule is not None:
             self.rule = rule
     
-    def calculate(self, ticker: Ticker, kLineData: Optional[list]=None, strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
+    def calculate(self, ticker: Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
         """
         计算股票评分
         
         Args:
             ticker: 股票数据
-            kLineData: K线数据
+            kl_data: K线数据
             strategyData: 策略数据
             indicatorData: 指标数据
             valuationData: 估值数据
@@ -40,15 +41,15 @@ class TickerScoreHandler:
         Returns:
             评分结果列表
         """
-        return Score(self.rule).calculate(ticker, kLineData, strategyData, indicatorData, valuationData)
+        return Score(self.rule).calculate(ticker, kl_data, strategyData, indicatorData, valuationData)
     
-    def update_ticker_score(self, ticker : Ticker, kLineData: Optional[list]=None, strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
+    def update_ticker_score(self, ticker : Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
         """
         更新股票评分
         
         Args:
             ticker: 股票数据
-            kLineData: K线数据
+            kl_data: K线数据
             strategyData: 策略数据
             indicatorData: 指标数据
             valuationData: 估值数据
@@ -57,7 +58,7 @@ class TickerScoreHandler:
             评分结果列表
         """
         # 计算所有K线的评分结果
-        result = self.calculate(ticker, kLineData , strategyData, indicatorData, valuationData)
+        result = self.calculate(ticker, kl_data , strategyData, indicatorData, valuationData)
         
         if not result or len(result) == 0:
             return result

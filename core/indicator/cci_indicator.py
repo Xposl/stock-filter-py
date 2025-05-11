@@ -1,7 +1,8 @@
 from core.enum.indicator_group import IndicatorGroup
 from core.utils.utils import UtilsHelper
+from core.indicator.base_indicator import BaseIndicator
 
-class CCIIndicator:
+class CCIIndicator(BaseIndicator):
     dayCount = 0
     
     def __init__(self,dayCount):

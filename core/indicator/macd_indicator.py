@@ -2,8 +2,9 @@ from typing import List
 from core.enum.indicator_group import IndicatorGroup
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
+from core.indicator.base_indicator import BaseIndicator
 
-class MACDIndicator:
+class MACDIndicator(BaseIndicator):
     difCount = 12
     dayCount = 26
     m = 9

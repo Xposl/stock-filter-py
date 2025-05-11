@@ -5,8 +5,9 @@ from core.utils.utils import UtilsHelper
 import pandas as pd
 import numpy as np
 import statistics
+from core.indicator.base_indicator import BaseIndicator
 
-class SimpleNNTRSIIndicator:
+class SimpleNNTRSIIndicator(BaseIndicator):
     """简单神经网络转换RSI指标 (Simple Neural Network Transformed RSI)
     
     基于QuantraAI的'Simple Neural Network Transformed RSI'指标
@@ -68,8 +69,8 @@ class SimpleNNTRSIIndicator:
             downTemp.append(abs(min(close - lastClose, 0)))
         
         # 计算RSI (在TradingView中使用DynamicFunc.Rsi)
-        maUP = self.utils.SMA(upTemp, self.rsi_length)
-        maDown = self.utils.SMA(downTemp, self.rsi_length)
+        maUP = self.utils.sma(upTemp, self.rsi_length)
+        maDown = self.utils.sma(downTemp, self.rsi_length)
         for i in range(length):
             if i < 1:
                 rsiData.append(50)  # 初始值设为中性50
@@ -174,7 +175,7 @@ class SimpleNNTRSIIndicator:
         if self.use_median:
             center = self._calculate_median(data)
         else:
-            center = self.utils.SMA(data, self.sd_lookback)
+            center = self.utils.sma(data, self.sd_lookback)
         
         # 计算标准差
         std_dev = []

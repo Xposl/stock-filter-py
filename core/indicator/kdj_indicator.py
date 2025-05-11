@@ -2,8 +2,9 @@ from typing import List
 from core.enum.indicator_group import IndicatorGroup
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
+from core.indicator.base_indicator import BaseIndicator
 
-class KDJIndicator:
+class KDJIndicator(BaseIndicator):
     P1 = 9
     P2 = 3
     P3 = 3

@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
 from core.handler.ticker_k_line_handler import TickerKLineHandler
 from core.models.ticker import Ticker
+from core.models.ticker_score import TickerScore
 from core.schema.k_line import KLine
 from core.service.ticker_score_repository import TickerScoreRepository
 from core.utils.utils import UtilsHelper
@@ -201,7 +202,7 @@ class DataSourceHelper:
             return
         # 统一获取和格式化日期
         start_date, end_date = self._calc_start_end_date(days)
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, start_date, end_date)
+        kLineData = TickerKLineHandler().get_kl(ticker.code, ticker.source, start_date, end_date)
         return kLineData
     
     def update_all_tickers(self):
@@ -219,19 +220,13 @@ class DataSourceHelper:
         tickers = TickerRepository().get_all_available_start_with(startKey)
         self._update_tickers(tickers)
 
-    def get_ticker_data(self, code: str, days: Optional[int]=600) -> Optional[tuple]:
+    def get_ticker_data(self, code: str, days: Optional[int]=600) -> tuple[Ticker,List[KLine],List[TickerScore]]:
         """
         获取指定股票数据
         """
         ticker = TickerRepository().get_by_code(code)
-        ticker,kLineData,scoreData =  self._update_ticker(ticker,days)
-        scores = []
-        for score in scoreData:
-            scores.append({
-                'time_key': score['time_key'],
-                'score': score['score']
-            })
-        return ticker,kLineData,scores
+        ticker,kl_data,scoreData =  self._update_ticker(ticker,days)
+        return ticker,kl_data,scoreData
     
     def get_ticker_data_on_time(self, code: str,days: Optional[int]=600) -> Optional[tuple]:
         """

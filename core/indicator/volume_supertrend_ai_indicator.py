@@ -2,8 +2,9 @@ from typing import List
 from core.enum.indicator_group import IndicatorGroup
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
+from core.indicator.base_indicator import BaseIndicator
 
-class VolumeSuperTrendAIIndicator:
+class VolumeSuperTrendAIIndicator(BaseIndicator):
     # super_trend参数
     len = 10
     factor = 3.0

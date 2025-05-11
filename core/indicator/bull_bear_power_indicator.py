@@ -2,8 +2,9 @@ from typing import Any, Dict, List, Optional
 from core.enum.indicator_group import IndicatorGroup
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
+from core.indicator.base_indicator import BaseIndicator
 
-class BullBearPowerIndicator:
+class BullBearPowerIndicator(BaseIndicator):
     dayCount = 50
     atrDay = 5
 

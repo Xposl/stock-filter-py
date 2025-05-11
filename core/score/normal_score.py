@@ -3,10 +3,10 @@ from core.indicator import Indicator as Helper
 from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
-
 from core.models.ticker import Ticker
+from core.score.base_score import BaseScore
 
-class NormalScore:
+class NormalScore(BaseScore):
 
     def calculate(self,ticker: Ticker,kLineData: Optional[list]=None,strategyData: Optional[list]=None,indicatorData: Optional[list]=None,valuationData: Optional[list]=None):
         """
