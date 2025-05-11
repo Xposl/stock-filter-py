@@ -1,4 +1,5 @@
-FROM python:3.13-slim AS builder
+# FROM python:3.13-slim AS builder
+FROM --platform=linux/amd64 python:3.11-slim-bullseye AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -23,7 +24,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 生产环境镜像
-FROM python:3.13-slim
+FROM --platform=linux/amd64 python:3.11-slim-bullseye
 
 WORKDIR /app
 
