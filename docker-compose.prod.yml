@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  app:
+    image: crpi-rm17rxbil8uscdf1.cn-shenzhen.personal.cr.aliyuncs.com/xposl/home:${TAG:-latest}
+    restart: always
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    volumes:
+      - app_data:/app/data
+      - ~/.pyppeteer:/root/.pyppeteer  # 缓存pyppeteer下载的浏览器
+
+volumes:
+  app_data:
