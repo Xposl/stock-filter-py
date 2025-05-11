@@ -3,7 +3,11 @@ from pydantic import BaseModel
 from typing import Optional
 from core.data_source_helper import DataSourceHelper
 
-app = FastAPI(title="InvestNote API")
+app = FastAPI(
+    title="InvestNote API",
+    description="Investment notes and analysis API",
+    root_path="/investnote"  # 添加根路径前缀
+)
 dataSource = DataSourceHelper()
 
 class TickerRequest(BaseModel):
