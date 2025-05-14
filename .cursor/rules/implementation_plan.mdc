@@ -7,7 +7,7 @@ alwaysApply: false
 
 ## 1. 代码规范与优化
 - 对旧代码中不符合PEP8风格的部分进行持续优化，统一变量、类、函数命名，补充必要注释。
-- 重点关注 core、custom、tools 目录下的 Python 文件。
+- 重点关注 core、tools 目录下的 Python 文件。
 
 ## 2. 多数据库支持（SQLite/MySQL/PostgreSQL）
 - 当前已实现 SQLite 和 PostgreSQL 的自动适配，核心入口为 [core/database/db_adapter.py](mdc:core/database/db_adapter.py)。

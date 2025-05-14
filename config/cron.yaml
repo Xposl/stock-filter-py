@@ -1,0 +1,15 @@
+# InvestNote 定时任务配置
+# 每日定时批量更新ticker_score
+cron:
+  us:
+    # 美股，每天早上6点
+    time: "06:00"
+    url: "/investnote/cron/ticker/us/update"
+  zh:
+    # A股，每天下午3点后
+    time: "15:10"
+    url: "/investnote/cron/ticker/zh/update"
+  hk:
+    # 港股，每天下午5点后
+    time: "17:10"
+    url: "/investnote/cron/ticker/hk/update" 

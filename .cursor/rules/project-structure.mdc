@@ -25,7 +25,6 @@ InvestNote-py/
 │   ├── service/          # 数据库与仓储服务
 │   ├── database/         # 数据库适配与工具
 │   └── libs/             # 常用工具
-├── custom/               # 用户自定义扩展模块
 ├── output/               # 结果输出（如 json、报告等）
 ├── tools/                # 辅助脚本与工具
 ├── sql/                  # 相关sql脚本
@@ -40,9 +39,6 @@ InvestNote-py/
 ## 核心数据流
 - 数据调度与处理主要通过 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper` 类完成。
 - 策略、指标、评分、过滤等均有独立子目录，便于扩展。
-
-## 扩展与自定义
-- 用户可在 [custom/](mdc:custom) 目录下添加自定义过滤器、评分、策略等。
 
 ## 依赖与环境
 - 依赖见 [requirements.txt](mdc:requirements.txt)。

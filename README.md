@@ -75,7 +75,6 @@ InvestNote-py/
 │ ├── models/ # 数据模型
 │ ├── service/ # 数据库服务
 │ └── utils.py # 工具函数
-├── custom/ # 用户自定义扩展
 ├── output/ # 输出结果
 └── tools/ # 辅助工具
 
@@ -103,14 +102,6 @@ python invest_note.py -a us AAPL   # 分析美股
 fuser investnote.db
 kill -9 <PID>
 ```
-
-## 自定义扩展
-
-用户可以在 `custom/` 目录下添加自定义：
-- 股票过滤器
-- 评分系统
-- 策略实现
-- 分析指标
 
 ## 开发指南
 
