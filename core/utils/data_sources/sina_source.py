@@ -54,10 +54,8 @@ class SinaKLineSource(BaseSource):
             List[KLine]: K线数据列表，失败返回None
         """
         data = None
-        type = 0
         if code.startswith('US'):
             data = ak.stock_us_daily(symbol=code[3:], adjust="qfq")
-            type = 1
         elif code.startswith('HK'):
             data = ak.stock_hk_daily(symbol=code[3:], adjust="qfq")
         elif code.startswith('SZ'):
@@ -66,17 +64,6 @@ class SinaKLineSource(BaseSource):
             data = ak.stock_zh_a_daily(symbol='sh'+code[3:], start_date=start_date, end_date=end_date, adjust="qfq")
 
         if data is not None:
-            if type == 1:
-                return [KLine(
-                    time_key= data.index[index].strftime('%Y-%m-%d'),
-                    high= data['high'][index],
-                    low= data['low'][index],
-                    open= data['open'][index],
-                    close= data['close'][index],
-                    volume= data['volume'][index],
-                    turnover= data['volume'][index] * data['low'][index],
-                    turnover_rate= 0
-                ) for index in range(len(data))]
             return [KLine(
                 time_key= data['date'][index] if isinstance(data['date'][index], str) else data['date'][index].strftime('%Y-%m-%d'),
                 high= data['high'][index],
