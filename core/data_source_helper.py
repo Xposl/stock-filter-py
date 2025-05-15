@@ -104,8 +104,8 @@ class DataSourceHelper:
         end_date = current_date.strftime('%Y-%m-%d')
         start_date = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
         
-        kLineData = TickerKLineHandler().get_history_kl(ticker.code, ticker.source, start_date, end_date)
-        onTimeData = TickerKLineHandler().get_kl(ticker.code, ticker.source)
+        kLineData = TickerKLineHandler().get_kl(ticker.code, ticker.source, start_date, end_date)
+        onTimeData = TickerKLineHandler().get_kl_on_time(ticker.code, ticker.source)
         
         # 确保时间是字符串格式
         time_key = end_date
