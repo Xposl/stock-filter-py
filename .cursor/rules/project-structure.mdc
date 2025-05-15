@@ -3,42 +3,45 @@ description:
 globs: 
 alwaysApply: true
 ---
-# 项目结构与导航规则
+# Project Structure & Navigation
 
-本项目为投资笔记与分析系统，主要目录结构如下：
+This project is an investment note and analysis system. Main directory structure:
 
 ```
 InvestNote-py/
-├── main.py               # FastAPI 服务入口，启动 API 服务
-├── invest_note.py        # 旧版命令行/交互入口
-├── requirements.txt      # 依赖列表
-├── core/                 # 核心功能模块
-│   ├── handler/          # 数据处理与调度（如 DataSourceHelper、K线、策略等）
-│   ├── analysis/         # 回测、策略评估与可视化
-│   ├── strategy/         # 策略实现
-│   ├── indicator/        # 技术指标实现
-│   ├── score/            # 评分体系
-│   ├── filter/           # 股票过滤器
-│   ├── valuation/        # 估值相关
-│   ├── enum/             # 枚举类型
-│   ├── models/           # 数据模型
-│   ├── service/          # 数据库与仓储服务
-│   ├── database/         # 数据库适配与工具
-│   └── libs/             # 常用工具
-├── output/               # 结果输出（如 json、报告等）
-├── tools/                # 辅助脚本与工具
-├── sql/                  # 相关sql脚本
-├── web/                  # FastAPI 路由与接口定义
-├── README.md             # 项目说明
+├── main.py               # FastAPI entry, starts API service
+├── invest_note.py        # Legacy CLI/interactive entry
+├── requirements.txt      # Dependencies
+├── core/                 # Core modules
+│   ├── handler/          # Data orchestration (DataSourceHelper, K-line, strategy, etc.)
+│   ├── analysis/         # Backtesting, strategy evaluation, visualization
+│   ├── strategy/         # Strategy implementations
+│   ├── indicator/        # Technical indicators
+│   ├── score/            # Scoring system
+│   ├── filter/           # Stock filters
+│   ├── valuation/        # Valuation
+│   ├── enum/             # Enums
+│   ├── models/           # Data models
+│   ├── service/          # DB and repository services
+│   ├── database/         # DB adapters/tools
+│   └── utils/            # Utilities and helpers
+├── api/                  # FastAPI route definitions and API models
+├── output/               # Output (json, reports, etc.)
+├── tools/                # Helper scripts/tools
+├── sql/                  # SQL scripts
+├── web/                  # (Optional) Web-related FastAPI routes/interfaces
+├── README.md             # Project documentation
+├── config/               # Configuration files (e.g., cron.yaml)
 ```
 
-## 入口说明
-- 推荐使用 [main.py](mdc:main.py) 启动 FastAPI 服务，API 路由定义见 [api.py](mdc:api.py)。
-- 旧版命令行/交互入口为 [invest_note.py](mdc:invest_note.py)，包含丰富的分析与批量处理逻辑。
+## Entry Points
+- Recommended: [main.py](mdc:main.py) for FastAPI service, routes in [api.py](mdc:api.py).
+- Legacy CLI: [invest_note.py](mdc:invest_note.py) for batch/interactive analysis.
 
-## 核心数据流
-- 数据调度与处理主要通过 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper` 类完成。
-- 策略、指标、评分、过滤等均有独立子目录，便于扩展。
+## Core Data Flow
+- Data orchestration and processing are mainly via [data_source_helper.py](mdc:core/data_source_helper.py)'s `DataSourceHelper`.
+- Strategy, indicator, scoring, filtering, etc. are in separate subdirectories for easy extension.
 
-## 依赖与环境
-- 依赖见 [requirements.txt](mdc:requirements.txt)。
+## Dependencies & Environment
+- See [requirements.txt](mdc:requirements.txt) for dependencies.
+- Configuration files (e.g., cron jobs) are in [config/](mdc:config).

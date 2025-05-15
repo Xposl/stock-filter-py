@@ -3,32 +3,31 @@ description:
 globs: 
 alwaysApply: false
 ---
-# 应用流程说明
+# Application Flow Guide
 
-本项目支持两种主要运行模式：
+This project supports two main running modes:
 
-## 1. API 服务模式（推荐）
-- 入口：[main.py](mdc:main.py) 启动 FastAPI 服务，加载 [api.py](mdc:api.py) 路由。
-- 主要流程：
-  1. 客户端通过 HTTP 请求调用 API。
-  2. API 路由调用 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper`，完成数据调度。
-  3. 数据调度涉及股票列表更新、K线数据获取、策略/指标/评分/估值分析，依次调用 handler 子模块：
-     - 股票列表：[core/handler/ticker_handler.py](mdc:core/handler/ticker_handler.py)
-     - K线数据：[core/handler/ticker_k_line_handler.py](mdc:core/handler/ticker_k_line_handler.py)
-     - 策略分析：[core/handler/ticker_strategy_handler.py](mdc:core/handler/ticker_strategy_handler.py)
-     - 指标分析：[core/handler/ticker_indicator_handler.py](mdc:core/handler/ticker_indicator_handler.py)
-     - 评分：[core/handler/ticker_score_handler.py](mdc:core/handler/ticker_score_handler.py)
-     - 估值：[core/handler/ticker_valuation_handler.py](mdc:core/handler/ticker_valuation_handler.py)
-     - 过滤：[core/handler/ticker_filter_handler.py](mdc:core/handler/ticker_filter_handler.py)
-     - 分析与可视化：[core/handler/ticker_analysis_handler.py](mdc:core/handler/ticker_analysis_handler.py)
-  4. 结果通过 API 返回，或写入数据库/输出目录。
+## 1. API Service Mode (Recommended)
+- Entry: [main.py](mdc:main.py) starts the FastAPI service and loads routes from [api.py](mdc:api.py).
+- Main flow:
+  1. Clients call APIs via HTTP requests.
+  2. API routes invoke [data_source_helper.py](mdc:core/data_source_helper.py)'s `DataSourceHelper` for data orchestration.
+  3. Data orchestration involves updating stock lists, fetching K-line data, and running strategy/indicator/scoring/valuation analysis, each via its handler submodule:
+     - Stock list: [core/handler/ticker_handler.py](mdc:core/handler/ticker_handler.py)
+     - K-line: [core/handler/ticker_k_line_handler.py](mdc:core/handler/ticker_k_line_handler.py)
+     - Strategy: [core/handler/ticker_strategy_handler.py](mdc:core/handler/ticker_strategy_handler.py)
+     - Indicator: [core/handler/ticker_indicator_handler.py](mdc:core/handler/ticker_indicator_handler.py)
+     - Scoring: [core/handler/ticker_score_handler.py](mdc:core/handler/ticker_score_handler.py)
+     - Valuation: [core/handler/ticker_valuation_handler.py](mdc:core/handler/ticker_valuation_handler.py)
+     - Filtering: [core/handler/ticker_filter_handler.py](mdc:core/handler/ticker_filter_handler.py)
+     - Analysis/Visualization: [core/handler/ticker_analysis_handler.py](mdc:core/handler/ticker_analysis_handler.py)
+  4. Results are returned via API or written to the database/output directory.
 
-## 2. 交互/命令行模式（兼容）
-- 入口：[invest_note.py](mdc:invest_note.py)
-- 支持菜单式交互、批量分析、策略回测等，底层同样依赖 core/handler 及核心分析模块。
+## 2. Interactive/CLI Mode (Legacy)
+- Entry: [invest_note.py](mdc:invest_note.py)
+- Supports menu-driven interaction, batch analysis, and strategy backtesting. Also relies on core/handler and analysis modules.
 
-## 数据流与调用链
-- 数据流动以 DataSourceHelper 为核心枢纽，串联 handler 各子模块。
-- 典型流程：
-  - 股票列表更新 → K线数据拉取 → 策略/指标/评分/估值分析 → 结果输出/可视化。
+## Data Flow & Call Chain
+- `DataSourceHelper` is the central hub for data flow, connecting all handler submodules.
+- Typical flow: Stock list update → K-line fetch → Strategy/Indicator/Scoring/Valuation analysis → Output/Visualization（for cli mode）.
 

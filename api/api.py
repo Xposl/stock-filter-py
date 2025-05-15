@@ -59,6 +59,31 @@ async def get_ticker_pages(request: PageRequest):
         count_result = repo.db.query_one(count_sql, tuple(params) if params else None)
         total = count_result.get('total', 0) if count_result else 0
         
+        # 处理排序
+        order_by_clause = "ORDER BY t.code"  # 默认排序
+        
+        # 支持的排序字段映射
+        sort_field_mapping = {
+            'code': 't.code',
+            'name': 't.name',
+            'score': 'ts.score',
+            'update_time': 'ts.time_key'
+        }
+        
+        if request.sort:
+            sort_clauses = []
+            for sort_item in request.sort:
+                direction = "DESC" if sort_item.startswith('-') else "ASC"
+                field_name = sort_item[1:] if sort_item.startswith('+') or sort_item.startswith('-') else sort_item
+                
+                # 检查字段是否在支持的排序字段列表中
+                if field_name in sort_field_mapping:
+                    db_field = sort_field_mapping[field_name]
+                    sort_clauses.append(f"{db_field} {direction}")
+            
+            if sort_clauses:
+                order_by_clause = f"ORDER BY {', '.join(sort_clauses)}"
+        
         # 分页查询
         limit = request.page_size
         offset = (request.page - 1) * limit
@@ -75,7 +100,7 @@ async def get_ticker_pages(request: PageRequest):
             FROM ticker t
             LEFT JOIN ticker_score ts ON t.id = ts.ticker_id
             WHERE t.is_deleted = 0 AND t.status = 1 {search_condition}
-            ORDER BY t.code
+            {order_by_clause}
             LIMIT {PLACEHOLDER} OFFSET {PLACEHOLDER}
         """
         ticker_results = repo.db.query(sql, tuple(params_with_pagination))

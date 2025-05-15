@@ -3,22 +3,22 @@ description:
 globs: 
 alwaysApply: true
 ---
-# 后端开发规范
+# Backend Development Guidelines
 
-## 1. API 设计
-- 所有 API 路由定义于 [api.py](mdc:api.py)，基于 FastAPI。
-- 路由处理函数统一调用 [data_source_helper.py](mdc:core/data_source_helper.py) 的 `DataSourceHelper` 进行数据调度。
+## 1. API Design
+- All API routes must be defined in [api.py](mdc:api.py) and use FastAPI.
+- Route handler functions must always use [data_source_helper.py](mdc:core/data_source_helper.py)'s `DataSourceHelper` for all data orchestration and business logic.
 
-## 2. 模块职责
-- handler 子模块各司其职，严禁跨层直接操作数据库或其他 handler，统一通过 DataSourceHelper 协调。
-- 评分、策略、指标、估值、过滤等均有独立 handler，便于扩展和维护。
-- 数据库操作通过 service 层（如 ticker_repository、ticker_score_repository 等）完成。
+## 2. Module Responsibilities
+- Each handler submodule has a single responsibility. Direct database access or cross-handler calls are strictly forbidden; all coordination must go through `DataSourceHelper`.
+- Scoring, strategy, indicator, valuation, and filtering each have their own handler for easy extension and maintenance.
+- All database operations must go through the service layer (e.g., `ticker_repository`, `ticker_score_repository`).
 
-## 3. 部署与运行
-- 推荐使用 `python main.py` 启动 API 服务，支持参数自定义（host、port、reload、workers）。
-- 依赖见 [requirements.txt](mdc:requirements.txt)，需提前安装。
-- 数据库文件为 `investnote.db`，如遇锁定可参考 [README.md](mdc:README.md) 解除。
+## 3. Deployment & Running
+- Recommended to start the API service with `python main.py`, which supports custom parameters (host, port, reload, workers).
+- Dependencies are listed in [requirements.txt](mdc:requirements.txt) and must be installed in advance.
+- The database file is `investnote.db`. If locked, see [README.md](mdc:README.md) for resolution.
 
-## 4. 代码风格
-- 统一使用 PEP8 风格，注释清晰，类/函数/参数命名规范。
-- 重要流程、接口、扩展点需有中英文注释。
+## 4. Code Style
+- Use PEP8 style, clear comments, and standardized naming for classes/functions/parameters.
+- Important processes, interfaces, and extension points must have both Chinese and English comments.
