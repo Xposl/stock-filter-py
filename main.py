@@ -53,12 +53,36 @@ def setup_auth():
     
     if auth_enabled:
         logger.info("鉴权服务已启用")
+        # 记录认证服务配置信息
+        auth_host = os.getenv("AUTH_SERVICE_HOST", "localhost")
+        auth_port = os.getenv("AUTH_SERVICE_PORT", "9091")
+        logger.info(f"认证服务配置: {auth_host}:{auth_port}")
+        
         # 预加载auth_client以测试连接
         try:
             from core.auth.auth_grpc_client import auth_client
+            
+            # 测试gRPC连接
+            try:
+                import grpc
+                channel = grpc.insecure_channel(f"{auth_host}:{auth_port}")
+                # 设置较短的超时时间来测试连接
+                ready = grpc.channel_ready_future(channel).result(timeout=5)
+                logger.info("鉴权服务连接测试成功")
+            except grpc.FutureTimeoutError:
+                logger.error("鉴权服务连接超时，请确认服务地址和端口正确，且服务已启动")
+            except Exception as conn_err:
+                logger.error(f"鉴权服务连接测试失败: {str(conn_err)}")
+            
             logger.info("鉴权服务客户端初始化完成")
         except ImportError:
             logger.warning("鉴权服务客户端导入失败，请确保已生成gRPC代码")
+            logger.info("尝试自动生成gRPC代码...")
+            try:
+                setup_grpc()
+                logger.info("gRPC代码生成完成，请重启服务")
+            except Exception as gen_err:
+                logger.error(f"gRPC代码生成失败: {str(gen_err)}")
         except Exception as e:
             logger.warning(f"鉴权服务客户端初始化异常: {str(e)}")
     else:

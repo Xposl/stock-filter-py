@@ -70,9 +70,16 @@ class AuthDependency:
         
         # 检查所需权限
         if self.required_authorities:
+            import logging
+            logger = logging.getLogger(__name__)
+            
             user_authorities = user_info.get("authorities", [])
+            logger.info(f"用户权限: {user_authorities}")
+            logger.info(f"需要权限: {self.required_authorities}")
+            
             # 检查用户是否具有所需的任意一个权限
             if not any(auth in user_authorities for auth in self.required_authorities):
+                logger.warning(f"权限不足: 用户拥有 {user_authorities}，但需要 {self.required_authorities} 中的至少一个")
                 raise HTTPException(
                     status_code=403,
                     detail="权限不足，无法访问此资源"

@@ -28,6 +28,7 @@ InvestNote-py/
 ├── api/                  # FastAPI route definitions and API models
 ├── output/               # Output (json, reports, etc.)
 ├── tools/                # Helper scripts/tools
+├── tools/                # test files
 ├── sql/                  # SQL scripts
 ├── web/                  # (Optional) Web-related FastAPI routes/interfaces
 ├── README.md             # Project documentation
