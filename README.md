@@ -87,6 +87,43 @@ InvestNote-py/
 python main.py --host 0.0.0.0 --port 8000 --reload
 ```
 
+### 鉴权配置
+
+本项目支持通过gRPC接入第三方鉴权服务，实现API的访问控制。
+
+#### 配置步骤
+
+1. 确保安装了鉴权相关依赖：
+```bash
+pip install grpcio grpcio-tools python-jose python-multipart
+```
+
+2. 生成gRPC代码：
+```bash
+python tools/generate_grpc_code.py
+```
+
+3. 配置环境变量（在.env文件中）：
+```
+# 鉴权服务配置
+AUTH_ENABLED=true
+AUTH_SERVICE_HOST=localhost
+AUTH_SERVICE_PORT=50051
+```
+
+4. 使用Bearer Token访问API：
+```bash
+curl -H "Authorization: Bearer <YOUR_TOKEN>" http://localhost:8000/investnote/pages
+```
+
+#### 受保护的API端点
+
+以下API端点需要鉴权：
+- `/me` - 获取当前用户信息
+- `/pages` - 获取股票列表
+- `/ticker/{market}/{ticker_code}` - 获取股票详情
+- `/cron/ticker/{market}/update` - 更新股票数据（需要管理员权限）
+
 ### 命令行工具
 
 分析股票数据：

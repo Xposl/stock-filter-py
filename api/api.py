@@ -1,15 +1,23 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from core.data_source_helper import DataSourceHelper
 from .models import PageRequest
+from core.auth.auth_middleware import auth_required
 import time
+import os
 
 app = FastAPI(
     title="InvestNote API",
     description="Investment notes and analysis API",
-    root_path="/investnote"  # 添加根路径前缀
+    root_path="/investnote",  # 添加根路径前缀
+    docs_url="/docs",  # Swagger文档路径
+    redoc_url="/redoc",  # ReDoc文档路径
 )
+
+# 加载环境变量
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "true").lower() == "true"
+
 dataSource = DataSourceHelper()
 
 class TickerRequest(BaseModel):
@@ -27,8 +35,26 @@ class TickerQuery(BaseModel):
 async def root():
     return {"message": "InvestNote API Service"}
 
+@app.get("/me")
+async def get_current_user(current_user: Dict[str, Any] = Depends(auth_required())):
+    """获取当前认证用户的信息
+    
+    需要有效的认证Token
+    """
+    return {
+        "status": "success",
+        "data": current_user
+    }
+
 @app.post("/pages")
-async def get_ticker_pages(request: PageRequest):
+async def get_ticker_pages(
+    request: PageRequest,
+    current_user: Optional[Dict[str, Any]] = Depends(auth_required()) if AUTH_ENABLED else None
+):
+    """获取股票列表，支持分页、搜索和排序
+    
+    如果启用了鉴权，则只有认证用户可以访问
+    """
     try:
         from core.service.ticker_repository import TickerRepository
         from datetime import datetime
@@ -148,7 +174,16 @@ async def get_ticker_pages(request: PageRequest):
 
 
 @app.get("/ticker/{market}/{ticker_code}")
-async def get_ticker_data(market: str, ticker_code: str, days: Optional[int] = 600):
+async def get_ticker_data(
+    market: str, 
+    ticker_code: str, 
+    days: Optional[int] = 600,
+    current_user: Optional[Dict[str, Any]] = Depends(auth_required()) if AUTH_ENABLED else None
+):
+    """获取指定股票的详细信息和K线数据
+    
+    如果启用了鉴权，则只有认证用户可以访问
+    """
     try:
         code = dataSource.get_ticker_code(market,ticker_code)
         ticker,kl_data,scoreData = dataSource.get_ticker_data(code,days)
@@ -176,9 +211,15 @@ async def get_ticker_data(market: str, ticker_code: str, days: Optional[int] = 6
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/cron/ticker/{market}/update")
-async def cron_update_ticker_score(market: str, background_tasks: BackgroundTasks):
+async def cron_update_ticker_score(
+    market: str, 
+    background_tasks: BackgroundTasks,
+    current_user: Dict[str, Any] = Depends(auth_required(["ADMIN"])) if AUTH_ENABLED else None
+):
     """
     批量更新指定市场的ticker_score，分批处理，每批100只，间隔1秒，批次间隔1分钟。
+    
+    需要管理员权限访问。
     """
     from core.service.ticker_repository import TickerRepository
     from core.enum.ticker_group import TickerGroup

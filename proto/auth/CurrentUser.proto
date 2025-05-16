@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "ltd.shanmu.auth.grpc";
+
+service CurrentUserService {
+  rpc queryCurrentUser(UserRequest) returns (CurrentUser) {}
+  rpc queryCurrentUserApp(CurrentUserTypeRequest) returns (CurrentUserApps) {}
+  /**
+   * 更新用户账户信息
+   */
+  rpc updateCurrentUser(CurrentUserUpdateRequest) returns (CurrentUser) {}
+}
+
+message UserRequest { 
+  string token = 1;
+}
+
+message CurrentUserTypeRequest {
+  string token = 1;
+  string type = 2;
+}
+
+message CurrentUserAppPlatform {
+  map<string, string> configs = 1;
+}
+
+message CurrentUserApps {
+  string openId = 1;
+}
+
+message CurrentUser {
+  UserInfo user = 1;
+  string clientId = 3;
+  repeated string authorities = 4;
+}
+
+message UserInfo {
+  int64 id = 1;
+  string unionId = 2;
+  string userNo = 3;
+  string countryCode = 4;
+  string phone = 5;
+  int64 platformId = 6;
+  string userName = 7;
+  string nickName = 8;
+  string accountType = 9;
+  string avatar = 10;
+  bool superAdmin = 11;
+  bool authUser = 12;
+  string tenantId = 13;
+  int64 createTime = 14;
+}
+
+message CurrentUserUpdateRequest {
+  string token = 1;
+  string nickName = 3;
+  string avatar = 4;
+}

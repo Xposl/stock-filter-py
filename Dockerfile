@@ -22,6 +22,9 @@ COPY requirements.txt .
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 安装gRPC相关依赖
+RUN pip install --no-cache-dir grpcio grpcio-tools python-jose python-multipart
+
 # 生产环境镜像
 FROM python:3.13-slim
 
@@ -150,5 +153,8 @@ RUN which uvicorn || echo "uvicorn not found in PATH"
 # 暴露端口
 EXPOSE 8000
 
-# 修改启动命令，使用绝对路径
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 预初始化gRPC代码
+RUN mkdir -p /app/core/grpc/auth
+
+# 修改启动命令，使用我们的main.py
+CMD ["python", "main.py", "--host", "0.0.0.0", "--port", "8000"]

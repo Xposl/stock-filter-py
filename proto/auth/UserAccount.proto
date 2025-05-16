@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "ltd.shanmu.auth.grpc";
+
+service UserAccountService {
+  /**
+   * 根据用户id查询用户账户信息
+   * 如果参数中包含clientId，则查询用户账户信息时会同时查询用户在该clientId下的账户信息
+   * 如果参数中不包含clientId，则只会返回user的数据
+   */
+  rpc queryUserAccountById(UserAccountIdRequest) returns (UserAccountResponse) {}
+  /**
+   * 根据用户id列表查询用户账户信息
+   * 如果参数中包含clientId，则查询用户账户信息时会同时查询用户在该clientId下的账户信息
+   * 如果参数中不包含clientId，则只会返回user的数据
+   */
+  rpc queryUserAccountByIds(UserAccountIdsRequest) returns (UserAccountsResponse) {}
+  
+  /**
+    * 校验或注册用户账户, 用于特殊场景下创建新的用户账户
+    * 如果用户不存在，则注册用户 
+    * 如果用户存在，则校验用户
+    */
+  rpc validOrregisterUserAccount(UserAccountValidRequest) returns (UserAccountResponse) {}
+
+  /**
+   * 注销用户账号
+   */
+  rpc logoutUserInfo(UserAccountLogoutRequest) returns (UserAccountLogoutResponse) {}
+  
+}
+
+message UserAccountValidRequest {
+  string token = 1;
+  string countryCode = 2;
+  string phone = 3;
+  string smsCode = 4;
+} 
+
+message UserAccountIdRequest {
+  string token = 1;
+  int64 userId = 2;
+  string platformId=3;
+}
+
+message UserAccountIdsRequest {
+  string token = 1;
+  repeated int64 userIds = 2;
+  string platformId = 3;
+}
+
+message UserAccountResponse {
+  UserAccount user = 1;
+}
+
+message UserAccountsResponse {
+  repeated UserAccount users = 1;
+}
+
+message UserAccount {
+  int64 userId = 1;
+  string unionId = 2;
+  string userNo = 3;
+  string countryCode = 4;
+  string phone = 5;
+  string userName = 6;
+  string nickName = 7;
+  string avatar = 8;
+  int64 createTime = 9;
+}
+
+message UserAccountLogoutRequest {
+  string token = 1;
+}
+
+message UserAccountLogoutResponse {
+  int32 code = 1;
+  string message = 2;
+}

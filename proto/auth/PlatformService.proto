@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "ltd.shanmu.auth.grpc";
+
+service PlatformInfoService {
+  // 根据client_id列表查询对应的平台数组对象
+  rpc getPlatformListByClientIds(PlatformQuery) returns(PlatformQueryResp) {}
+
+  // 根据平台id获取平台普通用户数量作为统计数据返回
+  rpc getUserNumByClientId(CheckUserNumReq) returns(CheckUserNumResp) {}
+
+  // 根据用户id获取平台clientId信息
+  rpc getPlatformInfoByUserId(PlatformInfoQuery) returns(PlatformInfoQueryResp) {}
+
+}
+
+message PlatformQuery {
+  repeated ClientIds clientIds = 1;
+}
+ 
+message ClientIds {
+  string clientId = 1;
+}
+
+message PlatformQueryResp {
+  repeated PlatformInfo platformInfo = 1;
+  int32 code = 2; // 0 成功 -1 失败
+  string message = 3;
+}
+
+message PlatformInfo {
+  string clientId = 1;
+  string name = 2;
+}
+
+message CheckUserNumReq {
+  string clientId = 1;
+  string token = 2;
+}
+
+message CheckUserNumResp {
+  int32 code = 1;
+  string message = 2;
+  int64 userNum = 3;
+}
+
+message PlatformInfoQuery {
+  int64 userId = 1;
+  string token = 2;
+}
+
+message PlatformInfoQueryResp {
+  string clientId = 1;
+}

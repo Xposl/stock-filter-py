@@ -5,30 +5,9 @@ alwaysApply: false
 ---
 # 实现计划（Implementation Plan）
 
-## 1. 代码规范与优化
-- 对旧代码中不符合PEP8风格的部分进行持续优化，统一变量、类、函数命名，补充必要注释。
-- 重点关注 core、tools 目录下的 Python 文件。
-
-## 2. 多数据库支持（SQLite/MySQL/PostgreSQL）
-- 当前已实现 SQLite 和 PostgreSQL 的自动适配，核心入口为 [core/database/db_adapter.py](mdc:core/database/db_adapter.py)。
-- PostgreSQL 适配通过 [core/database/db_helper.py](mdc:core/database/db_helper.py) 实现，依赖 psycopg2。
-- MySQL 相关依赖已在 requirements.txt（PyMySQL），但代码层尚未集成 MySQL 适配。
-- **后续步骤：**
-  1. 新增 MySQL 适配类（如 MysqlHelper），参考 SqliteHelper 和 DbHelper 实现。
-  2. 在 db_adapter.py 中根据 DB_TYPE 环境变量支持 mysql，自动选择对应 Helper。
-  3. 检查 service 层和 models 层 SQL 语法，确保兼容三种数据库（如占位符、数据类型、事务处理等）。
-  4. 通过 .env 文件配置数据库类型和连接参数。
-  5. 增加多数据库环境下的集成测试。
-
-## 3. FastAPI 接口完善
-- 参考 [investNote.py](mdc:investNote.py) 的业务逻辑，持续完善 [main.py](mdc:main.py) 和 [api.py](mdc:api.py) 的接口。
-- 建议将 web 相关接口/控制器统一迁移到 web 目录，便于前后端分离和维护。
-- 补充接口文档和参数校验。
-
-## 4. MCP 调用支持
-- 预留 MCP（多端调用/自动化）接口扩展点。
-- 可在 API 层增加专用路由，或在 custom/ 目录下实现自动化脚本。
-
-## 5. 其他建议
-- 工具脚本（如 clean_database.py）建议支持多数据库清理。
-- 持续完善 requirements.txt，确保依赖与实际支持的数据库类型一致。
+## 接入鉴权服务
+1、有第三方鉴权服务，基于spring boot3实现
+2、需要通过grpc服务完成接入,实现鉴权，参考对应的proto
+3、需要添加api的支持，声明哪些api需要鉴权，用户调用api时header传Bearer token, 通过调用grpc服务。
+对应java的实现参考， 获取token后调用grpc服务获取用户判断完成鉴权
+4、鉴权服务部署在 http://47.107.28.9/auth
