@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS ticker_score;
 DROP TABLE IF EXISTS ticker_valuation;
 DROP TABLE IF EXISTS ticker;
 DROP TABLE IF EXISTS valuation;
+DROP TABLE IF EXISTS api_log;
 
 -- 创建 ticker 表（股票信息主表）
 CREATE TABLE IF NOT EXISTS ticker (
@@ -133,3 +134,15 @@ CREATE TABLE IF NOT EXISTS ticker_score (
 -- 创建索引以提高查询性能
 CREATE INDEX idx_ticker_score_ticker_id ON ticker_score(ticker_id);
 CREATE INDEX idx_ticker_score_time_key ON ticker_score(time_key);
+
+-- 创建 api_log 表
+CREATE TABLE IF NOT EXISTS api_log (
+  id INT NOT NULL AUTO_INCREMENT,
+  path VARCHAR(255) NOT NULL,
+  method VARCHAR(10) NOT NULL,
+  params TEXT,
+  exception TEXT,
+  traceback TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;

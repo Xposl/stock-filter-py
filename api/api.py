@@ -6,6 +6,10 @@ from .models import PageRequest
 from core.auth.auth_middleware import auth_required
 import time
 import os
+from fastapi.requests import Request
+from core.service.api_log_repository import ApiLogRepository
+from core.models.api_log import ApiLog
+import traceback as tb
 
 app = FastAPI(
     title="InvestNote API",
@@ -254,3 +258,28 @@ async def cron_update_ticker_score(
 
     background_tasks.add_task(batch_update)
     return {"status": "started", "total": total, "batch_size": batch_size, "batch_count": batch_count}
+
+@app.middleware("http")
+async def api_log_exception_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        # 记录到api_log表
+        try:
+            params = None
+            if request.method in ("POST", "PUT", "PATCH"):
+                params = (await request.body()).decode("utf-8")
+            else:
+                params = str(request.query_params)
+            log = ApiLog(
+                path=str(request.url.path),
+                method=request.method,
+                params=params,
+                exception=str(e),
+                traceback=tb.format_exc()
+            )
+            ApiLogRepository().insert(log)
+        except Exception as log_e:
+            print(f"API日志写入失败: {log_e}")
+        raise
