@@ -104,13 +104,16 @@ class DataSourceHelper:
         end_date = current_date.strftime('%Y-%m-%d')
         start_date = (current_date - relativedelta(days=days)).strftime('%Y-%m-%d')
         
-        kLineData = TickerKLineHandler().get_kl(ticker.code, ticker.source, start_date, end_date)
-        onTimeData = TickerKLineHandler().get_kl_on_time(ticker.code, ticker.source)
-        
+        kLineData, used_source = TickerKLineHandler().get_kl(ticker.code, ticker.source, start_date, end_date)
+        onTimeData, used_source_on_time = TickerKLineHandler().get_kl_on_time(ticker.code, ticker.source)
+        # 同步source字段
+        if used_source is not None and used_source != ticker.source and kLineData is not None and len(kLineData) > 0:
+            TickerRepository().update(ticker.code, ticker.name, {"source": used_source})
+            ticker.source = used_source
         # 确保时间是字符串格式
         time_key = end_date
         if onTimeData is not None:
-            ontime_date = onTimeData['time_key']
+            ontime_date = onTimeData['time_key'] if isinstance(onTimeData, dict) else getattr(onTimeData, 'time_key', None)
             if isinstance(ontime_date, (datetime.datetime, datetime.date)):
                 ontime_date = ontime_date.strftime('%Y-%m-%d')
             if kLineData is None:
@@ -137,9 +140,14 @@ class DataSourceHelper:
         """
         更新指定股票数据
         """
+        from core.service.ticker_repository import TickerRepository
         # 统一获取和格式化日期
         start_date, end_date = self._calc_start_end_date(days)
-        kl_data = TickerKLineHandler().get_kl(ticker.code, source if source != None else ticker.source, start_date, end_date)
+        kl_data, used_source = TickerKLineHandler().get_kl(ticker.code, source if source != None else ticker.source, start_date, end_date)
+        # 同步source字段
+        if used_source is not None and used_source != ticker.source and kl_data is not None and len(kl_data) > 0:
+            TickerRepository().update(ticker.code, ticker.name, {"source": used_source})
+            ticker.source = used_source
         return self._update_ticker_data(ticker, end_date, kl_data)
 
 

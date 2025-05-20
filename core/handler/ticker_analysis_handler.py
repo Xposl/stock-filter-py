@@ -25,7 +25,7 @@ class TickerAnalysisHandler:
     def _setup_chinese_font(self):
         """设置matplotlib支持中文字体"""
         # 使用macOS系统中可用的中文字体
-        plt.rcParams['font.family'] = ['Arial Unicode MS', 'PingFang SC', 'STHeiti', 'Heiti SC', 'sans-serif']
+        matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS', 'Microsoft YaHei', 'STHeiti', 'Heiti TC', 'sans-serif']
         # 解决负号显示问题
         matplotlib.rcParams['axes.unicode_minus'] = False
 

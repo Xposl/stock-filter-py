@@ -1,6 +1,9 @@
 #coding=UTF-8
 import sys
 import os
+import matplotlib
+matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS', 'Microsoft YaHei', 'STHeiti', 'Heiti TC']
+matplotlib.rcParams['axes.unicode_minus'] = False
 from core.data_source_helper import DataSourceHelper
 from core.score.normal_score import NormalScore
 

@@ -21,75 +21,66 @@ class TickerKLineHandler:
         TickerType.PLATE
     ]
 
-    def get_kl_on_time(self, code: str, source: int) -> Optional[KLine]:
-        """获取最新K线数据
-        
-        Args:
-            code: 股票代码
-            source: 数据源 1=东财 2=新浪 3=雪球
-            
-        Returns:
-            KLine: 最新的K线数据，失败返回None
-        """
+    def get_kl_on_time(self, code: str, source: int) -> (Optional[KLine], Optional[int]):
+        """获取最新K线数据，返回(数据, 实际用的source)"""
         try:
-            # 根据参数创建数据源
-            if source == 1:
-                data_source = DongcaiKLineSource()
-            elif source == 2:
-                data_source = SinaKLineSource()
-            elif source == 3:
-                data_source = XueqiuKLineSource()
-            else:
-                print(f"未知数据源: {source}")
-                return None
-            
-            # 获取实时数据
-            data = data_source.get_kl_on_time(code)
-            # 数据获取失败，尝试使用东财数据源作为备选
-            if data is None and source != 1:
-                return DongcaiKLineSource().get_kl_on_time(code)
-                
-            return None
+            tried = set()
+            for i in range(3):
+                s = (source + i - 1) % 3 + 1  # 1,2,3循环
+                if s in tried:
+                    continue
+                tried.add(s)
+                try:
+                    if s == 1:
+                        data_source = DongcaiKLineSource()
+                    elif s == 2:
+                        data_source = SinaKLineSource()
+                    elif s == 3:
+                        data_source = XueqiuKLineSource()
+                    else:
+                        continue
+                    data = data_source.get_kl_on_time(code)
+                    if data is not None:
+                        return data, s
+                except Exception as e:
+                    print(f"源{s}获取实时K线异常: {e}")
+                    continue
+            return None, None
         except Exception as e:
             print(f"获取实时K线数据失败: {e}")
-            return None
+            return None, None
 
-    def get_kl(self, code: str, source: int, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Optional[List[KLine]]:
-        """获取历史K线数据
-        
-        Args:
-            code: 股票代码
-            source: 数据源 1=东财 2=新浪 3=雪球
-            start_date: 开始日期，格式为'YYYY-MM-DD'
-            end_date: 结束日期，格式为'YYYY-MM-DD'
-            
-        Returns:
-            list: K线数据列表，失败返回None
-        """
+    def get_kl(self, code: str, source: int, start_date: Optional[str] = None, end_date: Optional[str] = None) -> (Optional[List[KLine]], Optional[int]):
+        """获取历史K线数据，返回(数据, 实际用的source)"""
         if not start_date or not end_date:
             print('获取历史数据需要提供开始和结束日期')
-            return None
-        
-        # 根据参数创建数据源
-        if source == 1:
-            data_source = DongcaiKLineSource()
-        elif source == 2:
-            data_source = SinaKLineSource()
-        elif source == 3:
-            data_source = XueqiuKLineSource()
-        else:
-            print(f"未知数据源: {source}")
-            return None
- 
-        # 获取K线数据
-        data = data_source.get_kl(code, start_date, end_date)
-        if data is None:
-            print(f'数据失效 source:{source}')
-            return None
-        
-        # 处理历史数据
-        result = []
-        for i in range(len(data)):
-            if data[i].time_key >= start_date and data[i].time_key <= end_date:
-                result.append(data[i])
-        return result
+            return None, None
+        tried = set()
+        for i in range(3):
+            s = (source + i - 1) % 3 + 1  # 1,2,3循环
+            if s in tried:
+                continue
+            tried.add(s)
+            try:
+                if s == 1:
+                    data_source = DongcaiKLineSource()
+                elif s == 2:
+                    data_source = SinaKLineSource()
+                elif s == 3:
+                    data_source = XueqiuKLineSource()
+                else:
+                    continue
+                data = data_source.get_kl(code, start_date, end_date)
+                if data is not None and len(data) > 0:
+                    # 处理历史数据
+                    result = []
+                    for i in range(len(data)):
+                        if data[i].time_key >= start_date and data[i].time_key <= end_date:
+                            result.append(data[i])
+                    if len(result) > 0:
+                        return result, s
+            except Exception as e:
+                print(f"源{s}获取历史K线异常: {e}")
+                continue
+        print(f'所有数据源均无数据 code:{code}')
+        return None, None
