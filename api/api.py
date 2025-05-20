@@ -48,8 +48,7 @@ async def get_current_user(current_user: Dict[str, Any] = Depends(auth_required(
 
 @app.post("/pages")
 async def get_ticker_pages(
-    request: PageRequest,
-    current_user: Optional[Dict[str, Any]] = Depends(auth_required()) if AUTH_ENABLED else None
+    request: PageRequest
 ):
     """获取股票列表，支持分页、搜索和排序
     
@@ -177,8 +176,7 @@ async def get_ticker_pages(
 async def get_ticker_data(
     market: str, 
     ticker_code: str, 
-    days: Optional[int] = 600,
-    current_user: Optional[Dict[str, Any]] = Depends(auth_required()) if AUTH_ENABLED else None
+    days: Optional[int] = 600
 ):
     """获取指定股票的详细信息和K线数据
     
@@ -214,7 +212,7 @@ async def get_ticker_data(
 async def cron_update_ticker_score(
     market: str, 
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(auth_required(["ADMIN"])) if AUTH_ENABLED else None
+    # current_user: Dict[str, Any] = Depends(auth_required(["ADMIN"])) if AUTH_ENABLED else None
 ):
     """
     批量更新指定市场的ticker_score，分批处理，每批100只，间隔1秒，批次间隔1分钟。
