@@ -1,0 +1,215 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FastAPI 编码规范
+
+## 概述
+
+本文档为 FastAPI 项目提供了一套编码规范和最佳实践，旨在确保代码的一致性、可读性和可维护性。
+
+## 通用编码风格
+
+- **PEP 8**: 遵循 [PEP 8 -- Style Guide for Python Code](mdc:https:/www.python.org/dev/peps/pep-0008)。
+- **Linters 和 Formatters**: 推荐使用 `Flake8` (或 `Pylint`) 进行代码风格检查，使用 `Black` 和 `isort` 进行代码格式化和导入排序。
+    - **配置示例 (`pyproject.toml` for Black and isort):**
+      ```toml
+      [tool.black]
+      line-length = 88
+      target-version = ['py38', 'py39', 'py310', 'py311'] # 根据项目 Python 版本调整
+
+      [tool.isort]
+      profile = "black"
+      line_length = 88
+      ```
+- **类型提示**: 强制使用类型提示 (Type Hinting)，并使用 `mypy`进行静态类型检查。
+    - **示例:**
+      ```python
+      from fastapi import FastAPI
+      from pydantic import BaseModel
+
+      app = FastAPI()
+
+      class Item(BaseModel):
+          name: str
+          price: float
+          is_offer: bool | None = None
+
+      @app.post("/items/")
+      async def create_item(item: Item) -> Item:
+          return item
+      ```
+- **命名约定**:
+    - **变量和函数名**: `snake_case` (例如: `user_id`, `get_user_details`).
+    - **类名**: `PascalCase` (例如: `UserSchema`, `DatabaseManager`).
+    - **常量**: `UPPER_SNAKE_CASE` (例如: `MAX_CONNECTIONS`).
+    - **模块和包名**: `snake_case` (例如: `user_management`, `database_utils`).
+- **文档字符串 (Docstrings)**: 为所有公共模块、函数、类和方法编写清晰的文档字符串。推荐使用 Google 风格或 reStructuredText 风格。
+    - **示例 (Google 风格):**
+      ```python
+      async def get_item_by_id(item_id: int, db: Session) -> models.Item | None:
+          """Fetches an item by its ID from the database.
+
+          Args:
+              item_id: The ID of the item to fetch.
+              db: The database session.
+
+          Returns:
+              The item object if found, otherwise None.
+          """
+          return db.query(models.Item).filter(models.Item.id == item_id).first()
+      ```
+- **注释**: 只为复杂或不明显的代码段添加注释。代码本身应尽可能自解释。
+
+## FastAPI 特定规范
+
+### 1. 路由 (Endpoints)
+
+- **路径操作函数命名**: 保持简洁并能描述操作，例如 `read_items`, `create_user`, `delete_item`。
+- **路径参数和查询参数**: 使用描述性名称，并添加类型提示和默认值（如果适用）。
+    ```python
+    from fastapi import FastAPI, Path, Query
+
+    app = FastAPI()
+
+    @app.get("/items/{item_id}")
+    async def read_item(
+        item_id: int = Path(..., title="The ID of the item to get", gt=0),
+        q: str | None = Query(None, min_length=3, max_length=50, regex="^fixedquery$")
+    ):
+        results = {"item_id": item_id}
+        if q:
+            results.update({"q": q})
+        return results
+    ```
+- **响应模型 (Response Model)**: 明确指定响应模型以确保一致的输出和准确的 API 文档。
+    ```python
+    from pydantic import BaseModel
+
+    class ItemResponse(BaseModel):
+        id: int
+        name: str
+        # ... other fields
+
+    @app.get("/items/{item_id}", response_model=ItemResponse)
+    async def get_item(item_id: int):
+        # ... logic to fetch item
+        return fetched_item # FastAPI 会自动使用 ItemResponse 进行序列化
+    ```
+- **状态码 (Status Codes)**: 使用适当的 HTTP 状态码。
+    - `200 OK`: 通用成功。
+    - `201 Created`: 资源创建成功。
+    - `204 No Content`: 操作成功，但没有内容返回 (例如 DELETE)。
+    - `400 Bad Request`: 客户端请求错误。
+    - `401 Unauthorized`: 未授权。
+    - `403 Forbidden`: 禁止访问。
+    - `404 Not Found`: 资源未找到。
+    - `422 Unprocessable Entity`: 请求格式正确，但语义错误 (FastAPI 默认用于验证错误)。
+- **Tags**: 使用 `tags` 参数组织 API 文档中的路径操作。
+    ```python
+    @app.get("/users/me", tags=["users"])
+    async def read_user_me():
+        return {"user_id": "the current user"}
+    ```
+- **Summary 和 Description**: 为路径操作提供 `summary` 和 `description` 以增强 API 文档。
+    ```python
+    @app.post(
+        "/items/",
+        response_model=Item,
+        summary="Create an item",
+        description="Create an item with all the information, name, description, price, tax and tags."
+    )
+    async def create_item_with_desc(item: Item):
+        return item
+    ```
+
+### 2. Pydantic 模型 (Schemas)
+
+- **命名**: 模型名称应清晰，通常以 `Schema` 结尾（例如 `UserSchema`, `ItemCreateSchema`）或反映其用途（`UserCreate`, `UserUpdate`, `UserInDB`）。
+- **字段定义**: 明确定义字段类型，使用 `Optional` 或 `| None` 表示可选字段，并提供默认值（如果适用）。
+- **验证器 (Validators)**: 使用 Pydantic 的验证器进行复杂数据验证。
+    ```python
+    from pydantic import BaseModel, field_validator
+
+    class UserRegistration(BaseModel):
+        username: str
+        password: str
+        confirm_password: str
+
+        @field_validator('confirm_password')
+        def passwords_match(cls, v, values, **kwargs):
+            if 'password' in values.data and v != values.data['password']:
+                raise ValueError('passwords do not match')
+            return v
+    ```
+- **模型继承**: 合理使用模型继承来重用字段定义 (例如，`ItemBase` -> `ItemCreate`, `ItemUpdate`, `ItemInDB`)。
+
+### 3. 依赖注入 (Dependencies)
+
+- **可重用性**: 创建可重用的依赖项来处理常见的任务，如数据库会话管理、用户认证和授权。
+- **命名**: 依赖函数名应清晰描述其功能，例如 `get_db_session`, `get_current_active_user`。
+- **异步依赖**: 如果依赖项执行 I/O 操作，请使用 `async def`。
+
+### 4. 数据库交互 (CRUD)
+
+- **分离关注点**: 将数据库操作封装在 `crud` 模块或类似的层中，避免在路由处理函数中直接编写复杂的数据库查询。
+- **会话管理**: 正确管理数据库会话的生命周期，通常通过依赖注入实现。
+- **异步数据库驱动**: 如果使用异步 ORM (如 `SQLAlchemy 1.4+` 的异步支持, `databases`, `Tortoise ORM`)，确保所有数据库操作都是异步的。
+
+### 5. 错误处理
+
+- **HTTPException**: 使用 `fastapi.HTTPException` 来返回标准的 HTTP 错误响应。
+- **自定义异常处理器**: 对于需要在整个应用程序中统一处理的特定异常，可以创建自定义异常处理器。
+    ```python
+    from fastapi import FastAPI, Request
+    from fastapi.responses import JSONResponse
+
+    class UnicornException(Exception):
+        def __init__(self, name: str):
+            self.name = name
+
+    app = FastAPI()
+
+    @app.exception_handler(UnicornException)
+    async def unicorn_exception_handler(request: Request, exc: UnicornException):
+        return JSONResponse(
+            status_code=418,
+            content={"message": f"Oops! {exc.name} did something. There goes a rainbow..."},
+        )
+    ```
+
+### 6. 配置管理
+
+- **环境变量**: 使用环境变量存储敏感信息和特定于环境的配置。
+Pydantic 的 `BaseSettings` 是一个很好的工具。
+    ```python
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+
+    class Settings(BaseSettings):
+        app_name: str = "Awesome API"
+        admin_email: str
+        items_per_user: int = 50
+
+        model_config = SettingsConfigDict(env_file=".env")
+
+    settings = Settings()
+    ```
+- **`config.py`**: 将配置加载逻辑集中在 `app/core/config.py` 中。
+
+### 7. 测试
+
+- **TestClient**: 使用 `fastapi.testclient.TestClient` 编写针对 API 的测试。
+- **覆盖率**: 目标是高测试覆盖率。
+- **数据库测试**: 为涉及数据库操作的测试设置独立的测试数据库或使用事务回滚策略。
+- **异步测试**: 使用 `pytest-asyncio` (如果使用 `pytest`) 来测试异步代码。
+
+## 安全性
+
+- **输入验证**: FastAPI 和 Pydantic 提供了强大的输入验证，务必充分利用。
+- **输出编码**: FastAPI 自动处理 JSON 响应的正确编码。
+- **认证与授权**: 实现适当的认证 (如 OAuth2 Password Bearer) 和授权机制。
+- **HTTPS**: 在生产环境中始终使用 HTTPS。
+- **依赖项安全**: 定期更新依赖项，使用工具如 `safety` 检查已知漏洞。
+
+遵循这些规范将有助于构建健壮、可维护且安全的 FastAPI 应用程序。

@@ -1,0 +1,99 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FastAPI 项目结构规范
+
+## 概述
+
+本文档定义了 FastAPI 项目的推荐目录结构，旨在提高项目的可维护性、可扩展性和团队协作效率。
+
+## 典型目录结构
+
+```
+.
+├── app/                      # 应用程序核心代码
+│   ├── __init__.py
+│   ├── main.py               # FastAPI 应用实例和全局配置
+│   ├── api/                  # API 路由模块
+│   │   ├── __init__.py
+│   │   ├── v1/               # API 版本 1
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints/    # 存放各个功能的路由
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── items.py
+│   │   │   └── schemas.py    # Pydantic 模型 (也可按功能拆分)
+│   │   └── deps.py           # 依赖注入函数
+│   ├── core/                 # 核心逻辑和配置
+│   │   ├── __init__.py
+│   │   └── config.py         # 应用配置 (环境变量等)
+│   ├── crud/                 # CRUD 操作 (数据库交互)
+│   │   ├── __init__.py
+│   │   └── item_crud.py
+│   ├── models/               # 数据库模型 (例如 SQLAlchemy, Tortoise ORM)
+│   │   ├── __init__.py
+│   │   └── item_model.py
+│   ├── schemas/              # Pydantic Schema 定义 (也可放在 api/vX/ 下)
+│   │   ├── __init__.py
+│   │   └── item_schema.py
+│   └── services/             # 业务逻辑服务层
+│       ├── __init__.py
+│       └── item_service.py
+├── tests/                    # 测试代码
+│   ├── __init__.py
+│   ├── conftest.py           # Pytest 配置文件
+│   └── api/
+│       └── v1/
+│           └── test_items.py
+├── .env                      # 环境变量 (不提交到版本库)
+├── .gitignore
+├── requirements.txt          # 项目依赖
+├── Dockerfile                # Docker 配置文件 (可选)
+└── README.md
+```
+
+## 模块说明
+
+- **`app/main.py`**:
+    - 创建 FastAPI 应用实例。
+    - 配置全局中间件、异常处理器、CORS 等。
+    - 挂载 API 路由。
+- **`app/api/`**:
+    - 包含所有 API 相关的代码。
+    - **`v1/`**, **`v2/`**: 按 API 版本组织路由。
+    - **`endpoints/`**: 具体的路由处理函数。每个文件通常对应一个资源或一组相关功能。
+    - **`deps.py`**: 定义可重用的依赖项 (例如，获取当前用户、数据库会话等)。
+- **`app/core/`**:
+    - **`config.py`**: 管理应用程序的配置，如数据库 URL、密钥、第三方服务凭据等，通常通过环境变量加载。
+- **`app/crud/`**:
+    - 包含与数据库直接交互的函数（创建、读取、更新、删除）。这些函数通常被 `services` 层调用。
+- **`app/models/`**:
+    - 定义数据模型，例如 SQLAlchemy 的 ORM 模型或 Tortoise ORM 的模型。
+- **`app/schemas/`**:
+    - 定义 Pydantic 模型，用于请求体验证、响应体序列化以及 API 文档生成。
+    - 可以根据需要将 `schemas` 放在 `api/vX/` 目录下，使其更贴近对应的 API 版本。
+- **`app/services/`**:
+    - 封装业务逻辑。服务层协调 `crud` 操作和其他业务规则，供 `api` 层的路由处理器调用。
+- **`tests/`**:
+    - 包含所有测试用例。目录结构应尽量与 `app/` 目录对应，便于查找。
+- **`requirements.txt`**:
+    - 列出项目的所有 Python 依赖及其版本。建议使用 `pip freeze > requirements.txt` 生成。
+    - 对于更复杂的项目，可以考虑使用 Poetry 或 Pipenv 进行依赖管理。
+
+## 命名约定
+
+- 目录名和文件名：使用小写蛇形命名法 (snake_case)，例如 `user_routes.py`。
+- Pydantic 模型类名：使用大驼峰命名法 (PascalCase)，例如 `UserCreate`。
+- 数据库模型类名：使用大驼峰命名法 (PascalCase)，例如 `UserModel`。
+- 函数和变量名：使用小写蛇形命名法 (snake_case)。
+
+## 建议
+
+- **模块化**: 将应用拆分为逻辑模块，每个模块有清晰的职责。
+- **版本控制**: API 应进行版本控制 (例如 `/api/v1/...`)，以便平稳过渡和弃用旧版本。
+- **依赖注入**: 充分利用 FastAPI 的依赖注入系统来管理依赖关系和共享逻辑。
+- **配置管理**: 将配置与代码分离，使用环境变量或配置文件。
+- **异步优先**: 尽可能使用 `async/await` 来处理 I/O 密集型操作，以获得更好的性能。
+
+此结构提供了一个良好的起点，可以根据项目的具体需求进行调整。

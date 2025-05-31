@@ -1,0 +1,205 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FastAPI 测试规范
+
+## 概述
+
+本文档提供了在 FastAPI 项目中编写和组织测试的指导方针。有效的测试是确保应用程序质量、稳定性和可维护性的关键。
+
+## 测试工具
+
+- **`pytest`**: 推荐作为主要的测试框架，因其简洁的语法和强大的插件生态系统。
+- **`pytest-asyncio`**: 用于测试异步代码 (FastAPI 中的 `async def` 路由和函数)。
+- **`FastAPI.testclient.TestClient`**: FastAPI 内置的测试客户端，用于向应用程序发送 HTTP 请求并检查响应，底层基于 `httpx`。
+- **`Faker`**: 用于生成伪造数据，使测试更真实且多样化。
+- **覆盖率工具 (`coverage.py` + `pytest-cov`)**: 用于衡量测试覆盖率。
+
+## 测试类型
+
+根据测试金字塔模型，主要关注以下类型的测试：
+
+1.  **单元测试 (Unit Tests)**:
+    *   测试最小的可测试单元（例如，单个函数、方法或 Pydantic 模型验证器）。
+    *   应快速运行且不依赖外部服务（如数据库、网络）。
+    *   对 `crud` 函数、`services` 中的业务逻辑单元、Pydantic 模型的自定义验证器等进行单元测试。
+
+2.  **集成测试 (Integration Tests)**:
+    *   测试多个组件之间的交互。
+    *   例如，测试 API 端点与其依赖的服务和数据库操作是否正确集成。
+    *   可以使用 `TestClient` 发送请求，并验证响应、数据库状态变化等。
+
+3.  **端到端测试 (End-to-End Tests)** (可选，根据项目规模和需求):
+    *   模拟真实用户场景，测试整个应用程序流程。
+    *   通常较慢，且可能需要更复杂的设置。
+
+## 测试组织
+
+- **`tests/` 目录**: 所有测试代码应放在项目根目录下的 `tests/` 文件夹中。
+- **目录结构**: `tests/` 内部的目录结构应尽可能模仿 `app/` 的结构，以便于定位测试。
+    ```
+    tests/
+    ├── __init__.py
+    ├── conftest.py         # Pytest 共享 fixtures 和配置
+    ├── unit/
+    │   ├── test_schemas.py
+    │   └── test_services/
+    │       └── test_item_service.py
+    └── integration/
+        ├── api/
+        │   ├── v1/
+        │   │   └── test_items_api.py
+        │   └── test_auth_api.py
+        └── test_database_crud.py # 测试 CRUD 层与数据库的集成
+    ```
+- **文件名**: 测试文件名应以 `test_` 开头 (例如, `test_items_api.py`)。
+- **测试函数名**: 测试函数名应以 `test_` 开头，并清晰描述被测试的行为 (例如, `test_create_item_success`, `test_get_item_not_found`)。
+
+## 编写测试
+
+### 1. 使用 `TestClient`
+
+```python
+from fastapi.testclient import TestClient
+from app.main import app # 假设你的 FastAPI 实例在 app.main.py 中
+
+client = TestClient(app)
+
+def test_read_main():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Hello World"}
+
+def test_create_item_success():
+    item_data = {"name": "Test Item", "price": 10.0}
+    response = client.post("/api/v1/items/", json=item_data)
+    assert response.status_code == 201 # Assuming 201 Created
+    data = response.json()
+    assert data["name"] == item_data["name"]
+    assert "id" in data
+```
+
+### 2. 测试异步代码
+
+需要安装 `pytest-asyncio`。
+
+```python
+import pytest
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+@pytest.mark.asyncio
+async def test_async_endpoint():
+    # 对于 TestClient，即使是异步路径，调用也是同步的
+    # TestClient 内部会处理异步事件循环
+    response = client.get("/async_path")
+    assert response.status_code == 200
+    # 如果直接测试异步函数（非通过 TestClient 的 HTTP 请求）:
+    # result = await your_async_function()
+    # assert result == expected_value
+```
+
+### 3. Fixtures (`conftest.py`)
+
+使用 `pytest`的 fixtures 来设置和拆卸测试环境、提供测试数据或模拟依赖。
+
+**`tests/conftest.py` 示例:**
+```python
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.main import app
+from app.core.config import settings
+from app.database import Base, get_db # 假设你的数据库设置和 get_db 依赖
+
+# 使用测试数据库配置
+SQLALCHEMY_DATABASE_URL_TEST = settings.DATABASE_URL + "_test"
+
+engine_test = create_engine(SQLALCHEMY_DATABASE_URL_TEST)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_db():
+    Base.metadata.drop_all(bind=engine_test) # 清理旧表
+    Base.metadata.create_all(bind=engine_test) # 创建新表
+    yield
+    Base.metadata.drop_all(bind=engine_test) # 测试后清理
+
+@pytest.fixture(scope="function")
+def db_session_test():
+    connection = engine_test.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+    yield session
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+@pytest.fixture(scope="function")
+def test_client_with_db(db_session_test):
+    def override_get_db():
+        try:
+            yield db_session_test
+        finally:
+            db_session_test.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    client = TestClient(app)
+    yield client
+    del app.dependency_overrides[get_db] # 清理覆盖
+```
+
+**在测试中使用 fixture:**
+```python
+# tests/integration/api/v1/test_items_api.py
+
+def test_create_item_db(test_client_with_db):
+    response = test_client_with_db.post("/api/v1/items/", json={"name": "DB Item", "price": 20.0})
+    assert response.status_code == 201
+    # 可以进一步检查数据库中的数据
+```
+
+### 4. 模拟 (Mocking)
+
+使用 `unittest.mock.patch` (或 `pytest-mock` 插件) 来模拟外部服务或复杂的依赖项，以隔离被测试的单元。
+
+```python
+from unittest.mock import patch
+
+@patch("app.services.item_service.some_external_call")
+def test_item_creation_with_mocked_service(mock_external_call, test_client_with_db):
+    mock_external_call.return_value = {"status": "success"}
+    response = test_client_with_db.post("/api/v1/items/", json={"name": "Mocked Item", "price": 30.0})
+    assert response.status_code == 201
+    mock_external_call.assert_called_once()
+```
+
+## 运行测试和覆盖率
+
+- **运行所有测试**: `pytest`
+- **运行特定文件或测试**: `pytest tests/integration/api/v1/test_items_api.py::test_create_item_success`
+- **生成覆盖率报告**: `pytest --cov=app --cov-report=html` (需要安装 `pytest-cov`)
+    - `app` 是你的主应用代码目录。
+    - HTML 报告会生成在 `htmlcov/` 目录下。
+
+## 最佳实践
+
+- **独立性**: 测试应相互独立，一个测试的失败不应影响其他测试。
+- **可重复性**: 测试应在任何环境中都能产生相同的结果。
+- **清晰性**: 测试代码应易于阅读和理解。测试的目的应明确。
+- **速度**: 测试应尽可能快地运行，特别是单元测试。
+- **覆盖关键路径**: 优先测试核心功能、边缘情况和常见的错误场景。
+- **AAA 模式 (Arrange, Act, Assert)**:
+    - **Arrange**: 设置测试所需的前提条件和输入数据。
+    - **Act**: 执行被测试的代码或操作。
+    - **Assert**: 验证结果是否符合预期。
+- **不要测试 FastAPI 内部**: 专注于测试你的应用逻辑，而不是 FastAPI 框架本身的功能（例如，路由匹配、JSON 解析等，这些已经由 FastAPI 测试过了）。
+- **测试数据库交互**: 为数据库交互编写集成测试。考虑使用内存数据库 (如 SQLite in-memory) 进行快速测试，或使用与生产环境相同的数据库引擎的测试实例以获得更准确的结果。
+- **持续集成 (CI)**: 将测试集成到 CI/CD 流程中，确保每次代码变更都经过测试。
+
+通过遵循这些规范和实践，可以构建一个强大且可靠的测试套件，为 FastAPI 应用程序的开发提供信心。

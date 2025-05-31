@@ -1,0 +1,110 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# InvestNote-py FastAPI 开发框架规则体系
+
+## 规则体系概述
+
+本项目是基于 FastAPI 框架开发的投资笔记与分析系统（InvestNote-py），包含完整的规范体系和开发工具链。规则体系分为两个核心组成部分：
+
+### 规则目录结构
+```bash
+.cursor/
+├── rules/
+│   ├── isolation_rules/     # Memory Bank 规范和说明
+│   │                       # 详情参考: https://github.com/vanzan01/cursor-memory-bank
+│   └── fast-api/            # 基于FastAPI的开发规范
+```
+
+## 核心规范文档
+
+### 1. FastAPI 项目结构规范
+- **文档**: [project_structure.mdc](mdc:.cursor/rules/fast-api/project_structure.mdc)
+- **作用**: 定义FastAPI项目的推荐目录结构
+- **核心内容**: 
+  - 模块化的项目架构
+  - 标准化的目录结构和命名规范
+  - API版本管理和路由组织
+
+### 2. FastAPI 编码规范
+- **文档**: [code_guidelines.mdc](mdc:.cursor/rules/fast-api/code_guidelines.mdc)
+- **作用**: 统一FastAPI项目的编码风格和最佳实践
+- **核心内容**:
+  - Python类型提示和PEP8规范
+  - Pydantic模型定义和验证
+  - 路由处理和依赖注入
+  - 异步编程最佳实践
+
+### 3. FastAPI 测试规范
+- **文档**: [testing_guidelines.mdc](mdc:.cursor/rules/fast-api/testing_guidelines.mdc)
+- **作用**: 提供FastAPI项目测试的指导方针
+- **核心内容**:
+  - 单元测试和集成测试
+  - TestClient使用规范
+  - 数据库测试策略
+  - 异步代码测试
+
+### 4. FastAPI 安全最佳实践
+- **文档**: [security_best_practices.mdc](mdc:.cursor/rules/fast-api/security_best_practices.mdc)
+- **作用**: 确保FastAPI应用程序的安全性
+- **核心内容**:
+  - 输入验证和输出编码
+  - 认证和授权机制
+  - HTTPS和中间件配置
+  - 依赖项安全管理
+
+## Memory Bank 集成
+
+本项目集成了 [Memory Bank](mdc:https:/github.com/vanzan01/cursor-memory-bank) 系统，用于项目上下文管理和AI辅助开发：
+
+### Memory Bank 文件结构
+```bash
+memory-bank/
+├── tasks.md              # 当前任务跟踪
+├── projectbrief.md       # 项目概览
+├── activeContext.md      # 活跃上下文
+├── progress.md           # 开发进度
+├── productContext.md     # 产品上下文
+├── systemPatterns.md     # 系统模式
+├── techContext.md        # 技术上下文
+└── style-guide.md        # 样式指南
+```
+
+### Memory Bank 作用
+- **上下文保持**: 维护项目开发的连续性和一致性
+- **知识积累**: 记录项目中的设计决策和技术选型
+- **AI 辅助**: 为 AI 助手提供丰富的项目背景信息
+
+## 开发工具链
+
+### 质量保证
+- **代码规范**: FastAPI + Pydantic自动验证
+- **类型检查**: Python类型提示 + mypy
+- **测试覆盖**: pytest + 单元测试 + 集成测试
+- **代码评审**: 强制 Code Review 流程
+
+## 使用指南
+
+### 开始新功能开发
+1. 了解项目架构: 阅读 [project_structure.mdc](mdc:.cursor/rules/fast-api/project_structure.mdc)
+2. 熟悉编码规范: 参考 [code_guidelines.mdc](mdc:.cursor/rules/fast-api/code_guidelines.mdc)
+3. 初始化 Memory Bank: 根据 isolation_rules 创建项目记忆文件
+
+### 开发新API端点
+1. 按照FastAPI项目结构指导创建路由
+2. 遵循编码规范定义Pydantic模型
+3. 编写对应的测试用例
+
+### 维护和扩展
+- 定期更新 Memory Bank 文档
+- 遵循安全最佳实践
+- 保持规则文档的及时更新
+
+## 注意事项
+
+- 所有规则文档使用 `.mdc` 扩展名
+- 文档间引用使用 `[filename.ext](mdc:path)` 格式
+- 保持规则的一致性和可执行性
+- 定期review和更新规范文档
