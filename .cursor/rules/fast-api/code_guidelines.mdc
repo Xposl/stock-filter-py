@@ -3,11 +3,11 @@ description:
 globs: 
 alwaysApply: false
 ---
-# FastAPI 编码规范
+# FastAPI 编码规范 - InvestNote-py
 
 ## 概述
 
-本文档为 FastAPI 项目提供了一套编码规范和最佳实践，旨在确保代码的一致性、可读性和可维护性。
+本文档为 InvestNote-py FastAPI 项目提供了一套编码规范和最佳实践，基于项目的三层架构（API-Handler-Repository-Model）和业务特点，旨在确保代码的一致性、可读性和可维护性。
 
 ## 通用编码风格
 
@@ -41,10 +41,10 @@ alwaysApply: false
           return item
       ```
 - **命名约定**:
-    - **变量和函数名**: `snake_case` (例如: `user_id`, `get_user_details`).
-    - **类名**: `PascalCase` (例如: `UserSchema`, `DatabaseManager`).
-    - **常量**: `UPPER_SNAKE_CASE` (例如: `MAX_CONNECTIONS`).
-    - **模块和包名**: `snake_case` (例如: `user_management`, `database_utils`).
+    - **变量和函数名**: `snake_case` (例如: `ticker_id`, `get_ticker_details`)
+    - **类名**: `PascalCase` (例如: `TickerRepository`, `NewsAggregator`)
+    - **常量**: `UPPER_SNAKE_CASE` (例如: `MAX_ARTICLES_PER_FETCH`)
+    - **模块和包名**: `snake_case` (例如: `news_aggregator`, `ticker_handler`)
 - **文档字符串 (Docstrings)**: 为所有公共模块、函数、类和方法编写清晰的文档字符串。推荐使用 Google 风格或 reStructuredText 风格。
     - **示例 (Google 风格):**
       ```python
@@ -62,154 +62,1236 @@ alwaysApply: false
       ```
 - **注释**: 只为复杂或不明显的代码段添加注释。代码本身应尽可能自解释。
 
-## FastAPI 特定规范
+## InvestNote-py 特定架构规范
 
-### 1. 路由 (Endpoints)
+### 1. **API层规范** (`api/api.py`)
 
-- **路径操作函数命名**: 保持简洁并能描述操作，例如 `read_items`, `create_user`, `delete_item`。
-- **路径参数和查询参数**: 使用描述性名称，并添加类型提示和默认值（如果适用）。
-    ```python
-    from fastapi import FastAPI, Path, Query
+#### 路由定义
+```python
+from fastapi import FastAPI, HTTPException, Depends
+from core.handler.ticker_handler import TickerHandler
+from .models import TickerRequest, TickerResponse
 
-    app = FastAPI()
+app = FastAPI(
+    title="InvestNote API",
+    description="Investment notes and analysis API",
+    root_path="/investnote"
+)
 
-    @app.get("/items/{item_id}")
-    async def read_item(
-        item_id: int = Path(..., title="The ID of the item to get", gt=0),
-        q: str | None = Query(None, min_length=3, max_length=50, regex="^fixedquery$")
-    ):
-        results = {"item_id": item_id}
-        if q:
-            results.update({"q": q})
-        return results
-    ```
-- **响应模型 (Response Model)**: 明确指定响应模型以确保一致的输出和准确的 API 文档。
-    ```python
-    from pydantic import BaseModel
+@app.get("/ticker/{market}/{ticker_code}", response_model=TickerResponse)
+async def get_ticker_data(
+    market: str, 
+    ticker_code: str, 
+    days: Optional[int] = 600,
+    current_user: Dict[str, Any] = Depends(auth_required())
+):
+    """获取指定股票的详细信息和K线数据"""
+    try:
+        handler = TickerHandler()
+        result = await handler.get_ticker_with_analysis(market, ticker_code, days)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
 
-    class ItemResponse(BaseModel):
-        id: int
-        name: str
-        # ... other fields
+#### API层责任
+- 处理HTTP请求/响应
+- 参数验证和类型转换
+- 认证和授权检查
+- 异常处理和错误响应
+- **禁止**: 直接调用Repository或包含业务逻辑
 
-    @app.get("/items/{item_id}", response_model=ItemResponse)
-    async def get_item(item_id: int):
-        # ... logic to fetch item
-        return fetched_item # FastAPI 会自动使用 ItemResponse 进行序列化
-    ```
-- **状态码 (Status Codes)**: 使用适当的 HTTP 状态码。
-    - `200 OK`: 通用成功。
-    - `201 Created`: 资源创建成功。
-    - `204 No Content`: 操作成功，但没有内容返回 (例如 DELETE)。
-    - `400 Bad Request`: 客户端请求错误。
-    - `401 Unauthorized`: 未授权。
-    - `403 Forbidden`: 禁止访问。
-    - `404 Not Found`: 资源未找到。
-    - `422 Unprocessable Entity`: 请求格式正确，但语义错误 (FastAPI 默认用于验证错误)。
-- **Tags**: 使用 `tags` 参数组织 API 文档中的路径操作。
-    ```python
-    @app.get("/users/me", tags=["users"])
-    async def read_user_me():
-        return {"user_id": "the current user"}
-    ```
-- **Summary 和 Description**: 为路径操作提供 `summary` 和 `description` 以增强 API 文档。
-    ```python
-    @app.post(
-        "/items/",
-        response_model=Item,
-        summary="Create an item",
-        description="Create an item with all the information, name, description, price, tax and tags."
-    )
-    async def create_item_with_desc(item: Item):
-        return item
-    ```
+### 2. **Handler层规范** (`core/handler/`)
 
-### 2. Pydantic 模型 (Schemas)
+#### Handler类定义
+```python
+# core/handler/ticker_analysis_handler.py
+from typing import Dict, List, Optional, Any
+from ..service.ticker_repository import TickerRepository
+from ..service.ticker_score_repository import TickerScoreRepository
+from ..models.ticker import Ticker
 
-- **命名**: 模型名称应清晰，通常以 `Schema` 结尾（例如 `UserSchema`, `ItemCreateSchema`）或反映其用途（`UserCreate`, `UserUpdate`, `UserInDB`）。
-- **字段定义**: 明确定义字段类型，使用 `Optional` 或 `| None` 表示可选字段，并提供默认值（如果适用）。
-- **验证器 (Validators)**: 使用 Pydantic 的验证器进行复杂数据验证。
-    ```python
-    from pydantic import BaseModel, field_validator
-
-    class UserRegistration(BaseModel):
-        username: str
-        password: str
-        confirm_password: str
-
-        @field_validator('confirm_password')
-        def passwords_match(cls, v, values, **kwargs):
-            if 'password' in values.data and v != values.data['password']:
-                raise ValueError('passwords do not match')
-            return v
-    ```
-- **模型继承**: 合理使用模型继承来重用字段定义 (例如，`ItemBase` -> `ItemCreate`, `ItemUpdate`, `ItemInDB`)。
-
-### 3. 依赖注入 (Dependencies)
-
-- **可重用性**: 创建可重用的依赖项来处理常见的任务，如数据库会话管理、用户认证和授权。
-- **命名**: 依赖函数名应清晰描述其功能，例如 `get_db_session`, `get_current_active_user`。
-- **异步依赖**: 如果依赖项执行 I/O 操作，请使用 `async def`。
-
-### 4. 数据库交互 (CRUD)
-
-- **分离关注点**: 将数据库操作封装在 `crud` 模块或类似的层中，避免在路由处理函数中直接编写复杂的数据库查询。
-- **会话管理**: 正确管理数据库会话的生命周期，通常通过依赖注入实现。
-- **异步数据库驱动**: 如果使用异步 ORM (如 `SQLAlchemy 1.4+` 的异步支持, `databases`, `Tortoise ORM`)，确保所有数据库操作都是异步的。
-
-### 5. 错误处理
-
-- **HTTPException**: 使用 `fastapi.HTTPException` 来返回标准的 HTTP 错误响应。
-- **自定义异常处理器**: 对于需要在整个应用程序中统一处理的特定异常，可以创建自定义异常处理器。
-    ```python
-    from fastapi import FastAPI, Request
-    from fastapi.responses import JSONResponse
-
-    class UnicornException(Exception):
-        def __init__(self, name: str):
-            self.name = name
-
-    app = FastAPI()
-
-    @app.exception_handler(UnicornException)
-    async def unicorn_exception_handler(request: Request, exc: UnicornException):
-        return JSONResponse(
-            status_code=418,
-            content={"message": f"Oops! {exc.name} did something. There goes a rainbow..."},
+class TickerAnalysisHandler:
+    """股票分析处理器 - 协调多个Repository执行复杂业务逻辑"""
+    
+    def __init__(self):
+        self.ticker_repo = TickerRepository()
+        self.score_repo = TickerScoreRepository()
+    
+    async def analyze_ticker_performance(
+        self, 
+        ticker_code: str, 
+        analysis_days: int = 30
+    ) -> Dict[str, Any]:
+        """分析股票表现 - 业务逻辑协调多个数据源"""
+        
+        # 1. 获取基础数据
+        ticker = await self.ticker_repo.get_by_code(ticker_code)
+        if not ticker:
+            raise ValueError(f"股票代码 {ticker_code} 不存在")
+        
+        # 2. 获取评分历史
+        score_history = await self.score_repo.get_score_history(
+            ticker.id, days=analysis_days
         )
-    ```
+        
+        # 3. 执行业务逻辑计算
+        performance_metrics = self._calculate_performance_metrics(
+            ticker, score_history
+        )
+        
+        return {
+            "ticker": ticker,
+            "metrics": performance_metrics,
+            "analysis_period": analysis_days
+        }
+    
+    def _calculate_performance_metrics(
+        self, 
+        ticker: Ticker, 
+        score_history: List[Dict]
+    ) -> Dict[str, float]:
+        """私有方法 - 计算性能指标"""
+        # 具体业务逻辑实现
+        return {
+            "avg_score": sum(s["score"] for s in score_history) / len(score_history),
+            "score_trend": self._calculate_trend(score_history),
+            "volatility": self._calculate_volatility(score_history)
+        }
+```
 
-### 6. 配置管理
+#### Handler层责任
+- 封装业务逻辑和业务规则
+- 协调多个Repository执行复杂操作
+- 数据转换和业务计算
+- 业务异常处理
+- **禁止**: 直接数据库操作或SQL查询
 
-- **环境变量**: 使用环境变量存储敏感信息和特定于环境的配置。
-Pydantic 的 `BaseSettings` 是一个很好的工具。
-    ```python
-    from pydantic_settings import BaseSettings, SettingsConfigDict
+### 3. **Repository层规范** (`core/service/`)
 
-    class Settings(BaseSettings):
-        app_name: str = "Awesome API"
-        admin_email: str
-        items_per_user: int = 50
+#### Repository类定义
+```python
+# core/service/ticker_repository.py
+from typing import List, Optional, Dict, Any
+from sqlalchemy.orm import Session
+from ..models.ticker import Ticker
+from ..database.database import get_db_session
 
-        model_config = SettingsConfigDict(env_file=".env")
+class TickerRepository:
+    """股票数据仓储 - 封装所有股票相关数据库操作"""
+    
+    def __init__(self):
+        self.db = get_db_session()
+    
+    async def get_by_code(self, code: str) -> Optional[Ticker]:
+        """根据股票代码获取股票信息"""
+        return self.db.query(Ticker).filter(
+            Ticker.code == code,
+            Ticker.is_deleted == 0
+        ).first()
+    
+    async def get_by_market(
+        self, 
+        market: str, 
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Ticker]:
+        """按市场获取股票列表"""
+        return self.db.query(Ticker).filter(
+            Ticker.market == market,
+            Ticker.is_deleted == 0,
+            Ticker.status == 1
+        ).offset(offset).limit(limit).all()
+    
+    async def create_ticker(self, ticker_data: Dict[str, Any]) -> Ticker:
+        """创建新股票记录"""
+        ticker = Ticker(**ticker_data)
+        self.db.add(ticker)
+        self.db.commit()
+        self.db.refresh(ticker)
+        return ticker
+    
+    async def update_ticker(
+        self, 
+        ticker_id: int, 
+        update_data: Dict[str, Any]
+    ) -> Optional[Ticker]:
+        """更新股票信息"""
+        ticker = self.db.query(Ticker).filter(Ticker.id == ticker_id).first()
+        if ticker:
+            for key, value in update_data.items():
+                setattr(ticker, key, value)
+            self.db.commit()
+            self.db.refresh(ticker)
+        return ticker
+    
+    async def find_by_criteria(self, **criteria) -> List[Ticker]:
+        """根据条件查询股票"""
+        query = self.db.query(Ticker)
+        for key, value in criteria.items():
+            if hasattr(Ticker, key):
+                query = query.filter(getattr(Ticker, key) == value)
+        return query.all()
+```
 
-    settings = Settings()
-    ```
-- **`config.py`**: 将配置加载逻辑集中在 `app/core/config.py` 中。
+#### Repository层责任
+- 封装所有数据库操作
+- 提供CRUD方法和复杂查询
+- 数据库事务管理
+- 查询优化和缓存
+- **禁止**: 包含业务逻辑或业务规则
 
-### 7. 测试
+### 4. **Model层规范** (`core/models/`)
 
-- **TestClient**: 使用 `fastapi.testclient.TestClient` 编写针对 API 的测试。
-- **覆盖率**: 目标是高测试覆盖率。
-- **数据库测试**: 为涉及数据库操作的测试设置独立的测试数据库或使用事务回滚策略。
-- **异步测试**: 使用 `pytest-asyncio` (如果使用 `pytest`) 来测试异步代码。
+#### Pydantic模型定义 (推荐方式)
+```python
+# core/models/ticker.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-## 安全性
+from datetime import datetime
+from typing import Optional, Union
+from pydantic import BaseModel, Field, ConfigDict
 
-- **输入验证**: FastAPI 和 Pydantic 提供了强大的输入验证，务必充分利用。
-- **输出编码**: FastAPI 自动处理 JSON 响应的正确编码。
-- **认证与授权**: 实现适当的认证 (如 OAuth2 Password Bearer) 和授权机制。
-- **HTTPS**: 在生产环境中始终使用 HTTPS。
-- **依赖项安全**: 定期更新依赖项，使用工具如 `safety` 检查已知漏洞。
+class TickerBase(BaseModel):
+    """Ticker基础模型，包含共有字段"""
+    code: str = Field(..., description="股票代码")
+    name: str = Field(..., description="股票名称")
+    group_id: int = Field(default=0, description="组ID")
+    type: Optional[int] = Field(default=1, description="类型")
+    source: Optional[int] = Field(default=1, description="数据来源")
+    status: Optional[int] = Field(default=1, description="状态")
+    is_deleted: Optional[bool] = Field(default=False, description="是否删除")
+    remark: Optional[str] = Field(default=None, description="备注信息")
+    
+    model_config = ConfigDict(from_attributes=True)
 
-遵循这些规范将有助于构建健壮、可维护且安全的 FastAPI 应用程序。
+class TickerCreate(TickerBase):
+    """用于创建Ticker的模型"""
+    pass
+
+class TickerUpdate(BaseModel):
+    """用于更新Ticker的模型，所有字段都是可选的"""
+    name: Optional[str] = Field(default=None, description="股票名称")
+    group_id: Optional[int] = Field(default=None, description="组ID")
+    status: Optional[int] = Field(default=None, description="状态")
+    remark: Optional[str] = Field(default=None, description="备注信息")
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Ticker(TickerBase):
+    """完整的Ticker模型，包含ID"""
+    id: int = Field(..., description="ID")
+    create_time: Optional[datetime] = Field(default_factory=datetime.now, description="创建时间")
+    version: Optional[int] = Field(default=1, description="版本号")
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# 用于序列化和反序列化的辅助函数
+def ticker_to_dict(ticker: Union[Ticker, TickerCreate, TickerUpdate]) -> dict:
+    """将Ticker模型转换为字典，用于数据库操作"""
+    if isinstance(ticker, (TickerCreate, TickerUpdate)):
+        return ticker.model_dump(exclude_unset=True, exclude_none=True)
+    else:
+        return ticker.model_dump(exclude_none=True)
+
+def dict_to_ticker(data: dict) -> Ticker:
+    """将字典转换为Ticker模型，处理各种数据类型转换和默认值"""
+    # 数据类型处理和验证逻辑
+    processed_data = data.copy()
+    
+    # 处理日期字段
+    for date_field in ['create_time']:
+        if date_field in processed_data and isinstance(processed_data[date_field], str):
+            try:
+                processed_data[date_field] = datetime.fromisoformat(processed_data[date_field])
+            except ValueError:
+                processed_data[date_field] = datetime.now()
+    
+    return Ticker(**processed_data)
+```
+
+#### 新闻模型定义示例
+```python
+# core/models/news_article.py
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field, ConfigDict
+from enum import Enum
+
+class ArticleStatus(str, Enum):
+    """文章状态枚举"""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+    FAILED = "failed"
+    ARCHIVED = "archived"
+
+class NewsArticleBase(BaseModel):
+    """新闻文章基础模型"""
+    title: str = Field(..., description="文章标题")
+    url: str = Field(..., description="文章URL")
+    url_hash: str = Field(..., description="URL哈希（去重用）")
+    content: Optional[str] = Field(default=None, description="文章正文内容")
+    source_id: int = Field(..., description="新闻源ID")
+    status: ArticleStatus = Field(default=ArticleStatus.PENDING, description="处理状态")
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class NewsArticleCreate(NewsArticleBase):
+    """用于创建新闻文章的模型"""
+    pass
+
+class NewsArticle(NewsArticleBase):
+    """完整的新闻文章模型"""
+    id: int = Field(..., description="ID")
+    created_at: Optional[datetime] = Field(default_factory=datetime.now, description="创建时间")
+    updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="更新时间")
+    
+    model_config = ConfigDict(from_attributes=True)
+```
+
+#### Model层架构要求
+
+1. **统一使用Pydantic模型**: 项目中所有模型都必须使用Pydantic BaseModel，不再使用SQLAlchemy模型
+2. **三层模型结构**: 
+   - `XxxBase`: 包含共有字段的基础模型
+   - `XxxCreate`: 用于创建操作的模型
+   - `XxxUpdate`: 用于更新操作的模型，所有字段可选
+   - `Xxx`: 完整模型，包含ID和时间戳
+3. **辅助函数**: 每个模型文件必须包含 `xxx_to_dict()` 和 `dict_to_xxx()` 函数
+4. **数据验证**: 使用Field进行字段验证和描述
+5. **配置**: 使用 `ConfigDict(from_attributes=True)` 支持ORM对象转换
+
+#### 数据库表更新要求
+
+每次新增或修改模型时，必须同时更新对应的SQL建表脚本：
+- `sql/create_table_sqlite.sql` - SQLite版本
+- `sql/create_table.sql` - MySQL版本
+
+#### Repository层与模型的配合
+
+Repository层负责：
+- 使用辅助函数进行模型与字典的转换
+- 处理数据库字段到Pydantic模型的映射
+- 执行所有CRUD操作
+
+### 5. **新闻聚合模块规范** (`core/news_aggregator/`)
+
+#### 新闻聚合器实现
+```python
+# core/news_aggregator/rss_aggregator.py
+import asyncio
+import aiohttp
+from typing import List, Dict, Optional, Any
+from ..models.news_source import NewsSource
+from ..models.news_article import NewsArticle
+
+class RSSAggregator:
+    """RSS新闻聚合器 - 处理RSS源数据抓取"""
+    
+    def __init__(self, session: Optional[aiohttp.ClientSession] = None):
+        self.session = session
+        self._own_session = session is None
+    
+    async def __aenter__(self):
+        if self._own_session:
+            self.session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30),
+                headers={'User-Agent': 'InvestNote RSS Aggregator 1.0'}
+            )
+        return self
+    
+    async def fetch_rss_feed(self, news_source: NewsSource) -> List[Dict[str, Any]]:
+        """抓取RSS源数据
+        
+        Args:
+            news_source: 新闻源配置
+            
+        Returns:
+            解析后的文章数据列表
+            
+        Raises:
+            ValueError: RSS内容获取失败
+            Exception: 解析异常
+        """
+        try:
+            # 实现RSS抓取逻辑
+            pass
+        except Exception as e:
+            logger.error(f"RSS抓取失败 {news_source.name}: {e}")
+            raise
+```
+
+### 6. **AI代理模块规范** (`core/ai_agents/`)
+
+#### AI代理基类
+```python
+# core/ai_agents/base_agent.py
+from abc import ABC, abstractmethod
+from typing import Dict, Any, List
+from ..models.news_article import NewsArticle
+
+class BaseAgent(ABC):
+    """AI代理基类 - 定义所有代理的通用接口"""
+    
+    def __init__(self, agent_name: str, config: Dict[str, Any]):
+        self.agent_name = agent_name
+        self.config = config
+    
+    @abstractmethod
+    async def analyze(self, articles: List[NewsArticle]) -> Dict[str, Any]:
+        """分析新闻文章
+        
+        Args:
+            articles: 待分析的新闻文章列表
+            
+        Returns:
+            分析结果字典
+        """
+        pass
+    
+    @abstractmethod
+    async def extract_insights(self, analysis_result: Dict[str, Any]) -> List[str]:
+        """提取投资洞察
+        
+        Args:
+            analysis_result: 分析结果
+            
+        Returns:
+            投资洞察列表
+        """
+        pass
+```
+
+## 异步编程规范
+
+### 1. **异步函数定义**
+```python
+# 正确：数据库操作使用异步
+async def get_ticker_data(ticker_id: int) -> Optional[Ticker]:
+    async with get_async_session() as session:
+        result = await session.execute(
+            select(Ticker).where(Ticker.id == ticker_id)
+        )
+        return result.scalar_one_or_none()
+
+# 正确：外部API调用使用异步
+async def fetch_news_from_api(url: str) -> Dict[str, Any]:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
+```
+
+### 2. **异步上下文管理器**
+```python
+# 推荐：使用异步上下文管理器管理资源
+class NewsAggregator:
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.session.close()
+
+# 使用方式
+async with NewsAggregator() as aggregator:
+    articles = await aggregator.fetch_articles()
+```
+
+### 3. **并发处理**
+```python
+# 推荐：使用asyncio.gather处理并发任务
+async def fetch_multiple_sources(sources: List[NewsSource]) -> List[Dict]:
+    tasks = [
+        fetch_rss_feed(source) for source in sources
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # 处理异常
+    valid_results = []
+    for i, result in enumerate(results):
+        if isinstance(result, Exception):
+            logger.error(f"Source {sources[i].name} failed: {result}")
+        else:
+            valid_results.extend(result)
+    
+    return valid_results
+```
+
+## 错误处理和日志规范
+
+### 1. **异常处理**
+```python
+# 推荐：分层异常处理
+from fastapi import HTTPException
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Repository层：记录并重新抛出
+async def get_ticker_by_id(ticker_id: int) -> Optional[Ticker]:
+    try:
+        # 数据库操作
+        return ticker
+    except DatabaseError as e:
+        logger.error(f"Database error in get_ticker_by_id: {e}")
+        raise
+
+# Handler层：业务异常处理
+async def process_ticker_analysis(ticker_id: int) -> Dict[str, Any]:
+    try:
+        ticker = await self.ticker_repo.get_ticker_by_id(ticker_id)
+        if not ticker:
+            raise ValueError(f"Ticker {ticker_id} not found")
+        return analysis_result
+    except ValueError as e:
+        logger.warning(f"Business logic error: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in ticker analysis: {e}")
+        raise
+
+# API层：HTTP异常处理
+@app.get("/ticker/{ticker_id}")
+async def get_ticker_analysis(ticker_id: int):
+    try:
+        result = await ticker_handler.process_ticker_analysis(ticker_id)
+        return {"status": "success", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"API error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+```
+
+### 2. **日志规范**
+```python
+import logging
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
+# 日志使用示例
+class TickerHandler:
+    async def update_ticker_data(self, ticker_id: int, data: Dict):
+        logger.info(f"开始更新股票数据: ticker_id={ticker_id}")
+        
+        try:
+            result = await self.repository.update(ticker_id, data)
+            logger.info(f"股票数据更新成功: ticker_id={ticker_id}")
+            return result
+        except Exception as e:
+            logger.error(f"股票数据更新失败: ticker_id={ticker_id}, error={e}")
+            raise
+```
+
+## 测试规范
+
+### 1. **单元测试**
+```python
+# tests/test_ticker_handler.py
+import pytest
+from unittest.mock import AsyncMock, patch
+from core.handler.ticker_handler import TickerHandler
+from core.models.ticker import Ticker
+
+class TestTickerHandler:
+    @pytest.fixture
+    async def ticker_handler(self):
+        return TickerHandler()
+    
+    @pytest.fixture
+    def sample_ticker(self):
+        return Ticker(
+            id=1,
+            code="AAPL",
+            name="Apple Inc.",
+            status=1
+        )
+    
+    @patch('core.service.ticker_repository.TickerRepository.get_by_id')
+    async def test_get_ticker_success(self, mock_get_by_id, ticker_handler, sample_ticker):
+        # Arrange
+        mock_get_by_id.return_value = sample_ticker
+        
+        # Act
+        result = await ticker_handler.get_ticker_by_id(1)
+        
+        # Assert
+        assert result == sample_ticker
+        mock_get_by_id.assert_called_once_with(1)
+    
+    async def test_get_ticker_not_found(self, ticker_handler):
+        with patch.object(ticker_handler.repository, 'get_by_id', return_value=None):
+            result = await ticker_handler.get_ticker_by_id(999)
+            assert result is None
+```
+
+### 2. **集成测试**
+```python
+# tests/test_integration_news.py
+import pytest
+from httpx import AsyncClient
+from main import app
+
+@pytest.mark.asyncio
+async def test_news_aggregation_flow():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # 1. 创建新闻源
+        source_data = {
+            "name": "Test RSS Source",
+            "source_type": "rss",
+            "url": "https://example.com/rss.xml"
+        }
+        response = await ac.post("/news/sources", json=source_data)
+        assert response.status_code == 201
+        source_id = response.json()["data"]["id"]
+        
+        # 2. 触发新闻抓取
+        response = await ac.post(f"/news/sources/{source_id}/fetch")
+        assert response.status_code == 200
+        
+        # 3. 验证文章创建
+        response = await ac.get(f"/news/articles?source_id={source_id}")
+        assert response.status_code == 200
+        assert len(response.json()["data"]) > 0
+```
+
+## 性能优化规范
+
+### 1. **数据库查询优化**
+```python
+# 推荐：使用索引和适当的查询条件
+async def get_recent_high_score_tickers(days: int = 7, min_score: float = 8.0):
+    # 确保相关字段有索引
+    sql = """
+    SELECT t.*, ts.score 
+    FROM ticker t 
+    JOIN ticker_score ts ON t.id = ts.ticker_id 
+    WHERE ts.create_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+    AND ts.score >= :min_score
+    AND t.status = 1
+    ORDER BY ts.score DESC
+    LIMIT 100
+    """
+    return await self.db_helper.fetch_all(sql, {
+        "days": days, 
+        "min_score": min_score
+    })
+
+# 避免：N+1查询问题
+# 错误示例 - 会产生N+1查询
+async def get_tickers_with_scores_bad():
+    tickers = await self.get_all_tickers()  # 1次查询
+    results = []
+    for ticker in tickers:
+        score = await self.get_ticker_score(ticker.id)  # N次查询
+        results.append({"ticker": ticker, "score": score})
+    return results
+
+# 正确示例 - 使用JOIN一次查询
+async def get_tickers_with_scores_good():
+    sql = """
+    SELECT t.*, ts.score 
+    FROM ticker t 
+    LEFT JOIN ticker_score ts ON t.id = ts.ticker_id
+    WHERE t.status = 1
+    """
+    return await self.db_helper.fetch_all(sql)
+```
+
+### 2. **缓存策略**
+```python
+from functools import wraps
+import asyncio
+from typing import Dict, Any
+
+# 简单内存缓存装饰器
+def cache_result(ttl: int = 300):
+    cache: Dict[str, Any] = {}
+    
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # 生成缓存键
+            cache_key = f"{func.__name__}:{hash(str(args) + str(kwargs))}"
+            
+            # 检查缓存
+            if cache_key in cache:
+                result, timestamp = cache[cache_key]
+                if time.time() - timestamp < ttl:
+                    return result
+            
+            # 执行函数并缓存结果
+            result = await func(*args, **kwargs)
+            cache[cache_key] = (result, time.time())
+            return result
+        return wrapper
+    return decorator
+
+# 使用示例
+class NewsHandler:
+    @cache_result(ttl=600)  # 缓存10分钟
+    async def get_trending_topics(self) -> List[str]:
+        # 复杂的数据处理逻辑
+        return trending_topics
+```
+
+## 安全规范
+
+### 1. **输入验证**
+```python
+from pydantic import BaseModel, Field, validator
+
+class CreateTickerRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=20, regex=r'^[A-Z0-9]+$')
+    name: str = Field(..., min_length=1, max_length=255)
+    market: str = Field(..., regex=r'^(US|HK|CN)$')
+    
+    @validator('code')
+    def validate_code(cls, v):
+        if not v.isalnum():
+            raise ValueError('股票代码只能包含字母和数字')
+        return v.upper()
+```
+
+### 2. **敏感信息处理**
+```python
+import os
+from typing import Optional
+
+class Config:
+    """配置管理类 - 敏感信息从环境变量读取"""
+    
+    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite:///./investnote.db')
+    API_KEYS: Dict[str, str] = {
+        'news_api': os.getenv('NEWS_API_KEY', ''),
+        'stock_api': os.getenv('STOCK_API_KEY', '')
+    }
+    
+    # 不要在代码中硬编码敏感信息
+    @classmethod
+    def get_api_key(cls, service: str) -> Optional[str]:
+        return cls.API_KEYS.get(service)
+```
+
+## 部署和运维规范
+
+### 1. **健康检查端点**
+```python
+@app.get("/health")
+async def health_check():
+    """系统健康检查"""
+    try:
+        # 检查数据库连接
+        await check_database_connection()
+        
+        # 检查其他关键服务
+        services_status = {
+            "database": "healthy",
+            "redis": "healthy" if await check_redis() else "unhealthy",
+            "external_apis": "healthy" if await check_external_apis() else "degraded"
+        }
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "services": services_status
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+```
+
+### 2. **监控和指标**
+```python
+from prometheus_client import Counter, Histogram, start_http_server
+import time
+
+# 定义指标
+REQUEST_COUNT = Counter('http_requests_total', 'HTTP请求总数', ['method', 'endpoint'])
+REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP请求耗时')
+
+# 中间件示例
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    # 记录指标
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).inc()
+    
+    REQUEST_DURATION.observe(time.time() - start_time)
+    
+    return response
+```
+
+## 代码审查清单
+
+在进行代码审查时，请确保检查以下项目：
+
+### 功能性
+- [ ] 代码是否实现了需求规格说明中的所有功能？
+- [ ] 是否有适当的错误处理？
+- [ ] 是否遵循了项目的架构分层原则？
+
+### 代码质量
+- [ ] 是否遵循了PEP 8代码风格？
+- [ ] 是否有适当的类型提示？
+- [ ] 是否有清晰的文档字符串？
+- [ ] 变量和函数命名是否有意义？
+
+### 性能
+- [ ] 是否避免了N+1查询问题？
+- [ ] 是否适当使用了异步编程？
+- [ ] 是否有不必要的数据库查询？
+
+### 安全性
+- [ ] 是否对用户输入进行了验证？
+- [ ] 是否避免了SQL注入风险？
+- [ ] 敏感信息是否得到了适当保护？
+
+### 测试
+- [ ] 是否有适当的单元测试？
+- [ ] 测试覆盖率是否达到要求？
+- [ ] 是否包含了边界条件测试？
+
+### 维护性
+- [ ] 代码是否易于理解和修改？
+- [ ] 是否遵循了DRY（Don't Repeat Yourself）原则？
+- [ ] 是否有适当的注释？
+
+通过遵循这些规范，我们可以确保 InvestNote-py 项目的代码质量、性能和可维护性。
+
+## 项目架构规范
+
+### 三层架构模式
+
+本项目采用标准的三层架构模式：
+
+```
+Handler (业务逻辑层) -> Repository (数据访问层) -> Database (数据库层)
+```
+
+#### Handler层规范
+
+**构造函数模式：**
+```python
+class ExampleHandler:
+    """示例处理器"""
+    
+    def __init__(self):
+        """
+        初始化处理器
+        """
+        self.repository = ExampleRepository()
+```
+
+**关键原则：**
+- Handler直接初始化Repository，不使用依赖注入
+- Handler负责业务逻辑协调，不直接操作数据库
+- 所有数据库操作通过Repository进行
+- Handler方法应该是async的，支持异步操作
+
+#### Repository层规范
+
+**构造函数模式：**
+```python
+class ExampleRepository:
+    """示例数据访问类"""
+    
+    def __init__(self):
+        """
+        初始化仓库
+        """
+        self.db = DbAdapter()
+```
+
+**关键原则：**
+- Repository直接初始化DbAdapter
+- 所有SQL操作使用`:name`占位符格式（DbAdapter会自动转换）
+- Repository负责数据的CRUD操作和简单的数据转换
+- 使用模型的辅助函数进行数据转换：`xxx_to_dict()` 和 `dict_to_xxx()`
+
+### 数据库操作规范
+
+#### SQL占位符格式
+
+**统一使用`:name`格式：**
+```python
+sql = "SELECT * FROM table WHERE id = :id AND name = :name"
+params = {"id": 123, "name": "example"}
+self.db.execute(sql, params)
+```
+
+**DbAdapter会自动转换：**
+- SQLite: 保持`:name`格式
+- MySQL: 转换为`%(name)s`格式
+- PostgreSQL: 转换为`%(name)s`格式
+
+#### 事务处理
+
+```python
+try:
+    self.db.execute(sql, params)
+    self.db.commit()
+    return result
+except Exception as e:
+    logger.error(f"操作失败: {e}")
+    self.db.rollback()
+    return None
+```
+
+## Pydantic模型规范
+
+### 模型结构
+
+每个实体应该定义四个模型类：
+
+```python
+class EntityBase(BaseModel):
+    """基础模型，包含共有字段"""
+    name: str = Field(..., description="名称")
+    # ... 其他字段
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class EntityCreate(EntityBase):
+    """用于创建的模型"""
+    pass
+
+class EntityUpdate(BaseModel):
+    """用于更新的模型，所有字段都是可选的"""
+    name: Optional[str] = Field(default=None, description="名称")
+    # ... 其他字段
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Entity(EntityBase):
+    """完整的模型，包含ID和时间戳"""
+    id: int = Field(..., description="ID")
+    created_at: Optional[datetime] = Field(default_factory=datetime.now, description="创建时间")
+    updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="更新时间")
+    
+    model_config = ConfigDict(from_attributes=True)
+```
+
+### 辅助函数
+
+每个模型文件必须包含转换函数：
+
+```python
+def entity_to_dict(entity: Union[Entity, EntityCreate, EntityUpdate]) -> dict:
+    """将模型转换为字典，用于数据库操作"""
+    result = {}
+    
+    if isinstance(entity, (EntityCreate, EntityUpdate)):
+        result = entity.model_dump(exclude_unset=True, exclude_none=True)
+    else:
+        result = entity.model_dump(exclude_none=True)
+    
+    # 处理枚举字段
+    if 'status' in result and isinstance(result['status'], Enum):
+        result['status'] = result['status'].value
+    
+    # 处理JSON字段
+    if 'json_field' in result and result['json_field'] is not None:
+        result['json_field'] = json.dumps(result['json_field'], ensure_ascii=False)
+    
+    return result
+
+def dict_to_entity(data: dict) -> Entity:
+    """将字典转换为模型，处理各种数据类型转换和默认值"""
+    processed_data = data.copy()
+    
+    # 处理枚举字段
+    if 'status' in processed_data:
+        status = processed_data['status']
+        if isinstance(status, str):
+            try:
+                processed_data['status'] = StatusEnum(status)
+            except ValueError:
+                processed_data['status'] = StatusEnum.DEFAULT
+    
+    # 处理JSON字段
+    if 'json_field' in processed_data:
+        json_value = processed_data['json_field']
+        if json_value is None or (isinstance(json_value, str) and not json_value.strip()):
+            processed_data['json_field'] = None
+        elif isinstance(json_value, str):
+            try:
+                processed_data['json_field'] = json.loads(json_value)
+            except (ValueError, json.JSONDecodeError):
+                processed_data['json_field'] = None
+    
+    # 处理日期字段
+    for date_field in ['created_at', 'updated_at']:
+        if date_field in processed_data:
+            date_value = processed_data[date_field]
+            if isinstance(date_value, str):
+                try:
+                    processed_data[date_field] = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+                except (ValueError, AttributeError):
+                    processed_data[date_field] = None
+    
+    return Entity(**processed_data)
+```
+
+## 新闻聚合系统规范
+
+### RSS聚合器
+
+**基本结构：**
+```python
+class RSSAggregator:
+    def __init__(self, session: Optional[aiohttp.ClientSession] = None):
+        self.session = session
+        self._own_session = session is None
+    
+    async def __aenter__(self):
+        if self._own_session:
+            self.session = aiohttp.ClientSession()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._own_session and self.session:
+            await self.session.close()
+```
+
+**使用模式：**
+```python
+async with RSSAggregator() as aggregator:
+    articles = await aggregator.fetch_rss_feed(news_source)
+```
+
+### API聚合器
+
+**用于处理雪球、东方财富等API源：**
+```python
+class APIAggregator:
+    def __init__(self, session: Optional[aiohttp.ClientSession] = None):
+        # 类似RSS聚合器的结构
+        pass
+    
+    async def fetch_xueqiu_data(self, news_source: NewsSource) -> List[Dict[str, Any]]:
+        """抓取雪球数据"""
+        pass
+    
+    async def fetch_eastmoney_data(self, news_source: NewsSource) -> List[Dict[str, Any]]:
+        """抓取东方财富数据"""
+        pass
+```
+
+## 依赖管理规范
+
+### requirements.txt更新
+
+当添加新的依赖包时，必须更新[requirements.txt](mdc:requirements.txt)：
+
+```txt
+# 新闻聚合相关依赖
+feedparser==6.0.11
+newspaper3k==0.2.8
+beautifulsoup4==4.13.3
+lxml==5.3.1
+lxml_html_clean==0.4.2
+aiohttp==3.9.1
+# RSS解析和网页内容提取
+html2text==2024.2.26
+requests-html==0.10.0
+```
+
+### 依赖安装
+
+```bash
+pip install feedparser newspaper3k 'lxml[html_clean]'
+```
+
+## 错误处理规范
+
+### 统一错误处理模式
+
+```python
+async def example_operation(self, param: str) -> Optional[Result]:
+    """示例操作"""
+    try:
+        # 执行操作
+        result = await self.some_operation(param)
+        
+        if result:
+            logger.info(f"操作成功: {param}")
+            return result
+        else:
+            logger.warning(f"操作无结果: {param}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"操作失败 ({param}): {e}")
+        return None
+```
+
+### 数据库操作错误处理
+
+```python
+try:
+    self.db.execute(sql, params)
+    self.db.commit()
+    return await self.get_by_id(entity_id)
+except Exception as e:
+    logger.error(f"数据库操作失败: {e}")
+    self.db.rollback()
+    return None
+```
+
+## 日志规范
+
+### 日志级别使用
+
+- `logger.debug()`: 调试信息，包含详细的参数和状态
+- `logger.info()`: 正常操作信息，如成功创建、更新等
+- `logger.warning()`: 警告信息，如数据已存在、无结果等
+- `logger.error()`: 错误信息，包含异常和失败操作
+
+### 日志格式
+
+```python
+# 成功操作
+logger.info(f"成功创建新闻源: {result.name} (ID: {result.id})")
+
+# 警告信息
+logger.warning(f"新闻源已存在: {source.name}")
+
+# 错误信息
+logger.error(f"创建新闻源失败: {e}")
+
+# 调试信息
+logger.debug(f"创建新闻源参数: {source_dict}")
+```
+
+## 测试规范
+
+### 测试文件结构
+
+```
+test/
+├── test_rss_simple.py          # RSS功能简单测试
+├── test_news_aggregation_complete.py  # 完整新闻聚合测试
+└── test_models/                # 模型测试
+    ├── test_news_source.py
+    └── test_news_article.py
+```
+
+### 测试模式
+
+```python
+async def test_functionality():
+    """测试功能"""
+    logger.info("🚀 开始测试...")
+    
+    try:
+        # 执行测试
+        result = await some_operation()
+        
+        if result:
+            logger.info("✅ 测试成功")
+            return True
+        else:
+            logger.warning("⚠️ 测试无结果")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ 测试失败: {e}")
+        return False
+```
+
+## 初始化脚本规范
+
+### 数据初始化脚本
+
+```python
+# scripts/init_xxx.py
+async def main():
+    """主初始化函数"""
+    logger.info("🚀 开始初始化...")
+    
+    success_count = 0
+    total_count = len(data_list)
+    
+    for data in data_list:
+        try:
+            result = await handler.create_entity(data)
+            if result:
+                success_count += 1
+                logger.info(f"  ✅ 创建成功: {data['name']} (ID: {result.id})")
+            else:
+                logger.error(f"  ❌ 创建失败: {data['name']}")
+        except Exception as e:
+            logger.error(f"  ❌ 创建异常: {data['name']} - {e}")
+    
+    logger.info(f"📊 初始化完成统计:")
+    logger.info(f"  ✅ 成功: {success_count} 个")
+    logger.info(f"  ❌ 失败: {total_count - success_count} 个")
+    logger.info(f"  📝 总计: {total_count} 个")
+```
+
+## 代码质量要求
+
+### 类型提示
+
+所有函数和方法必须包含完整的类型提示：
+
+```python
+async def create_entity(self, entity_data: Dict[str, Any]) -> Optional[Entity]:
+    """创建实体"""
+    pass
+
+def process_list(self, items: List[str]) -> Dict[str, int]:
+    """处理列表"""
+    pass
+```
+
+### 文档字符串
+
+所有类和方法必须包含详细的文档字符串：
+
+```python
+class ExampleHandler:
+    """
+    示例处理器
+    负责处理示例相关的业务逻辑
+    """
+    
+    async def create_example(self, data: Dict[str, Any]) -> Optional[Example]:
+        """
+        创建示例
+        
+        Args:
+            data: 示例数据字典
+            
+        Returns:
+            创建成功的示例模型，失败返回None
+        """
+        pass
+```
+
+### 代码组织
+
+- 每个文件开头包含编码声明和模块文档
+- 导入语句按标准库、第三方库、本地模块的顺序组织
+- 类和函数之间使用适当的空行分隔
+- 复杂逻辑添加注释说明
+
+这些规范确保代码的一致性、可维护性和可扩展性。

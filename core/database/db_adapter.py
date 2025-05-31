@@ -18,13 +18,13 @@ class DbAdapter:
         初始化数据库适配器
         """
         # 默认使用SQLite，除非环境变量明确指定使用PostgreSQL或MySQL
-        db_type = os.getenv('DB_TYPE', 'sqlite').lower()
+        self.db_type = os.getenv('DB_TYPE', 'sqlite').lower()
         
-        if db_type == 'postgres' or db_type == 'postgresql':
+        if self.db_type == 'postgres' or self.db_type == 'postgresql':
             # 使用PostgreSQL
             from .db_helper import DbHelper
             self.db = DbHelper()
-        elif db_type == 'mysql':
+        elif self.db_type == 'mysql':
             # 使用MySQL
             from .mysql_helper import MysqlHelper
             self.db = MysqlHelper()
@@ -34,6 +34,25 @@ class DbAdapter:
             db_path = os.getenv('SQLITE_DB_PATH', 'investnote.db')
             self.db = SqliteHelper(db_path)
     
+    def _convert_sql_params(self, sql: str, params: Dict) -> tuple:
+        """
+        转换SQL语句和参数格式以匹配目标数据库
+        """
+        if not params:
+            return sql, params
+            
+        if self.db_type == 'mysql':
+            # MySQL使用 %(name)s 格式
+            converted_sql = sql
+            # 按参数名长度倒序排列，避免短参数名匹配长参数名的问题
+            sorted_keys = sorted(params.keys(), key=len, reverse=True)
+            for key in sorted_keys:
+                converted_sql = converted_sql.replace(f':{key}', f'%({key})s')
+            return converted_sql, params
+        else:
+            # SQLite和PostgreSQL使用 :name 格式（保持原样）
+            return sql, params
+    
     def execute(self, sql: str, params=None) -> None:
         """
         执行SQL语句
@@ -42,7 +61,8 @@ class DbAdapter:
             sql: SQL语句
             params: SQL参数
         """
-        self.db.execute(sql, params)
+        converted_sql, converted_params = self._convert_sql_params(sql, params or {})
+        self.db.execute(converted_sql, converted_params)
     
     def query(self, sql: str, params=None) -> List[Dict]:
         """
@@ -55,7 +75,8 @@ class DbAdapter:
         Returns:
             查询结果列表，每个元素为字典
         """
-        return self.db.query(sql, params)
+        converted_sql, converted_params = self._convert_sql_params(sql, params or {})
+        return self.db.query(converted_sql, converted_params)
     
     def query_one(self, sql: str, params=None) -> Optional[Dict]:
         """
@@ -68,7 +89,8 @@ class DbAdapter:
         Returns:
             单条查询结果，为字典或None
         """
-        return self.db.query_one(sql, params)
+        converted_sql, converted_params = self._convert_sql_params(sql, params or {})
+        return self.db.query_one(converted_sql, converted_params)
     
     def commit(self) -> None:
         """

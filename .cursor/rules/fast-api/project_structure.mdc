@@ -3,97 +3,189 @@ description:
 globs: 
 alwaysApply: false
 ---
-# FastAPI 项目结构规范
+# FastAPI 项目结构规范 - InvestNote-py
 
 ## 概述
 
-本文档定义了 FastAPI 项目的推荐目录结构，旨在提高项目的可维护性、可扩展性和团队协作效率。
+本文档定义了 InvestNote-py FastAPI 项目的实际目录结构，基于投资笔记与分析系统的业务需求，包含新闻聚合、AI分析、量化指标等模块。
 
-## 典型目录结构
+## InvestNote-py 实际目录结构
 
 ```
 .
-├── app/                      # 应用程序核心代码
+├── main.py                           # 项目主入口，服务器启动配置
+├── api/                             # API 层
 │   ├── __init__.py
-│   ├── main.py               # FastAPI 应用实例和全局配置
-│   ├── api/                  # API 路由模块
+│   ├── api.py                       # FastAPI 应用实例和路由定义
+│   └── models.py                    # API 请求/响应模型
+├── core/                            # 核心业务逻辑层
+│   ├── models/                      # 数据库模型层 (SQLAlchemy)
 │   │   ├── __init__.py
-│   │   ├── v1/               # API 版本 1
-│   │   │   ├── __init__.py
-│   │   │   ├── endpoints/    # 存放各个功能的路由
-│   │   │   │   ├── __init__.py
-│   │   │   │   └── items.py
-│   │   │   └── schemas.py    # Pydantic 模型 (也可按功能拆分)
-│   │   └── deps.py           # 依赖注入函数
-│   ├── core/                 # 核心逻辑和配置
+│   │   ├── api_log.py              # API日志模型
+│   │   ├── ticker.py               # 股票基础信息模型
+│   │   ├── ticker_indicator.py     # 股票技术指标模型
+│   │   ├── ticker_score.py         # 股票评分模型
+│   │   ├── ticker_strategy.py      # 投资策略模型
+│   │   ├── ticker_valuation.py     # 股票估值模型
+│   │   ├── news_source.py          # 新闻源配置模型
+│   │   └── news_article.py         # 新闻文章模型
+│   ├── service/                     # 数据访问层 (Repository Pattern)
 │   │   ├── __init__.py
-│   │   └── config.py         # 应用配置 (环境变量等)
-│   ├── crud/                 # CRUD 操作 (数据库交互)
+│   │   ├── ticker_repository.py    # 股票数据仓储
+│   │   ├── ticker_indicator_repository.py
+│   │   ├── ticker_score_repository.py
+│   │   ├── ticker_strategy_repository.py
+│   │   ├── ticker_valuation_repository.py
+│   │   └── api_log_repository.py
+│   ├── handler/                     # 业务处理层
 │   │   ├── __init__.py
-│   │   └── item_crud.py
-│   ├── models/               # 数据库模型 (例如 SQLAlchemy, Tortoise ORM)
+│   │   ├── ticker_handler.py       # 股票数据处理
+│   │   ├── ticker_analysis_handler.py # 股票分析处理
+│   │   ├── ticker_score_handler.py
+│   │   ├── ticker_strategy_handler.py
+│   │   ├── ticker_valuation_handler.py
+│   │   ├── ticker_indicator_handler.py
+│   │   ├── ticker_k_line_handler.py
+│   │   └── ticker_filter_handler.py
+│   ├── news_aggregator/             # 新闻聚合模块 (新增)
 │   │   ├── __init__.py
-│   │   └── item_model.py
-│   ├── schemas/              # Pydantic Schema 定义 (也可放在 api/vX/ 下)
-│   │   ├── __init__.py
-│   │   └── item_schema.py
-│   └── services/             # 业务逻辑服务层
-│       ├── __init__.py
-│       └── item_service.py
-├── tests/                    # 测试代码
-│   ├── __init__.py
-│   ├── conftest.py           # Pytest 配置文件
-│   └── api/
-│       └── v1/
-│           └── test_items.py
-├── .env                      # 环境变量 (不提交到版本库)
-├── .gitignore
-├── requirements.txt          # 项目依赖
-├── Dockerfile                # Docker 配置文件 (可选)
-└── README.md
+│   │   ├── rss_aggregator.py       # RSS新闻聚合器
+│   │   └── news_aggregator_manager.py
+│   ├── ai_agents/                   # AI代理模块 (新增)
+│   │   └── __init__.py
+│   ├── nlp_utils/                   # NLP工具模块 (新增)
+│   │   └── __init__.py
+│   ├── opportunity_detector/        # 投资机会检测模块 (新增)
+│   │   └── __init__.py
+│   ├── quantitative_analyzer/       # 量化分析模块 (新增)
+│   │   └── __init__.py
+│   ├── database/                    # 数据库操作工具
+│   │   └── news_db_init.py         # 新闻数据库初始化
+│   ├── auth/                        # 认证授权模块
+│   │   ├── auth_middleware.py      # 认证中间件
+│   │   └── auth_grpc_client.py     # gRPC认证客户端
+│   ├── grpc/                        # gRPC相关
+│   │   └── auth/                   # 认证服务Proto定义
+│   ├── analysis/                    # 股票分析模块
+│   ├── strategy/                    # 投资策略模块
+│   ├── indicator/                   # 技术指标模块
+│   ├── valuation/                   # 估值模块
+│   ├── score/                       # 评分模块
+│   ├── filter/                      # 筛选模块
+│   ├── schema/                      # 数据Schema定义
+│   ├── utils/                       # 工具函数
+│   ├── enum/                        # 枚举定义
+│   └── data_source_helper.py        # 数据源辅助类
+├── workers/                         # 异步任务工作进程 (新增)
+│   └── __init__.py
+├── tools/                           # 开发工具
+│   └── generate_grpc_code.py       # gRPC代码生成工具
+├── proto/                           # Protobuf定义文件
+├── config/                          # 配置文件
+├── sql/                            # SQL脚本
+├── test/                           # 测试代码
+├── memory-bank/                    # Memory Bank系统
+│   ├── projectbrief.md            # 项目概述
+│   ├── productContext.md          # 产品上下文
+│   ├── techContext.md             # 技术上下文
+│   ├── systemPatterns.md          # 系统模式
+│   ├── activeContext.md           # 活跃上下文
+│   ├── progress.md                # 开发进度
+│   ├── tasks.md                   # 任务跟踪
+│   └── style-guide.md             # 样式指南
+├── invest_note.py                  # CLI工具入口
+├── requirements.txt                # Python依赖
+├── .env                           # 环境变量配置
+├── docker-compose.yaml            # Docker编排配置
+├── Dockerfile                     # Docker镜像配置
+└── README.md                      # 项目说明
+
 ```
 
-## 模块说明
+## 架构层次说明
 
-- **`app/main.py`**:
-    - 创建 FastAPI 应用实例。
-    - 配置全局中间件、异常处理器、CORS 等。
-    - 挂载 API 路由。
-- **`app/api/`**:
-    - 包含所有 API 相关的代码。
-    - **`v1/`**, **`v2/`**: 按 API 版本组织路由。
-    - **`endpoints/`**: 具体的路由处理函数。每个文件通常对应一个资源或一组相关功能。
-    - **`deps.py`**: 定义可重用的依赖项 (例如，获取当前用户、数据库会话等)。
-- **`app/core/`**:
-    - **`config.py`**: 管理应用程序的配置，如数据库 URL、密钥、第三方服务凭据等，通常通过环境变量加载。
-- **`app/crud/`**:
-    - 包含与数据库直接交互的函数（创建、读取、更新、删除）。这些函数通常被 `services` 层调用。
-- **`app/models/`**:
-    - 定义数据模型，例如 SQLAlchemy 的 ORM 模型或 Tortoise ORM 的模型。
-- **`app/schemas/`**:
-    - 定义 Pydantic 模型，用于请求体验证、响应体序列化以及 API 文档生成。
-    - 可以根据需要将 `schemas` 放在 `api/vX/` 目录下，使其更贴近对应的 API 版本。
-- **`app/services/`**:
-    - 封装业务逻辑。服务层协调 `crud` 操作和其他业务规则，供 `api` 层的路由处理器调用。
-- **`tests/`**:
-    - 包含所有测试用例。目录结构应尽量与 `app/` 目录对应，便于查找。
-- **`requirements.txt`**:
-    - 列出项目的所有 Python 依赖及其版本。建议使用 `pip freeze > requirements.txt` 生成。
-    - 对于更复杂的项目，可以考虑使用 Poetry 或 Pipenv 进行依赖管理。
+### 1. **API 层** (`api/`)
+- **`api.py`**: FastAPI应用实例，包含所有HTTP路由定义
+- **`models.py`**: API请求和响应的Pydantic模型定义
+- **特点**: 直接处理HTTP请求，调用Handler层处理业务逻辑
+
+### 2. **核心业务层** (`core/`)
+
+#### 2.1 **数据模型层** (`core/models/`)
+- 使用SQLAlchemy定义所有数据库表结构
+- 按业务领域组织：股票、新闻、用户、日志等
+- 包含数据模型的属性访问器和业务方法
+
+#### 2.2 **数据访问层** (`core/service/`)
+- 实现Repository模式，封装数据库操作
+- 每个主要实体对应一个Repository类
+- 提供CRUD操作和复杂查询方法
+- 与SQLAlchemy ORM交互
+
+#### 2.3 **业务处理层** (`core/handler/`)
+- 封装特定领域的业务逻辑
+- 协调多个Repository进行复杂业务操作
+- 处理数据转换和业务规则验证
+- 被API层调用执行具体业务功能
+
+#### 2.4 **新增AI/新闻模块**
+- **`news_aggregator/`**: 新闻数据抓取和处理
+- **`ai_agents/`**: AI代理框架，多Agent协作分析
+- **`nlp_utils/`**: 自然语言处理工具
+- **`opportunity_detector/`**: 投资机会识别算法
+- **`quantitative_analyzer/`**: 量化分析工具
+
+### 3. **支撑系统**
+
+#### 3.1 **认证系统** (`core/auth/`)
+- gRPC客户端连接外部认证服务
+- 中间件实现请求认证和授权
+- 支持基于角色的访问控制
+
+#### 3.2 **任务队列** (`workers/`)
+- Celery异步任务执行
+- 处理耗时的数据分析和新闻处理任务
+
+#### 3.3 **Memory Bank系统** (`memory-bank/`)
+- 项目上下文管理
+- 开发进度跟踪
+- 技术文档维护
+
+## 数据流转模式
+
+```
+HTTP请求 → api.py → Handler → Repository → SQLAlchemy → 数据库
+          ↓
+     Pydantic验证 → 业务逻辑处理 → 数据持久化 → HTTP响应
+```
 
 ## 命名约定
 
-- 目录名和文件名：使用小写蛇形命名法 (snake_case)，例如 `user_routes.py`。
-- Pydantic 模型类名：使用大驼峰命名法 (PascalCase)，例如 `UserCreate`。
-- 数据库模型类名：使用大驼峰命名法 (PascalCase)，例如 `UserModel`。
-- 函数和变量名：使用小写蛇形命名法 (snake_case)。
+### 文件命名
+- **模型文件**: `{entity}.py` (如 `ticker.py`, `news_article.py`)
+- **Repository文件**: `{entity}_repository.py` (如 `ticker_repository.py`)
+- **Handler文件**: `{entity}_{function}_handler.py` (如 `ticker_analysis_handler.py`)
+
+### 类命名
+- **数据模型**: `{Entity}` (如 `Ticker`, `NewsArticle`)
+- **Repository类**: `{Entity}Repository` (如 `TickerRepository`)
+- **Handler类**: `{Entity}{Function}Handler` (如 `TickerAnalysisHandler`)
+
+### 方法命名
+- **Repository方法**: `get_`, `create_`, `update_`, `delete_`, `find_by_`
+- **Handler方法**: 反映具体业务操作，如 `calculate_score`, `analyze_trend`
+
+## 模块依赖关系
+
+- **API层** → **Handler层** → **Repository层** → **Model层**
+- **新闻模块** → **AI代理** → **NLP工具** → **机会检测**
+- **认证模块** 为所有层提供横切关注点
+- **Memory Bank** 独立维护项目上下文
 
 ## 建议
 
-- **模块化**: 将应用拆分为逻辑模块，每个模块有清晰的职责。
-- **版本控制**: API 应进行版本控制 (例如 `/api/v1/...`)，以便平稳过渡和弃用旧版本。
-- **依赖注入**: 充分利用 FastAPI 的依赖注入系统来管理依赖关系和共享逻辑。
-- **配置管理**: 将配置与代码分离，使用环境变量或配置文件。
-- **异步优先**: 尽可能使用 `async/await` 来处理 I/O 密集型操作，以获得更好的性能。
-
-此结构提供了一个良好的起点，可以根据项目的具体需求进行调整。
+- **职责分离**: 严格按层次组织代码，避免跨层直接调用
+- **模块化**: 新业务功能优先在core目录下创建专门模块
+- **异步优先**: 新增功能使用async/await处理I/O操作
+- **依赖注入**: 利用FastAPI的依赖注入管理组件生命周期
+- **配置外部化**: 所有配置通过环境变量或配置文件管理

@@ -1,6 +1,8 @@
 -- MySQL 8.0 版本 SQL 初始化脚本
 
 -- 删除已存在的表
+DROP TABLE IF EXISTS news_articles;
+DROP TABLE IF EXISTS news_sources;
 DROP TABLE IF EXISTS ticker_indicator;
 DROP TABLE IF EXISTS ticker_strategy;
 DROP TABLE IF EXISTS ticker_score;
@@ -146,3 +148,72 @@ CREATE TABLE IF NOT EXISTS api_log (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- 创建新闻源表
+CREATE TABLE IF NOT EXISTS news_sources (
+    id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    source_type ENUM('rss', 'api', 'website', 'twitter') NOT NULL,
+    url VARCHAR(2048) NOT NULL,
+    api_key VARCHAR(512),
+    update_frequency INT DEFAULT 3600,
+    max_articles_per_fetch INT DEFAULT 50,
+    filter_keywords TEXT,
+    filter_categories TEXT,
+    language VARCHAR(10) DEFAULT 'zh',
+    region VARCHAR(10) DEFAULT 'CN',
+    status ENUM('active', 'inactive', 'error', 'suspended') DEFAULT 'active',
+    last_fetch_time DATETIME,
+    last_error_message TEXT,
+    total_articles_fetched INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 创建新闻文章表
+CREATE TABLE IF NOT EXISTS news_articles (
+    id INT NOT NULL AUTO_INCREMENT,
+    title VARCHAR(1024) NOT NULL,
+    url VARCHAR(2048) NOT NULL,
+    url_hash VARCHAR(64) NOT NULL UNIQUE,
+    content LONGTEXT,
+    summary TEXT,
+    author VARCHAR(255),
+    source_id INT NOT NULL,
+    source_name VARCHAR(255),
+    category VARCHAR(100),
+    published_at DATETIME,
+    crawled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    language VARCHAR(10) DEFAULT 'zh',
+    region VARCHAR(10) DEFAULT 'CN',
+    entities TEXT,
+    keywords TEXT,
+    sentiment_score FLOAT,
+    topics TEXT,
+    importance_score FLOAT DEFAULT 0.0,
+    market_relevance_score FLOAT DEFAULT 0.0,
+    status ENUM('pending', 'processing', 'processed', 'failed', 'archived') DEFAULT 'pending',
+    processed_at DATETIME,
+    error_message TEXT,
+    word_count INT DEFAULT 0,
+    read_time_minutes INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    FOREIGN KEY (source_id) REFERENCES news_sources(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 创建新闻相关索引
+CREATE INDEX idx_news_sources_name ON news_sources(name);
+CREATE INDEX idx_news_sources_status ON news_sources(status);
+CREATE INDEX idx_news_sources_type ON news_sources(source_type);
+
+CREATE INDEX idx_news_articles_title ON news_articles(title(255));
+CREATE INDEX idx_news_articles_url ON news_articles(url(255));
+CREATE INDEX idx_news_articles_url_hash ON news_articles(url_hash);
+CREATE INDEX idx_news_articles_source_id ON news_articles(source_id);
+CREATE INDEX idx_news_articles_status ON news_articles(status);
+CREATE INDEX idx_news_articles_published_at ON news_articles(published_at);
+CREATE INDEX idx_news_articles_crawled_at ON news_articles(crawled_at);
