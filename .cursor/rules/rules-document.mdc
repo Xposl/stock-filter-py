@@ -3,41 +3,66 @@ description:
 globs: 
 alwaysApply: true
 ---
-# InvestNote-py FastAPI 开发框架规则体系
+# FastAPI 开发框架规则体系
 
 ## 规则体系概述
 
-本项目是基于 FastAPI 框架开发的投资笔记与分析系统（InvestNote-py），包含完整的规范体系和开发工具链。规则体系分为两个核心组成部分：
+本项目是基于 FastAPI 框架开发的，包含完整的规范体系和开发工具链。规则体系分为两个核心组成部分：
 
 ### 规则目录结构
 ```bash
 .cursor/
 ├── rules/
 │   ├── isolation_rules/     # Memory Bank 规范和说明
-│   │                       # 详情参考: https://github.com/vanzan01/cursor-memory-bank
+│   │                        # 详情参考: https://github.com/vanzan01/cursor-memory-bank
 │   └── fast-api/            # 基于FastAPI的开发规范
+│       ├── project_structure.mdc        # 🔄 已更新：项目结构规范
+│       ├── code_guidelines.mdc          # 🔄 已更新：编码规范  
+│       ├── data_provider_architecture.mdc # 🆕 新增：数据提供者架构设计
+│       ├── testing_guidelines.mdc       # 测试规范
+│       └── security_best_practices.mdc  # 安全最佳实践
 ```
 
-## 核心规范文档
+## 🆕 核心架构规范文档 (最新)
 
-### 1. FastAPI 项目结构规范
+### 1. 数据提供者架构设计 ⭐ 新增
+- **文档**: [data_provider_architecture.mdc](mdc:.cursor/rules/fast-api/data_provider_architecture.mdc)
+- **作用**: 描述统一股票数据访问层和雪球抽象层的架构设计
+- **核心内容**:
+  - 数据提供者层（Data Provider Layer）设计原则
+  - 雪球抽象层（Xueqiu Abstraction Layer）实现方案
+  - 智能数据源降级和错误处理策略
+  - 代码重构和迁移指南
+  - 性能优化和扩展性设计
+- **解决问题**:
+  - 消除雪球相关模块的代码重复
+  - 实现AKShare优先、雪球补充的数据源策略
+  - 提供统一的股票数据访问接口
+  - 支持多数据源智能管理和自动降级
+
+### 2. FastAPI 项目结构规范 🔄 已更新
 - **文档**: [project_structure.mdc](mdc:.cursor/rules/fast-api/project_structure.mdc)
 - **作用**: 定义FastAPI项目的推荐目录结构
-- **核心内容**: 
-  - 模块化的项目架构
-  - 标准化的目录结构和命名规范
-  - API版本管理和路由组织
+- **🆕 新增内容**: 
+  - 数据提供者层目录结构 (`core/data_providers/`)
+  - 雪球抽象层目录结构 (`core/utils/xueqiu/`)
+  - 重构后的新闻聚合模块说明
+  - 架构层次和数据流转模式更新
+  - 命名约定和模块依赖关系更新
 
-### 2. FastAPI 编码规范
+### 3. FastAPI 编码规范 🔄 已更新
 - **文档**: [code_guidelines.mdc](mdc:.cursor/rules/fast-api/code_guidelines.mdc)
 - **作用**: 统一FastAPI项目的编码风格和最佳实践
-- **核心内容**:
-  - Python类型提示和PEP8规范
-  - Pydantic模型定义和验证
-  - 路由处理和依赖注入
-  - 异步编程最佳实践
+- **🆕 新增内容**:
+  - 数据提供者层编码规范和抽象接口定义
+  - AKShare数据提供者实现规范
+  - 雪球抽象层编码规范（基础客户端、专业客户端、工厂模式）
+  - 重构代码适配规范和迁移原则
+  - 向后兼容性保证的编码实践
 
-### 3. FastAPI 测试规范
+## 原有规范文档
+
+### 4. FastAPI 测试规范
 - **文档**: [testing_guidelines.mdc](mdc:.cursor/rules/fast-api/testing_guidelines.mdc)
 - **作用**: 提供FastAPI项目测试的指导方针
 - **核心内容**:
@@ -46,7 +71,7 @@ alwaysApply: true
   - 数据库测试策略
   - 异步代码测试
 
-### 4. FastAPI 安全最佳实践
+### 5. FastAPI 安全最佳实践
 - **文档**: [security_best_practices.mdc](mdc:.cursor/rules/fast-api/security_best_practices.mdc)
 - **作用**: 确保FastAPI应用程序的安全性
 - **核心内容**:
@@ -55,6 +80,48 @@ alwaysApply: true
   - HTTPS和中间件配置
   - 依赖项安全管理
 
+## 🏗️ 架构重构成果总结
+
+### 已完成的重构工作 (2025.01.27)
+
+#### 1. **雪球数据抽象层重构**
+- **消除代码重复**: 统一了 `xueqiu_aggregator.py` 和 `xueqiu_api.py` 中的重复逻辑
+- **职责分离**: 新闻客户端和股票客户端各司其职
+- **会话管理**: 统一的HTTP会话和令牌获取策略
+- **错误处理**: 统一的错误处理和重试机制
+
+#### 2. **AKShare数据源集成**
+- **优先级策略**: AKShare作为主要数据源（优先级100），雪球作为补充（优先级50）
+- **智能降级**: 数据源故障时自动切换备用源
+- **统一接口**: 标准化的股票数据访问方式
+- **多市场支持**: A股、港股、美股统一处理
+
+#### 3. **策略模式数据管理**
+- **工厂模式**: `StockDataFactory` 统一管理多个数据提供者
+- **自动选择**: 基于可用性和优先级自动选择最佳数据源
+- **错误监控**: 错误计数和可用性监控
+- **全局实例**: 便捷的全局工厂和便捷函数
+
+### 技术优势
+
+#### 1. **架构优势**
+- **可扩展性**: 易于添加新的数据源和客户端类型
+- **可维护性**: 清晰的职责分离和统一的接口设计
+- **可测试性**: 抽象层便于单元测试和集成测试
+- **向后兼容**: 现有代码无需大幅修改
+
+#### 2. **性能优势**
+- **连接复用**: 多个客户端共享HTTP连接
+- **智能重试**: 区分临时错误和永久错误的重试策略
+- **错误缓存**: 避免重复请求已知失败的资源
+- **并发处理**: 支持同步和异步操作模式
+
+#### 3. **运维优势**
+- **监控指标**: 数据源可用性、响应时间、成功率等关键指标
+- **错误恢复**: 自动错误重置和数据源恢复机制
+- **配置管理**: 统一的配置和优先级管理
+- **日志体系**: 详细的操作日志和错误追踪
+
 ## Memory Bank 集成
 
 本项目集成了 [Memory Bank](mdc:https:/github.com/vanzan01/cursor-memory-bank) 系统，用于项目上下文管理和AI辅助开发：
@@ -62,14 +129,18 @@ alwaysApply: true
 ### Memory Bank 文件结构
 ```bash
 memory-bank/
-├── tasks.md              # 当前任务跟踪
+├── tasks.md              # 当前任务跟踪 🔄 已更新架构重构进度
 ├── projectbrief.md       # 项目概览
 ├── activeContext.md      # 活跃上下文
 ├── progress.md           # 开发进度
 ├── productContext.md     # 产品上下文
 ├── systemPatterns.md     # 系统模式
 ├── techContext.md        # 技术上下文
-└── style-guide.md        # 样式指南
+├── style-guide.md        # 样式指南
+├── creative/             # 🆕 创意阶段文档
+│   └── creative-system-optimization.md # 系统优化创意文档
+├── reflection/           # 反思阶段文档
+└── archive/              # 任务归档文档
 ```
 
 ### Memory Bank 作用
@@ -85,22 +156,52 @@ memory-bank/
 - **测试覆盖**: pytest + 单元测试 + 集成测试
 - **代码评审**: 强制 Code Review 流程
 
+### 🆕 新增工具链
+- **数据源管理**: 统一的数据提供者工厂和策略管理
+- **性能监控**: 数据源可用性和响应时间监控
+- **智能降级**: 自动数据源切换和错误恢复
+- **抽象层复用**: 雪球平台统一访问抽象
+
 ## 使用指南
+
+### 🆕 使用新架构开发
+1. **数据获取**: 优先使用 `StockDataFactory` 获取股票数据
+   ```python
+   from core.data_providers.stock_data_factory import get_stock_quote
+   response = get_stock_quote("600000", market=StockMarket.A_SHARE)
+   ```
+
+2. **雪球功能**: 使用重构后的雪球抽象层
+   ```python
+   from core.utils.xueqiu.xueqiu_client_factory import create_stock_client
+   async with create_stock_client() as client:
+       quote = await client.get_stock_quote_async("SH600000")
+   ```
+
+3. **新闻聚合**: 使用重构后的新闻聚合器
+   ```python
+   from core.news_aggregator.xueqiu_aggregator import XueqiuAggregator
+   async with XueqiuAggregator() as aggregator:
+       articles = await aggregator.fetch_xueqiu_timeline(news_source)
+   ```
 
 ### 开始新功能开发
 1. 了解项目架构: 阅读 [project_structure.mdc](mdc:.cursor/rules/fast-api/project_structure.mdc)
 2. 熟悉编码规范: 参考 [code_guidelines.mdc](mdc:.cursor/rules/fast-api/code_guidelines.mdc)
-3. 初始化 Memory Bank: 根据 isolation_rules 创建项目记忆文件
+3. 🆕 理解数据架构: 学习 [data_provider_architecture.mdc](mdc:.cursor/rules/fast-api/data_provider_architecture.mdc)
+4. 初始化 Memory Bank: 根据 isolation_rules 创建项目记忆文件
 
 ### 开发新API端点
 1. 按照FastAPI项目结构指导创建路由
 2. 遵循编码规范定义Pydantic模型
-3. 编写对应的测试用例
+3. 🆕 使用数据提供者层获取外部数据
+4. 编写对应的测试用例
 
 ### 维护和扩展
 - 定期更新 Memory Bank 文档
 - 遵循安全最佳实践
 - 保持规则文档的及时更新
+- 🆕 监控数据源状态和性能指标
 
 ## 注意事项
 
@@ -108,3 +209,5 @@ memory-bank/
 - 文档间引用使用 `[filename.ext](mdc:path)` 格式
 - 保持规则的一致性和可执行性
 - 定期review和更新规范文档
+- 🆕 新代码优先使用数据提供者层和雪球抽象层
+- 🆕 遵循向后兼容原则，渐进式迁移现有代码

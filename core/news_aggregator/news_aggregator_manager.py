@@ -13,6 +13,8 @@ from sqlalchemy import select, update
 
 from ..models.news_source import NewsSource, NewsSourceType, NewsSourceStatus
 from ..models.news_article import NewsArticle, ArticleStatus
+from ..service.news_source_repository import NewsSourceRepository
+from ..service.news_article_repository import NewsArticleRepository
 from .rss_aggregator import RSSAggregator
 from .xueqiu_aggregator import XueqiuAggregator
 
@@ -250,52 +252,54 @@ class NewsAggregatorManager:
         Returns:
             统计信息字典
         """
-        async with self.session_factory() as session:
-            # 新闻源统计
-            sources_query = select(NewsSource)
-            sources_result = await session.execute(sources_query)
-            all_sources = sources_result.scalars().all()
-            
-            source_stats = {
-                'total': len(all_sources),
-                'active': len([s for s in all_sources if s.status == NewsSourceStatus.ACTIVE]),
-                'error': len([s for s in all_sources if s.status == NewsSourceStatus.ERROR]),
-                'suspended': len([s for s in all_sources if s.status == NewsSourceStatus.SUSPENDED]),
-                'inactive': len([s for s in all_sources if s.status == NewsSourceStatus.INACTIVE])
-            }
-            
-            # 文章统计
-            articles_query = select(NewsArticle)
-            articles_result = await session.execute(articles_query)
-            all_articles = articles_result.scalars().all()
-            
-            article_stats = {
-                'total': len(all_articles),
-                'pending': len([a for a in all_articles if a.status == ArticleStatus.PENDING]),
-                'processed': len([a for a in all_articles if a.status == ArticleStatus.PROCESSED]),
-                'failed': len([a for a in all_articles if a.status == ArticleStatus.FAILED]),
-                'archived': len([a for a in all_articles if a.status == ArticleStatus.ARCHIVED])
-            }
-            
-            # 最近抓取统计
-            recent_sources = [s for s in all_sources if s.last_fetch_time]
-            recent_sources.sort(key=lambda x: x.last_fetch_time, reverse=True)
-            
-            return {
-                'source_stats': source_stats,
-                'article_stats': article_stats,
-                'recent_fetches': [
-                    {
-                        'name': s.name,
-                        'last_fetch_time': s.last_fetch_time.isoformat() if s.last_fetch_time else None,
-                        'total_articles': s.total_articles_fetched,
-                        'status': s.status.value
-                    }
-                    for s in recent_sources[:10]  # 最近10次抓取
-                ],
-                'total_sources': len(all_sources),
-                'total_articles': len(all_articles)
-            }
+        # 使用Repository模式获取统计信息
+        source_repo = NewsSourceRepository()
+        article_repo = NewsArticleRepository()
+        
+        # 获取新闻源统计信息
+        source_stats = await source_repo.get_news_source_stats()
+        
+        # 获取文章统计信息
+        article_stats = await article_repo.get_article_stats()
+        
+        # 获取所有新闻源以便计算最近抓取信息
+        all_sources = await source_repo.get_all_news_sources()
+        
+        # 计算最近抓取统计
+        recent_sources = [s for s in all_sources if s.last_fetch_time]
+        recent_sources.sort(key=lambda x: x.last_fetch_time, reverse=True)
+        
+        return {
+            'source_stats': {
+                'total': source_stats.get('by_status', {}).get('active', 0) + 
+                        source_stats.get('by_status', {}).get('inactive', 0) + 
+                        source_stats.get('by_status', {}).get('error', 0) + 
+                        source_stats.get('by_status', {}).get('suspended', 0),
+                'active': source_stats.get('by_status', {}).get('active', 0),
+                'error': source_stats.get('by_status', {}).get('error', 0),
+                'suspended': source_stats.get('by_status', {}).get('suspended', 0),
+                'inactive': source_stats.get('by_status', {}).get('inactive', 0)
+            },
+            'article_stats': {
+                'total': article_stats.get('total_count', 0),
+                'pending': article_stats.get('by_status', {}).get('pending', 0),
+                'processed': article_stats.get('by_status', {}).get('processed', 0),
+                'failed': article_stats.get('by_status', {}).get('failed', 0),
+                'archived': article_stats.get('by_status', {}).get('archived', 0),
+                'today_count': article_stats.get('today_count', 0)
+            },
+            'recent_fetches': [
+                {
+                    'name': s.name,
+                    'last_fetch_time': s.last_fetch_time.isoformat() if s.last_fetch_time else None,
+                    'total_articles': s.total_articles_fetched,
+                    'status': s.status.value if hasattr(s.status, 'value') else str(s.status)
+                }
+                for s in recent_sources[:10]  # 最近10次抓取
+            ],
+            'total_sources': len(all_sources),
+            'total_articles': article_stats.get('total_count', 0)
+        }
     
     async def test_source_connectivity(self, source_id: int) -> Dict[str, Any]:
         """

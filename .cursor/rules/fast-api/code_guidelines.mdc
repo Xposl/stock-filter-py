@@ -3,11 +3,11 @@ description:
 globs: 
 alwaysApply: false
 ---
-# FastAPI 编码规范 - InvestNote-py
+# FastAPI 编码规范
 
 ## 概述
 
-本文档为 InvestNote-py FastAPI 项目提供了一套编码规范和最佳实践，基于项目的三层架构（API-Handler-Repository-Model）和业务特点，旨在确保代码的一致性、可读性和可维护性。
+本文档为当前基于fastApi项目提供了一套编码规范和最佳实践，基于项目的三层架构（API-Handler-Repository-Model）和业务特点，旨在确保代码的一致性、可读性和可维护性。
 
 ## 通用编码风格
 
@@ -62,7 +62,7 @@ alwaysApply: false
       ```
 - **注释**: 只为复杂或不明显的代码段添加注释。代码本身应尽可能自解释。
 
-## InvestNote-py 特定架构规范
+## 定架构规范
 
 ### 1. **API层规范** (`api/api.py`)
 
@@ -172,66 +172,62 @@ class TickerAnalysisHandler:
 #### Repository类定义
 ```python
 # core/service/ticker_repository.py
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from ..models.ticker import Ticker
-from ..database.database import get_db_session
+import copy
+import logging
+import os
+from typing import List, Dict, Any, Optional, Union
+from datetime import datetime
+
+from core.database.db_adapter import DbAdapter
+from core.models.ticker import Ticker, TickerCreate, TickerUpdate, ticker_to_dict, dict_to_ticker
+from core.enum.ticker_group import get_group_id_by_code
+
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# 获取占位符类型
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
+# SQLite 使用 ? 占位符，其他数据库使用 %s
+PLACEHOLDER = '?' if DB_TYPE == 'sqlite' else '%s'
 
 class TickerRepository:
-    """股票数据仓储 - 封装所有股票相关数据库操作"""
+    """
+    使用Pydantic模型的Ticker仓库类
+    """
+    table = 'ticker'
+
+    def __init__(self, db_connection: Optional[Any] = None):
+        """
+        初始化Ticker仓库
+        
+        Args:
+            db_connection: 可选的数据库连接，如果未提供将使用DbAdapter创建新连接
+        """
+        if db_connection:
+            self.db = db_connection
+        else:
+            self.db = DbAdapter()
     
-    def __init__(self):
-        self.db = get_db_session()
-    
-    async def get_by_code(self, code: str) -> Optional[Ticker]:
-        """根据股票代码获取股票信息"""
-        return self.db.query(Ticker).filter(
-            Ticker.code == code,
-            Ticker.is_deleted == 0
-        ).first()
-    
-    async def get_by_market(
-        self, 
-        market: str, 
-        limit: int = 100,
-        offset: int = 0
-    ) -> List[Ticker]:
-        """按市场获取股票列表"""
-        return self.db.query(Ticker).filter(
-            Ticker.market == market,
-            Ticker.is_deleted == 0,
-            Ticker.status == 1
-        ).offset(offset).limit(limit).all()
-    
-    async def create_ticker(self, ticker_data: Dict[str, Any]) -> Ticker:
-        """创建新股票记录"""
-        ticker = Ticker(**ticker_data)
-        self.db.add(ticker)
-        self.db.commit()
-        self.db.refresh(ticker)
-        return ticker
-    
-    async def update_ticker(
-        self, 
-        ticker_id: int, 
-        update_data: Dict[str, Any]
-    ) -> Optional[Ticker]:
-        """更新股票信息"""
-        ticker = self.db.query(Ticker).filter(Ticker.id == ticker_id).first()
-        if ticker:
-            for key, value in update_data.items():
-                setattr(ticker, key, value)
-            self.db.commit()
-            self.db.refresh(ticker)
-        return ticker
-    
-    async def find_by_criteria(self, **criteria) -> List[Ticker]:
-        """根据条件查询股票"""
-        query = self.db.query(Ticker)
-        for key, value in criteria.items():
-            if hasattr(Ticker, key):
-                query = query.filter(getattr(Ticker, key) == value)
-        return query.all()
+    def get_by_code(self, code: str) -> Optional[Ticker]:
+        """
+        根据股票代码获取股票信息
+        
+        Args:
+            code: 股票代码
+            
+        Returns:
+            Ticker对象或None
+        """
+        try:
+            sql = f"SELECT * FROM {self.table} WHERE code = {PLACEHOLDER}"
+            result = self.db.query_one(sql, (code,))
+            if result:
+                return dict_to_ticker(result)
+            return None
+        except Exception as e:
+            logger.error(f"获取股票信息错误: {e}")
+            return None
 ```
 
 #### Repository层责任

@@ -1,8 +1,156 @@
 # InvestNote-py 开发任务跟踪
 
-## 当前状态：新闻聚合基础设施建设阶段
+## 当前状态：系统优化和架构重构阶段 🏗️
 
-### 🚀 已完成任务 (2025.01.27 - 2025.05.31)
+### 🎨 创意阶段完成 (2025.01.27)
+
+#### ✅ 创意设计决策记录
+
+**1. 雪球数据抽象层架构 - 分层抽象模式**
+- **设计决策**: 创建XueqiuBaseClient基类，XueqiuNewsClient和XueqiuStockClient分别继承
+- **核心优势**: 消除代码重复，清晰职责分离，为akshare集成做准备
+- **实现要点**: 统一会话管理、令牌获取策略、异步/同步接口适配
+
+**2. AKShare数据优先策略 - 策略模式+工厂方法**
+- **设计决策**: AKShare作为主要数据源，雪球API作为补充，使用策略模式管理
+- **核心优势**: 充分利用akshare开源优势，支持运行时策略切换
+- **实现要点**: 统一IStockDataProvider接口，智能降级策略，性能优化
+
+**3. 投资机会检测算法 - 混合智能系统（规则+AI）**
+- **设计决策**: 规则引擎快速筛选 + AI模型深度分析的分层处理
+- **核心优势**: 平衡性能和准确性，规则层提供可解释性
+- **实现要点**: 多因子评分模型，支持不同投资策略，实时性保证
+
+**4. FastAPI规则体系重组 - 分层次目录结构**
+- **设计决策**: Core/Patterns/Guidelines/Tools/Examples五层结构
+- **核心优势**: 与Memory Bank一致，支持按需加载，优化token使用
+- **实现要点**: 智能索引系统，版本管理，保持向后兼容
+
+### 🚀 已完成任务 (2025.01.27 更新)
+
+#### ✅ 0. 雪球数据抽象层实现 (优先级：最高) ⭐ 新完成
+**完成时间**: 2025.01.27
+
+**已完成**:
+- ✅ **XueqiuBaseClient基类**: [core/utils/xueqiu/xueqiu_base_client.py](mdc:core/utils/xueqiu/xueqiu_base_client.py)
+  - 统一会话管理和令牌获取策略（pyppeteer + urllib备用）
+  - 同步/异步HTTP请求抽象
+  - 错误处理和重试机制
+  - 客户端类型抽象方法
+
+- ✅ **XueqiuNewsClient新闻客户端**: [core/utils/xueqiu/xueqiu_news_client.py](mdc:core/utils/xueqiu/xueqiu_news_client.py)
+  - 继承XueqiuBaseClient，专门处理新闻聚合
+  - 时间线数据抓取和解析
+  - 股票符号提取和重要性评分
+  - 完整的NewsArticle转换
+
+- ✅ **XueqiuStockClient股票客户端**: [core/utils/xueqiu/xueqiu_stock_client.py](mdc:core/utils/xueqiu/xueqiu_stock_client.py)
+  - 继承XueqiuBaseClient，专门处理股票数据
+  - 股票报价、公司信息和历史数据
+  - 支持A股（SH/SZ）、港股（HK）、美股
+  - 同步和异步版本接口
+
+- ✅ **XueqiuClientFactory工厂**: [core/utils/xueqiu/xueqiu_client_factory.py](mdc:core/utils/xueqiu/xueqiu_client_factory.py)
+  - 统一创建和管理雪球客户端
+  - 支持配置共享和会话管理
+  - create_news_client() 和 create_stock_client() 便捷函数
+
+- ✅ **现有代码重构**:
+  - 更新 [core/news_aggregator/xueqiu_aggregator.py](mdc:core/news_aggregator/xueqiu_aggregator.py) 使用新的抽象层
+  - 更新 [core/utils/xueqiu/xueqiu_api.py](mdc:core/utils/xueqiu/xueqiu_api.py) 使用新的抽象层
+  - 保留向后兼容性和现有方法签名
+
+**技术特点**:
+- **抽象层设计**: 统一会话管理、令牌处理、错误重试
+- **职责分离**: 新闻和股票客户端各司其职
+- **向后兼容**: 现有代码无需大幅修改即可使用新抽象层
+- **异步支持**: 完整的同步和异步接口
+
+#### ✅ 0.1. AKShare数据源集成 (优先级：最高) ⭐ 新完成
+**完成时间**: 2025.01.27
+
+**已完成**:
+- ✅ **akshare依赖升级**: 升级到 akshare-1.16.96 版本
+
+- ✅ **StockDataProvider接口**: [core/data_providers/stock_data_provider.py](mdc:core/data_providers/stock_data_provider.py)
+  - 统一的股票数据访问抽象接口
+  - 支持多市场（StockMarket枚举：A股、港股、美股、英股）
+  - 标准化数据周期（DataPeriod枚举：分钟、小时、日、周、月线）
+  - 错误处理和优先级管理
+  - StockDataResponse统一响应格式
+
+- ✅ **AKShareProvider实现**: [core/data_providers/akshare_provider.py](mdc:core/data_providers/akshare_provider.py)
+  - 基于akshare库的数据提供者，最高优先级（100）
+  - 支持A股、港股、美股三个市场
+  - 实现全部接口：股票信息、实时行情、历史数据、公司信息、股票搜索
+  - 自动市场检测和股票代码标准化
+  - 完善的错误处理和数据格式转换
+
+- ✅ **XueqiuProvider实现**: [core/data_providers/xueqiu_provider.py](mdc:core/data_providers/xueqiu_provider.py)
+  - 基于雪球API的数据提供者，中等优先级（50）
+  - 作为AKShare的补充数据源
+  - 使用重构后的雪球客户端抽象层
+  - 支持同步和异步操作
+
+- ✅ **StockDataFactory策略管理**: [core/data_providers/stock_data_factory.py](mdc:core/data_providers/stock_data_factory.py)
+  - 策略模式管理多个数据提供者
+  - 智能提供者选择和自动降级
+  - 错误计数和可用性管理
+  - 提供者状态监控和重置功能
+  - 全局工厂实例和便捷函数封装
+
+- ✅ **综合测试验证**: [test_stock_data_integration.py](mdc:test_stock_data_integration.py)
+  - 完整的集成测试脚本
+  - 验证AKShare和雪球数据源功能
+  - 测试自动选择和降级策略
+  - 多市场支持验证
+  - 提供者状态监控测试
+
+**技术特点**:
+- **策略模式**: 支持运行时数据源切换和智能降级
+- **优先级管理**: AKShare优先，雪球补充，错误自动降级
+- **统一接口**: 标准化的股票数据访问方式
+- **多市场支持**: A股、港股、美股统一处理
+- **性能优化**: 错误缓存、连接复用、智能重试
+
+#### ✅ 0.2. Cursor规则体系更新完成 (优先级：最高) ⭐ 新完成
+**完成时间**: 2025.01.27
+
+**已完成**:
+- ✅ **数据提供者架构设计规范**: [data_provider_architecture.mdc](mdc:.cursor/rules/fast-api/data_provider_architecture.mdc)
+  - 完整的数据提供者层（Data Provider Layer）架构文档
+  - 雪球抽象层（Xueqiu Abstraction Layer）设计说明
+  - 架构层次图和数据流转示意图
+  - 智能降级策略和错误处理机制
+  - 代码重构对比和迁移指南
+  - 性能优化、扩展性设计和未来规划
+
+- ✅ **项目结构规范更新**: [project_structure.mdc](mdc:.cursor/rules/fast-api/project_structure.mdc)
+  - 新增数据提供者层目录结构 (`core/data_providers/`)
+  - 新增雪球抽象层目录结构 (`core/utils/xueqiu/`)
+  - 更新架构层次说明和模块依赖关系
+  - 重构后的新闻聚合模块说明
+
+- ✅ **编码规范更新**: [code_guidelines.mdc](mdc:.cursor/rules/fast-api/code_guidelines.mdc)
+  - 新增数据提供者层编码规范（抽象接口、AKShare提供者、工厂模式）
+  - 新增雪球抽象层编码规范（基础客户端、专业客户端、工厂模式）
+  - 重构代码适配规范和向后兼容性原则
+  - 现有代码迁移指南和最佳实践
+
+- ✅ **主规则文档更新**: [rules-document.mdc](mdc:.cursor/rules/rules-document.mdc)
+  - 新增数据提供者架构设计规范索引
+  - 更新项目结构和编码规范的新增内容说明
+  - 添加架构重构成果总结（技术优势、性能优势、运维优势）
+  - 更新Memory Bank文件结构说明
+  - 新增使用指南和发展规划
+  - 完善注意事项和向后兼容性说明
+
+**更新要点**:
+- **文档完整性**: 新增专门的架构设计文档，详细说明重构方案
+- **索引更新**: 主规则文档正确引用所有新增和更新的规范文件
+- **实施指南**: 提供具体的代码使用示例和迁移指南
+- **成果总结**: 完整记录架构重构的技术成果和业务价值
+- **未来规划**: 明确后续发展方向和扩展计划
 
 #### ✅ 1. Memory Bank规则体系更新
 - **项目结构规范更新** ([project_structure.mdc](mdc:.cursor/rules/fast-api/project_structure.mdc))
@@ -279,4 +427,39 @@
 - 异步新闻抓取和处理流程
 - 多类型聚合器统一管理
 - 智能内容过滤和去重
-- 完整的错误处理和状态管理 
+- 完整的错误处理和状态管理
+
+### 🔄 新增高优先级任务
+
+#### 🏗️ 第零阶段：架构重构和优化 (预计2-3周) - 当前阶段
+
+1. **雪球数据抽象层实现** (5-7天)
+   - [ ] 实现XueqiuBaseClient基类（会话管理、令牌获取、HTTP封装）
+   - [ ] 实现XueqiuNewsClient（继承基类，专注新闻聚合）
+   - [ ] 实现XueqiuStockClient（继承基类，专注股票数据）
+   - [ ] 创建XueqiuClientFactory（统一客户端创建）
+   - [ ] 迁移现有代码到新抽象层
+   - [ ] 编写单元测试和集成测试
+
+2. **AKShare数据源集成** (5-7天)
+   - [ ] 安装和配置akshare依赖（`pip install akshare --upgrade`）
+   - [ ] 实现IStockDataProvider统一接口
+   - [ ] 实现AKShareProvider（股票基础信息、实时行情、财务数据）
+   - [ ] 实现StockDataFactory和策略选择逻辑
+   - [ ] 实现数据源降级和健康监控
+   - [ ] 性能测试和优化（批量查询、缓存策略）
+
+3. **FastAPI规则体系重组** (3-4天)
+   - [ ] 创建新的目录结构（Core/Patterns/Guidelines/Tools/Examples）
+   - [ ] 重新组织现有规则文档
+   - [ ] 创建index.mdc智能索引文件
+   - [ ] 实现按需规则加载机制
+   - [ ] 更新Memory Bank集成配置
+
+4. **投资机会检测算法原型** (7-10天)
+   - [ ] 实现规则引擎（关键词匹配、事件分类）
+   - [ ] 集成NLP组件（jieba分词、情感分析、实体识别）
+   - [ ] 实现多因子评分模型
+   - [ ] 创建投资机会分类体系
+   - [ ] 与现有新闻聚合系统集成
+   - [ ] 构建测试数据集和验证机制 

@@ -10,7 +10,7 @@ load_dotenv()
 
 class DbAdapter:
     """
-    数据库适配器，可以根据环境配置选择使用PostgreSQL或SQLite
+    数据库适配器，可以根据环境配置选择使用不同数据库
     """
     
     def __init__(self):

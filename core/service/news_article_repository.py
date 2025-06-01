@@ -320,6 +320,90 @@ class NewsArticleRepository:
             logger.error(f"搜索新闻文章失败: {e}")
             return []
     
+    async def query_articles(
+        self, 
+        page: int = 1, 
+        page_size: int = 20, 
+        search: Optional[str] = None,
+        source_id: Optional[int] = None,
+        hours: Optional[int] = None,
+        status: Optional[str] = None
+    ) -> tuple[List[NewsArticle], int]:
+        """
+        综合查询新闻文章
+        
+        Args:
+            page: 页码（从1开始）
+            page_size: 每页数量
+            search: 搜索关键词
+            source_id: 新闻源ID筛选
+            hours: 时间范围筛选（小时）
+            status: 状态筛选
+            
+        Returns:
+            (文章列表, 总数)
+        """
+        try:
+            # 构建查询条件
+            where_clauses = []
+            params = {}
+            
+            # 时间筛选
+            if hours:
+                cutoff_time = datetime.now() - timedelta(hours=hours)
+                where_clauses.append("crawled_at >= :cutoff_time")
+                params["cutoff_time"] = cutoff_time
+            
+            # 新闻源筛选
+            if source_id:
+                where_clauses.append("source_id = :source_id")
+                params["source_id"] = source_id
+            
+            # 状态筛选
+            if status:
+                where_clauses.append("status = :status")
+                params["status"] = status
+            
+            # 搜索筛选
+            if search:
+                search_term = f"%{search}%"
+                where_clauses.append("(title LIKE :search OR content LIKE :search OR summary LIKE :search)")
+                params["search"] = search_term
+            
+            # 构建WHERE子句
+            where_clause = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+            
+            # 查询总数
+            count_sql = f"SELECT COUNT(*) as total FROM news_articles {where_clause}"
+            count_result = self.db.query_one(count_sql, params)
+            total = count_result['total'] if count_result else 0
+            
+            # 查询数据
+            offset = (page - 1) * page_size
+            params.update({
+                "limit": page_size,
+                "offset": offset
+            })
+            
+            data_sql = f"""
+            SELECT * FROM news_articles 
+            {where_clause}
+            ORDER BY importance_score DESC, published_at DESC, crawled_at DESC 
+            LIMIT :limit OFFSET :offset
+            """
+            
+            results = self.db.query(data_sql, params)
+            
+            articles = []
+            if results:
+                articles = [dict_to_news_article(row) for row in results]
+            
+            return articles, total
+            
+        except Exception as e:
+            logger.error(f"查询新闻文章失败: {e}")
+            return [], 0
+    
     async def update_news_article(self, article_id: int, update_data: NewsArticleUpdate) -> Optional[NewsArticle]:
         """
         更新新闻文章
