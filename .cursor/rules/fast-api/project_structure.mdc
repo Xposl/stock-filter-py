@@ -3,13 +3,11 @@ description:
 globs: 
 alwaysApply: true
 ---
-# FastAPI 项目结构规范 - InvestNote-py
+# FastAPI 项目结构规范
 
 ## 概述
 
 本文档定义了 InvestNote-py FastAPI 项目的实际目录结构，基于投资笔记与分析系统的业务需求，包含新闻聚合、AI分析、量化指标等模块。
-
-**最新更新**: 增加了雪球数据抽象层和AKShare数据源集成的架构 (2025.05.31)
 
 ## InvestNote-py 实际目录结构
 
@@ -18,8 +16,12 @@ alwaysApply: true
 ├── main.py                           # 项目主入口，服务器启动配置
 ├── api/                             # API 层
 │   ├── __init__.py
-│   ├── api.py                       # FastAPI 应用实例和路由定义
-│   └── models.py                    # API 请求/响应模型
+│   ├── api.py                       # FastAPI 应用实例入口，基础路由和中间件
+│   ├── models.py                    # API 请求/响应模型
+│   └── routers/                     # 路由模块目录，按功能拆分的路由定义
+│       ├── ticker.py               # 股票相关路由（分页查询、详情、批量更新）
+│       ├── news.py                 # 新闻相关路由（文章查询、新闻源管理）
+│       └── scheduler.py            # 调度器相关路由（定时任务、抓取管理）
 ├── core/                            # 核心业务逻辑层
 │   ├── models/                      # 数据库模型层 (SQLAlchemy)
 │   │   ├── __init__.py
@@ -98,37 +100,19 @@ alwaysApply: true
 │   └── data_source_helper.py        # 数据源辅助类
 ├── workers/                         # 异步任务工作进程 (新增)
 │   └── __init__.py
-├── tools/                           # 开发工具
-│   ├── generate_grpc_code.py       # gRPC代码生成工具
-│   └── news_db_init.py             # 独立的数据库初始化工具
-├── test/                           # 测试代码
-│   └── test_sql_debug.py           # SQL调试测试
+├── scripts/                         # 开发运行脚本
+├── tests/                           # 测试代码
 ├── proto/                           # Protobuf定义文件
-├── config/                          # 配置文件
-├── sql/                            # SQL脚本
-├── memory-bank/                    # Memory Bank系统
-│   ├── projectbrief.md            # 项目概述
-│   ├── productContext.md          # 产品上下文
-│   ├── techContext.md             # 技术上下文
-│   ├── systemPatterns.md          # 系统模式
-│   ├── activeContext.md           # 活跃上下文
-│   ├── progress.md                # 开发进度
-│   ├── tasks.md                   # 任务跟踪
-│   ├── style-guide.md             # 样式指南
-│   ├── creative/                  # 创意阶段文档
-│   │   └── creative-system-optimization.md # 系统优化创意文档
-│   ├── reflection/                # 反思阶段文档
-│   └── archive/                   # 任务归档文档
-├── invest_note.py                  # CLI工具入口
-├── requirements.txt                # Python依赖
+├── sql/                           # SQL脚本
+├── memory-bank/                   # Memory Bank系统
+├── invest_note.py                 # CLI工具入口
+├── requirements.txt               # Python依赖
 ├── .env                           # 环境变量配置
 ├── docker-compose.yaml            # Docker编排配置
 ├── Dockerfile                     # Docker镜像配置
 └── README.md                      # 项目说明
 
 ```
-
-## 🆕 新增架构层说明 (2025.05.31)
 
 ### **数据提供者层** (`core/data_providers/`)
 
@@ -182,9 +166,13 @@ InvestNote-py采用统一的数据提供者架构，实现多数据源智能管�
 ## 架构层次说明
 
 ### 1. **API 层** (`api/`)
-- **`api.py`**: FastAPI应用实例，包含所有HTTP路由定义
-- **`models.py`**: API请求和响应的Pydantic模型定义
-- **特点**: 直接处理HTTP请求，调用Handler层处理业务逻辑
+- **[api.py](mdc:api/api.py)**: FastAPI应用实例入口，基础路由和中间件，路由模块注册
+- **[models.py](mdc:api/models.py)**: API请求和响应的Pydantic模型定义
+- **[routers/](mdc:api/routers)**: 路由模块目录，按功能拆分的路由定义
+  - **[ticker.py](mdc:api/routers/ticker.py)**: 股票相关路由（分页查询、详情、批量更新）
+  - **[news.py](mdc:api/routers/news.py)**: 新闻相关路由（文章查询、新闻源管理）
+  - **[scheduler.py](mdc:api/routers/scheduler.py)**: 调度器相关路由（定时任务、抓取管理）
+- **特点**: 模块化路由设计，职责分离，向后兼容的API端点
 
 ### 2. **核心业务层** (`core/`)
 
@@ -277,37 +265,23 @@ HTTP请求 → api.py → Handler → Repository → SQLAlchemy → 数据库
 - **Repository方法**: `get_`, `create_`, `update_`, `delete_`, `find_by_`
 - **Handler方法**: 反映具体业务操作，如 `calculate_score`, `analyze_trend`
 - **🆕 Provider方法**: `get_stock_info`, `get_stock_quote`, `get_stock_history`, `search_stocks`
+- **🆕 Router方法**: 使用HTTP动词前缀，如 `get_`, `post_`, `put_`, `delete_`
 
 ## 模块依赖关系
 
-- **API层** → **Handler层** → **Repository层** → **Model层**
-- **🆕 Handler层** → **DataProvider层** → **ExternalAPI层**
-- **🆕 DataProvider层** → **雪球抽象层** → **雪球基础客户端**
+- **API路由模块** → **Handler层** → **Repository层** → **Model层**
+- **API主应用** → **路由模块注册** → **中间件处理** → **异常记录**
+- **Handler层** → **DataProvider层** → **ExternalAPI层**
+- **DataProvider层** → **雪球抽象层** → **雪球基础客户端**
 - **新闻模块** → **AI代理** → **NLP工具** → **机会检测**
 - **认证模块** 为所有层提供横切关注点
 - **Memory Bank** 独立维护项目上下文
 
-## 建议
+## API模块化建议
 
-- **职责分离**: 严格按层次组织代码，避免跨层直接调用
-- **🆕 数据源统一**: 优先使用DataProvider层访问外部数据，避免直接调用具体API
-- **🆕 抽象层复用**: 雪球相关功能统一使用新的抽象层，避免重复代码
-- **模块化**: 新业务功能优先在core目录下创建专门模块
-- **异步优先**: 新增功能使用async/await处理I/O操作
-- **依赖注入**: 利用FastAPI的依赖注入管理组件生命周期
-- **配置外部化**: 所有配置通过环境变量或配置文件管理
-
-## 🆕 重构成果总结
-
-### 已完成的架构优化：
-1. **消除代码重复**: 雪球相关模块通过抽象层统一管理
-2. **数据源优先级**: AKShare作为主要数据源，雪球作为补充
-3. **策略模式**: 智能数据源选择和自动降级
-4. **职责分离**: 新闻客户端和股票客户端各司其职
-5. **向后兼容**: 现有代码无需大幅修改即可使用新架构
-
-### 技术优势：
-- **统一接口**: 标准化的股票数据访问方式
-- **智能降级**: 数据源故障时自动切换
-- **性能优化**: 连接复用、错误缓存、智能重试
-- **可扩展性**: 易于添加新的数据源和客户端类型
+- **路由拆分**: 按业务功能拆分路由模块，保持单一职责
+- **向后兼容**: 拆分时保持API端点路径不变
+- **共享依赖**: 通过依赖注入共享Repository和Handler实例
+- **错误处理**: 统一的异常处理和日志记录机制
+- **文档标签**: 使用FastAPI tags组织API文档结构
+- **模块导入**: 新路由模块需在主应用中注册

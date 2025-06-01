@@ -38,24 +38,31 @@ alwaysApply: false
 ## 测试组织
 
 - **`tests/` 目录**: 所有测试代码应放在项目根目录下的 `tests/` 文件夹中。
-- **目录结构**: `tests/` 内部的目录结构应尽可能模仿 `app/` 的结构，以便于定位测试。
+- **目录结构**: `tests/` 内部的目录结构应尽可能模仿项目结构，以便于定位测试。
     ```
     tests/
     ├── __init__.py
     ├── conftest.py         # Pytest 共享 fixtures 和配置
     ├── unit/
-    │   ├── test_schemas.py
-    │   └── test_services/
-    │       └── test_item_service.py
-    └── integration/
-        ├── api/
-        │   ├── v1/
-        │   │   └── test_items_api.py
-        │   └── test_auth_api.py
-        └── test_database_crud.py # 测试 CRUD 层与数据库的集成
+    │   ├── test_models.py          # 测试 Pydantic 模型
+    │   ├── test_repositories.py    # 测试 Repository 层
+    │   └── test_handlers/          # 测试 Handler 层
+    │       └── test_ticker_handler.py
+    ├── integration/
+    │   ├── api/                    # API 路由集成测试
+    │   │   ├── test_ticker_api.py  # 股票相关API测试
+    │   │   ├── test_news_api.py    # 新闻相关API测试
+    │   │   └── test_scheduler_api.py # 调度器相关API测试
+    │   ├── services/               # 服务层集成测试
+    │   │   ├── test_data_providers.py
+    │   │   └── test_news_aggregation.py
+    │   └── database/               # 数据库集成测试
+    │       └── test_repositories_db.py
+    └── debug/                      # 调试和开发辅助测试
+        └── test_development_helpers.py
     ```
-- **文件名**: 测试文件名应以 `test_` 开头 (例如, `test_items_api.py`)。
-- **测试函数名**: 测试函数名应以 `test_` 开头，并清晰描述被测试的行为 (例如, `test_create_item_success`, `test_get_item_not_found`)。
+- **文件命名**: 测试文件名应以 `test_` 开头，对应被测试的模块名
+- **API模块测试**: 针对[api/routers/](mdc:api/routers)下的每个路由模块创建对应测试文件
 
 ## 编写测试
 
@@ -63,23 +70,31 @@ alwaysApply: false
 
 ```python
 from fastapi.testclient import TestClient
-from app.main import app # 假设你的 FastAPI 实例在 app.main.py 中
+from api.api import app  # 从模块化的API主应用导入
 
 client = TestClient(app)
 
 def test_read_main():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Hello World"}
+    assert response.json() == {"message": "InvestNote API Service"}
 
-def test_create_item_success():
-    item_data = {"name": "Test Item", "price": 10.0}
-    response = client.post("/api/v1/items/", json=item_data)
-    assert response.status_code == 201 # Assuming 201 Created
+# 测试股票相关API
+def test_get_ticker_pages():
+    request_data = {"page": 1, "page_size": 20}
+    response = client.post("/pages", json=request_data)
+    assert response.status_code == 200
     data = response.json()
-    assert data["name"] == item_data["name"]
-    assert "id" in data
-```
+    assert data["status"] == "success"
+    assert "data" in data
+
+# 测试新闻相关API  
+def test_get_news_sources():
+    response = client.get("/news/sources")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert isinstance(data["data"], list)
 
 ### 2. 测试异步代码
 
@@ -202,4 +217,24 @@ def test_item_creation_with_mocked_service(mock_external_call, test_client_with_
 - **测试数据库交互**: 为数据库交互编写集成测试。考虑使用内存数据库 (如 SQLite in-memory) 进行快速测试，或使用与生产环境相同的数据库引擎的测试实例以获得更准确的结果。
 - **持续集成 (CI)**: 将测试集成到 CI/CD 流程中，确保每次代码变更都经过测试。
 
-通过遵循这些规范和实践，可以构建一个强大且可靠的测试套件，为 FastAPI 应用程序的开发提供信心。
+### 2. 路由模块单独测试
+
+对于模块化的API路由，可以单独测试每个路由模块：
+
+```python
+# tests/integration/api/test_ticker_api.py
+from fastapi.testclient import TestClient
+from fastapi import FastAPI
+from api.routers.ticker import router
+
+# 创建仅包含ticker路由的测试应用
+test_app = FastAPI()
+test_app.include_router(router)
+client = TestClient(test_app)
+
+def test_ticker_routes_only():
+    # 测试股票模块的路由
+    request_data = {"page": 1, "page_size": 10}
+    response = client.post("/pages", json=request_data)
+    assert response.status_code == 200
+```

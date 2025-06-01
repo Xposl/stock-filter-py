@@ -2,41 +2,24 @@
 # -*- coding: utf-8 -*-
 
 """
-API端点单元测试
-测试所有新闻相关的API端点
+新闻API集成测试
+测试新闻相关的API端点与后端服务的集成
 """
 
 import pytest
-import asyncio
-import os
-import sys
-from pathlib import Path
-from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
+from datetime import datetime, timedelta
 
-# 添加项目根目录到路径
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-# 设置测试环境变量
-os.environ["DATABASE_TYPE"] = "sqlite"
-os.environ["DATABASE_PATH"] = ":memory:"
-os.environ["AUTH_ENABLED"] = "false"
-
-from api.api import app
 from core.models.news_source import NewsSource, NewsSourceStatus, NewsSourceType
 from core.models.news_article import NewsArticle, ArticleStatus
 from core.service.news_source_repository import NewsSourceRepository
 from core.service.news_article_repository import NewsArticleRepository
-from datetime import datetime, timedelta
 
+
+@pytest.mark.integration
+@pytest.mark.api
 class TestNewsSourcesAPI:
     """测试新闻源相关API"""
-    
-    @pytest.fixture
-    def client(self):
-        """创建测试客户端"""
-        return TestClient(app)
     
     @pytest.fixture
     def mock_news_sources(self):
@@ -68,11 +51,11 @@ class TestNewsSourcesAPI:
             )
         ]
     
-    def test_get_news_sources_success(self, client, mock_news_sources):
+    def test_get_news_sources_success(self, test_client, mock_news_sources):
         """测试获取新闻源列表 - 成功情况"""
         with patch.object(NewsSourceRepository, 'get_all_news_sources', 
                          new_callable=AsyncMock, return_value=mock_news_sources):
-            response = client.get("/news/sources")
+            response = test_client.get("/news/sources")
             
             assert response.status_code == 200
             data = response.json()
@@ -88,34 +71,31 @@ class TestNewsSourcesAPI:
             assert source1["status"] == "active"
             assert source1["total_articles"] == 100
     
-    def test_get_news_sources_empty(self, client):
+    def test_get_news_sources_empty(self, test_client):
         """测试获取新闻源列表 - 空列表"""
         with patch.object(NewsSourceRepository, 'get_all_news_sources', 
                          new_callable=AsyncMock, return_value=[]):
-            response = client.get("/news/sources")
+            response = test_client.get("/news/sources")
             
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "success"
             assert data["data"] == []
     
-    def test_get_news_sources_error(self, client):
+    def test_get_news_sources_error(self, test_client):
         """测试获取新闻源列表 - 异常情况"""
         with patch.object(NewsSourceRepository, 'get_all_news_sources', 
                          side_effect=Exception("数据库连接失败")):
-            response = client.get("/news/sources")
+            response = test_client.get("/news/sources")
             
             assert response.status_code == 500
             assert "数据库连接失败" in response.json()["detail"]
 
 
+@pytest.mark.integration
+@pytest.mark.api
 class TestNewsArticlesAPI:
     """测试新闻文章相关API"""
-    
-    @pytest.fixture
-    def client(self):
-        """创建测试客户端"""
-        return TestClient(app)
     
     @pytest.fixture
     def mock_news_articles(self):
@@ -161,11 +141,11 @@ class TestNewsArticlesAPI:
             )
         ]
     
-    def test_get_news_articles_success(self, client, mock_news_articles):
+    def test_get_news_articles_success(self, test_client, mock_news_articles):
         """测试获取新闻文章列表 - 成功情况"""
         with patch.object(NewsArticleRepository, 'query_articles', 
                          new_callable=AsyncMock, return_value=(mock_news_articles, 2)):
-            response = client.get("/news?page=1&page_size=20")
+            response = test_client.get("/news?page=1&page_size=20")
             
             assert response.status_code == 200
             data = response.json()
@@ -179,13 +159,13 @@ class TestNewsArticlesAPI:
             article1 = data["data"]["articles"][0]
             assert len(article1["content"]) <= 203  # 200字符 + "..."
     
-    def test_get_news_articles_with_filters(self, client, mock_news_articles):
+    def test_get_news_articles_with_filters(self, test_client, mock_news_articles):
         """测试获取新闻文章列表 - 带筛选参数"""
         filtered_articles = [mock_news_articles[0]]  # 只返回一篇文章
         
         with patch.object(NewsArticleRepository, 'query_articles', 
                          new_callable=AsyncMock, return_value=(filtered_articles, 1)):
-            response = client.get("/news?search=测试&source_id=1&hours=24&status=processed")
+            response = test_client.get("/news?search=测试&source_id=1&hours=24&status=processed")
             
             assert response.status_code == 200
             data = response.json()
@@ -193,11 +173,11 @@ class TestNewsArticlesAPI:
             assert len(data["data"]["articles"]) == 1
             assert data["data"]["pagination"]["total"] == 1
     
-    def test_get_news_articles_pagination(self, client, mock_news_articles):
+    def test_get_news_articles_pagination(self, test_client, mock_news_articles):
         """测试新闻文章列表分页"""
         with patch.object(NewsArticleRepository, 'query_articles', 
                          new_callable=AsyncMock, return_value=(mock_news_articles, 20)):
-            response = client.get("/news?page=2&page_size=5")
+            response = test_client.get("/news?page=2&page_size=5")
             
             assert response.status_code == 200
             data = response.json()
@@ -209,13 +189,13 @@ class TestNewsArticlesAPI:
             assert pagination["has_next"] == True
             assert pagination["has_prev"] == True
     
-    def test_get_news_article_by_id_success(self, client, mock_news_articles):
+    def test_get_news_article_by_id_success(self, test_client, mock_news_articles):
         """测试获取单篇新闻文章 - 成功情况"""
         article = mock_news_articles[0]
         
         with patch.object(NewsArticleRepository, 'get_article_by_id', 
                          new_callable=AsyncMock, return_value=article):
-            response = client.get("/news/1")
+            response = test_client.get("/news/1")
             
             assert response.status_code == 200
             data = response.json()
@@ -226,32 +206,29 @@ class TestNewsArticlesAPI:
             assert article_data["word_count"] == 500
             assert article_data["read_time_minutes"] == 3
     
-    def test_get_news_article_by_id_not_found(self, client):
+    def test_get_news_article_by_id_not_found(self, test_client):
         """测试获取单篇新闻文章 - 文章不存在"""
         with patch.object(NewsArticleRepository, 'get_article_by_id', 
                          new_callable=AsyncMock, return_value=None):
-            response = client.get("/news/999")
+            response = test_client.get("/news/999")
             
             assert response.status_code == 404
             assert "文章不存在" in response.json()["detail"]
     
-    def test_get_news_articles_error(self, client):
+    def test_get_news_articles_error(self, test_client):
         """测试获取新闻文章列表 - 异常情况"""
         with patch.object(NewsArticleRepository, 'query_articles', 
                          side_effect=Exception("查询失败")):
-            response = client.get("/news")
+            response = test_client.get("/news")
             
             assert response.status_code == 500
             assert "查询失败" in response.json()["detail"]
 
 
+@pytest.mark.integration
+@pytest.mark.api
 class TestNewsStatusAPI:
     """测试新闻状态API"""
-    
-    @pytest.fixture
-    def client(self):
-        """创建测试客户端"""
-        return TestClient(app)
     
     @pytest.fixture
     def mock_aggregation_stats(self):
@@ -284,13 +261,13 @@ class TestNewsStatusAPI:
             'total_articles': 150
         }
     
-    def test_get_news_fetch_status_success(self, client, mock_aggregation_stats):
+    def test_get_news_fetch_status_success(self, test_client, mock_aggregation_stats):
         """测试获取新闻抓取状态 - 成功情况"""
         from core.news_aggregator.news_aggregator_manager import NewsAggregatorManager
         
         with patch.object(NewsAggregatorManager, 'get_aggregation_stats', 
                          new_callable=AsyncMock, return_value=mock_aggregation_stats):
-            response = client.get("/cron/news/status")
+            response = test_client.get("/cron/news/status")
             
             assert response.status_code == 200
             data = response.json()
@@ -302,29 +279,26 @@ class TestNewsStatusAPI:
             assert stats["article_stats"]["today_count"] == 25
             assert len(stats["recent_fetches"]) == 1
     
-    def test_get_news_fetch_status_error(self, client):
+    def test_get_news_fetch_status_error(self, test_client):
         """测试获取新闻抓取状态 - 异常情况"""
         from core.news_aggregator.news_aggregator_manager import NewsAggregatorManager
         
         with patch.object(NewsAggregatorManager, 'get_aggregation_stats', 
                          side_effect=Exception("统计失败")):
-            response = client.get("/cron/news/status")
+            response = test_client.get("/cron/news/status")
             
             assert response.status_code == 500
             assert "统计失败" in response.json()["detail"]
 
 
+@pytest.mark.integration
+@pytest.mark.api
 class TestNewsCronAPI:
     """测试新闻定时任务API"""
     
-    @pytest.fixture
-    def client(self):
-        """创建测试客户端"""
-        return TestClient(app)
-    
-    def test_cron_fetch_news_success(self, client):
+    def test_cron_fetch_news_success(self, test_client):
         """测试定时新闻抓取任务 - 成功情况"""
-        response = client.post("/cron/news", json={"source_ids": [1, 2], "limit": 50})
+        response = test_client.post("/cron/news", json={"source_ids": [1, 2], "limit": 50})
         
         assert response.status_code == 200
         data = response.json()
@@ -333,9 +307,9 @@ class TestNewsCronAPI:
         assert data["task_info"]["source_ids"] == [1, 2]
         assert data["task_info"]["limit"] == 50
     
-    def test_cron_fetch_news_default_params(self, client):
+    def test_cron_fetch_news_default_params(self, test_client):
         """测试定时新闻抓取任务 - 默认参数"""
-        response = client.post("/cron/news", json={})
+        response = test_client.post("/cron/news", json={})
         
         assert response.status_code == 200
         data = response.json()
@@ -343,21 +317,10 @@ class TestNewsCronAPI:
         assert data["task_info"]["source_ids"] == "all_active"
         assert data["task_info"]["limit"] == 50
     
-    def test_cron_fetch_news_no_body(self, client):
+    def test_cron_fetch_news_no_body(self, test_client):
         """测试定时新闻抓取任务 - 无请求体"""
-        response = client.post("/cron/news")
+        response = test_client.post("/cron/news")
         
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "success"
-
-
-# 运行测试的主函数
-if __name__ == "__main__":
-    # 设置测试环境
-    os.environ["DATABASE_TYPE"] = "sqlite"
-    os.environ["DATABASE_PATH"] = ":memory:"
-    os.environ["AUTH_ENABLED"] = "false"
-    
-    # 运行测试
-    pytest.main([__file__, "-v", "--tb=short"]) 
+        assert data["status"] == "success" 

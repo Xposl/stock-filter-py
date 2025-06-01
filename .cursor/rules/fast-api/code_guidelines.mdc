@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # FastAPI 编码规范
 
@@ -64,13 +64,14 @@ alwaysApply: false
 
 ## 定架构规范
 
-### 1. **API层规范** (`api/api.py`)
+### 1. **API层规范** (`api/`)
 
-#### 路由定义
+#### 主应用程序 ([api.py](mdc:api/api.py))
 ```python
 from fastapi import FastAPI, HTTPException, Depends
-from core.handler.ticker_handler import TickerHandler
-from .models import TickerRequest, TickerResponse
+from typing import Dict, Any
+from core.auth.auth_middleware import auth_required
+from .routers import ticker, news, scheduler
 
 app = FastAPI(
     title="InvestNote API",
@@ -78,28 +79,48 @@ app = FastAPI(
     root_path="/investnote"
 )
 
-@app.get("/ticker/{market}/{ticker_code}", response_model=TickerResponse)
-async def get_ticker_data(
-    market: str, 
-    ticker_code: str, 
-    days: Optional[int] = 600,
-    current_user: Dict[str, Any] = Depends(auth_required())
-):
-    """获取指定股票的详细信息和K线数据"""
+# 注册路由模块
+app.include_router(ticker.router)
+app.include_router(news.router)
+app.include_router(scheduler.router)
+
+@app.get("/")
+async def root():
+    return {"message": "InvestNote API Service"}
+```
+
+#### 路由模块定义 ([routers/ticker.py](mdc:api/routers/ticker.py))
+```python
+from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional, Dict, Any
+from core.data_source_helper import DataSourceHelper
+from ..models import PageRequest
+
+# 创建路由器
+router = APIRouter(tags=["股票"])
+
+@router.post("/pages")
+async def get_ticker_pages(request: PageRequest):
+    """获取股票列表，支持分页、搜索和排序"""
     try:
-        handler = TickerHandler()
-        result = await handler.get_ticker_with_analysis(market, ticker_code, days)
+        # 业务逻辑处理
         return {"status": "success", "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 ```
 
-#### API层责任
-- 处理HTTP请求/响应
-- 参数验证和类型转换
-- 认证和授权检查
-- 异常处理和错误响应
-- **禁止**: 直接调用Repository或包含业务逻辑
+#### API层模块化规范
+- **主应用**: 只包含基础路由、中间件、路由注册
+- **路由模块**: 按功能拆分，使用APIRouter创建
+- **标签组织**: 每个路由器设置合适的tags便于文档分类
+- **路径保持**: 拆分后保持原有API端点路径不变
+- **依赖共享**: 共享的依赖和模型定义
+- **异常处理**: 统一的错误处理模式
+
+#### 路由模块文件结构
+- **[ticker.py](mdc:api/routers/ticker.py)**: 股票数据相关路由
+- **[news.py](mdc:api/routers/news.py)**: 新闻聚合相关路由  
+- **[scheduler.py](mdc:api/routers/scheduler.py)**: 定时任务相关路由
 
 ### 2. **Handler层规范** (`core/handler/`)
 

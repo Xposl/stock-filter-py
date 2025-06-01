@@ -1,0 +1,98 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FastAPI API模块化架构
+
+## 概述
+
+InvestNote-py项目的API层采用模块化设计，将原本的单体[api.py](mdc:api/api.py)文件拆分为多个功能模块，提高代码可维护性和开发效率。
+
+## 模块结构
+
+### 主应用程序
+- **[api.py](mdc:api/api.py)**: FastAPI应用实例，基础路由，中间件，路由模块注册
+
+### 路由模块
+- **[routers/ticker.py](mdc:api/routers/ticker.py)**: 股票数据相关API端点
+- **[routers/news.py](mdc:api/routers/news.py)**: 新闻聚合相关API端点  
+- **[routers/scheduler.py](mdc:api/routers/scheduler.py)**: 定时任务相关API端点
+
+### 共享模型
+- **[models.py](mdc:api/models.py)**: API请求/响应的Pydantic模型定义
+
+## 路由模块规范
+
+### APIRouter配置
+```python
+from fastapi import APIRouter
+
+# 创建路由器，设置标签用于文档分组
+router = APIRouter(tags=["模块名称"])
+```
+
+### 路由定义模式
+```python
+@router.{http_method}("/endpoint_path")
+async def endpoint_function(
+    # 路径参数
+    path_param: str,
+    # 查询参数
+    query_param: Optional[str] = None,
+    # 请求体
+    request: RequestModel = None,
+    # 依赖注入
+    current_user: Dict = Depends(auth_required())
+):
+    """端点描述，用于自动生成API文档"""
+    try:
+        # 业务逻辑处理
+        return {"status": "success", "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+## 模块依赖原则
+
+### 导入层次
+- **路由模块** → **Handler层** → **Repository层**
+- **路由模块** → **共享模型** → **Pydantic验证**
+- **主应用** → **路由模块** → **中间件处理**
+
+### 禁止依赖
+- 路由模块间不能相互导入
+- 路由模块不能直接调用Repository
+- 路由模块不能包含业务逻辑代码
+
+## 向后兼容保证
+
+### API路径保持
+- 拆分前: `/pages` → 拆分后: `/pages` (路径不变)
+- 拆分前: `/news/sources` → 拆分后: `/news/sources` (路径不变)
+- 拆分前: `/cron/news` → 拆分后: `/cron/news` (路径不变)
+
+### 请求/响应格式
+- 所有API的请求参数格式保持不变
+- 所有API的响应数据结构保持不变
+- HTTP状态码和错误响应格式保持不变
+
+## 开发指南
+
+### 添加新端点
+1. 确定功能模块归属 (ticker/news/scheduler)
+2. 在对应路由文件中添加端点
+3. 使用统一的异常处理模式
+4. 添加适当的类型提示和文档字符串
+
+### 创建新模块
+1. 在`api/routers/`下创建新的路由文件
+2. 定义APIRouter实例
+3. 在主应用中注册路由模块
+4. 更新API文档标签分组
+
+### 测试验证
+- 确保所有现有API端点功能正常
+- 验证API文档自动生成正确
+- 检查路由模块间无循环依赖
+- 测试认证中间件正常工作
