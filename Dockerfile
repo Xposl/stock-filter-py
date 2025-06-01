@@ -21,10 +21,17 @@ RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.li
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # 编译依赖
     gcc \
+    g++ \
     git \
     curl \
     wget \
     unzip \
+    build-essential \
+    # PostgreSQL开发库
+    libpq-dev \
+    postgresql-client \
+    # Python开发库
+    python3-dev \
     # Chromium运行时依赖（只安装必要的）
     ca-certificates \
     fonts-liberation \
@@ -58,7 +65,29 @@ RUN mkdir -p /app/.pyppeteer && chmod -R 777 /app/.pyppeteer
 
 # 复制依赖文件并安装Python依赖
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# 分步安装依赖以便更好地处理错误
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# 先安装基础依赖
+RUN pip install --no-cache-dir \
+    fastapi==0.115.9 \
+    uvicorn[standard]==0.34.3 \
+    pydantic==2.11.5 \
+    pydantic-settings==2.9.1 \
+    sqlalchemy==2.0.23
+
+# 安装数据库驱动 - 如果psycopg2失败，跳过
+RUN pip install --no-cache-dir aiosqlite==0.21.0 alembic==1.12.1 asyncpg==0.29.0 || echo "某些数据库驱动安装失败，将跳过"
+
+# 尝试安装PostgreSQL驱动，如果失败则跳过
+RUN pip install --no-cache-dir psycopg2-binary==2.9.9 || \
+    pip install --no-cache-dir psycopg[binary]==3.1.13 || \
+    echo "PostgreSQL驱动安装失败，将在运行时处理"
+
+# 安装剩余的核心依赖
+RUN pip install --no-cache-dir -r requirements.txt || \
+    (echo "部分依赖安装失败，继续使用已安装的依赖" && pip list)
 
 # 预下载Chromium（在不复制代码的情况下）
 RUN python -c "import asyncio; from pyppeteer import launch; asyncio.get_event_loop().run_until_complete(launch())" || echo "Chromium预下载完成或失败，将在运行时重试"

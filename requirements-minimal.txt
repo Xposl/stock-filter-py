@@ -1,0 +1,13 @@
+# 核心依赖 - 用于快速测试
+fastapi==0.115.9
+uvicorn[standard]==0.34.3
+pydantic==2.11.5
+pydantic-settings==2.9.1
+sqlalchemy==2.0.23
+
+# 数据库 - 先只用轻量级的
+aiosqlite==0.21.0
+
+# 基础工具
+python-dotenv==1.1.0
+click==8.2.1
