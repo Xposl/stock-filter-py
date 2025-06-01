@@ -2,6 +2,12 @@ import os
 import grpc
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
+import logging
+import threading
+
+# 在导入gRPC之前设置环境变量以抑制警告
+os.environ.setdefault('GRPC_VERBOSITY', 'ERROR')
+os.environ.setdefault('GRPC_TRACE', '')
 
 # 当生成gRPC代码后，导入相关服务
 try:
@@ -28,63 +34,93 @@ class AuthGrpcClient:
         self.channel = None
         self._current_user_stub = None
         self._user_account_stub = None
+        self._lock = threading.Lock()
+        self._initialized = False
     
     def _get_channel(self):
         """获取或创建gRPC通道"""
-        import logging
         logger = logging.getLogger(__name__)
         
-        connected = False
-        try_count = 0
-        max_retries = 3
+        # 使用双重检查锁定确保线程安全的延迟初始化
+        if not self._initialized:
+            with self._lock:
+                if not self._initialized:
+                    self._initialize_connection()
+                    self._initialized = True
         
-        while not connected and try_count < max_retries:
-            try:
-                if not self.channel:
-                    logger.info(f"尝试连接gRPC认证服务: {AUTH_SERVICE_HOST}:{AUTH_SERVICE_PORT}")
-                    
-                    # 设置连接超时选项
-                    options = [
-                        ('grpc.keepalive_time_ms', 10000),
-                        ('grpc.keepalive_timeout_ms', 5000),
-                        ('grpc.keepalive_permit_without_calls', 1),
-                        ('grpc.http2.max_pings_without_data', 0),
-                    ]
-                    self.channel = grpc.insecure_channel(f"{AUTH_SERVICE_HOST}:{AUTH_SERVICE_PORT}", options=options)
-                
-                # 测试连接
-                grpc.channel_ready_future(self.channel).result(timeout=5)
-                logger.info("gRPC认证服务连接成功")
-                connected = True
-            except grpc.FutureTimeoutError:
-                try_count += 1
-                logger.warning(f"无法连接到gRPC认证服务: {AUTH_SERVICE_HOST}:{AUTH_SERVICE_PORT} - 连接超时 (尝试 {try_count}/{max_retries})")
-                if try_count >= max_retries:
-                    logger.error("已达到最大重试次数，无法连接到认证服务")
-                    # 返回当前通道而不抛出异常，调用者将处理连接错误
-                self.channel = None
-            except Exception as e:
-                try_count += 1
-                logger.warning(f"gRPC通道创建失败: {str(e)} (尝试 {try_count}/{max_retries})")
-                if try_count >= max_retries:
-                    logger.error("已达到最大重试次数，无法创建gRPC通道")
-                    # 返回当前通道而不抛出异常，调用者将处理连接错误
-                self.channel = None
-                
         return self.channel
+    
+    def _initialize_connection(self):
+        """初始化gRPC连接（内部方法，线程安全）"""
+        logger = logging.getLogger(__name__)
+        
+        try:
+            logger.debug(f"初始化gRPC认证服务连接: {AUTH_SERVICE_HOST}:{AUTH_SERVICE_PORT}")
+            
+            # 设置连接选项，包括fork安全选项
+            options = [
+                ('grpc.keepalive_time_ms', 10000),
+                ('grpc.keepalive_timeout_ms', 5000),
+                ('grpc.keepalive_permit_without_calls', 1),
+                ('grpc.http2.max_pings_without_data', 0),
+                ('grpc.max_receive_message_length', 4 * 1024 * 1024),  # 4MB
+                ('grpc.max_send_message_length', 4 * 1024 * 1024),     # 4MB
+                # 添加fork安全选项
+                ('grpc.enable_retries', 0),
+            ]
+            
+            self.channel = grpc.insecure_channel(
+                f"{AUTH_SERVICE_HOST}:{AUTH_SERVICE_PORT}", 
+                options=options
+            )
+            
+            logger.debug("gRPC通道创建成功")
+            
+        except Exception as e:
+            logger.error(f"gRPC通道创建失败: {str(e)}")
+            self.channel = None
+            raise
+    
+    def test_connection(self, timeout: float = 5.0) -> bool:
+        """测试gRPC连接"""
+        logger = logging.getLogger(__name__)
+        
+        try:
+            if not self.channel:
+                self._get_channel()
+            
+            if self.channel:
+                # 测试连接
+                grpc.channel_ready_future(self.channel).result(timeout=timeout)
+                logger.debug("gRPC连接测试成功")
+                return True
+            else:
+                logger.warning("gRPC通道未初始化")
+                return False
+                
+        except grpc.FutureTimeoutError:
+            logger.warning(f"gRPC连接测试超时 ({timeout}s)")
+            return False
+        except Exception as e:
+            logger.warning(f"gRPC连接测试失败: {str(e)}")
+            return False
     
     @property
     def current_user_stub(self):
         """获取CurrentUserServiceStub"""
         if not self._current_user_stub:
-            self._current_user_stub = CurrentUserServiceStub(self._get_channel())
+            channel = self._get_channel()
+            if channel:
+                self._current_user_stub = CurrentUserServiceStub(channel)
         return self._current_user_stub
     
     @property
     def user_account_stub(self):
         """获取UserAccountServiceStub"""
         if not self._user_account_stub:
-            self._user_account_stub = UserAccountServiceStub(self._get_channel())
+            channel = self._get_channel()
+            if channel:
+                self._user_account_stub = UserAccountServiceStub(channel)
         return self._user_account_stub
     
     def get_current_user(self, token: str) -> Optional[Dict[str, Any]]:
@@ -97,10 +133,15 @@ class AuthGrpcClient:
         Returns:
             用户信息字典或None（如果认证失败）
         """
-        import logging
         logger = logging.getLogger(__name__)
         
         try:
+            # 延迟初始化：只有在实际使用时才建立连接
+            stub = self.current_user_stub
+            if not stub:
+                logger.error("无法获取gRPC stub，连接可能失败")
+                return None
+            
             # 创建请求
             logger.debug("正在准备用户认证请求")
             request = UserRequest(token=token)
@@ -109,7 +150,7 @@ class AuthGrpcClient:
             metadata = [('token', token)]
             # 调用远程服务，设置10秒超时
             logger.debug("正在调用gRPC认证服务")
-            response = self.current_user_stub.queryCurrentUser(
+            response = stub.queryCurrentUser(
                 request, 
                 metadata=metadata,
                 timeout=10.0
@@ -158,11 +199,17 @@ class AuthGrpcClient:
 
     def close(self):
         """关闭gRPC通道"""
-        if self.channel:
-            self.channel.close()
-            self.channel = None
-            self._current_user_stub = None
-            self._user_account_stub = None
+        with self._lock:
+            if self.channel:
+                try:
+                    self.channel.close()
+                except Exception as e:
+                    logging.getLogger(__name__).warning(f"关闭gRPC通道时发生错误: {e}")
+                finally:
+                    self.channel = None
+                    self._current_user_stub = None
+                    self._user_account_stub = None
+                    self._initialized = False
 
-# 创建单例实例
+# 创建单例实例（但不立即初始化连接）
 auth_client = AuthGrpcClient()

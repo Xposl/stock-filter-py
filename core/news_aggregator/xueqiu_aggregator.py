@@ -25,21 +25,31 @@ class XueqiuAggregator:
             session: 可选的aiohttp客户端会话（向后兼容）
         """
         self.session = session
-        # 使用新的客户端工厂创建新闻客户端
-        self._client = create_news_client(session)
+        self._client = None
+        self._owns_client = False
         logger.info("雪球聚合器初始化完成（使用重构后的客户端）")
     
     async def __aenter__(self):
         """异步上下文管理器入口"""
-        # 确保客户端正确初始化
+        # 使用工厂创建新闻客户端，传入共享会话
+        self._client = create_news_client(self.session)
+        
+        # 如果客户端有自己的上下文管理器，调用它
         if hasattr(self._client, '__aenter__'):
             await self._client.__aenter__()
+            self._owns_client = True
+        
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """异步上下文管理器出口"""
-        if hasattr(self._client, '__aexit__'):
+        # 只有当我们拥有客户端的上下文时才关闭它
+        if self._owns_client and self._client and hasattr(self._client, '__aexit__'):
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
+            self._owns_client = False
+        
+        # 不关闭共享会话，由管理器负责
+        self._client = None
     
     async def fetch_xueqiu_timeline(self, news_source: NewsSource) -> List[Dict[str, Any]]:
         """
@@ -53,6 +63,9 @@ class XueqiuAggregator:
         """
         try:
             logger.info(f"开始抓取雪球数据: {news_source.name}")
+            
+            if not self._client:
+                raise RuntimeError("雪球客户端未初始化，请在async with语句中使用")
             
             # 使用重构后的客户端
             articles = await self._client.fetch_timeline_data(news_source)

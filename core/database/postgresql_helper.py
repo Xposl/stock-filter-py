@@ -1,40 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-from typing import Optional, List, Dict, Union, Tuple
-from dotenv import load_dotenv
-import pymysql
 from sqlalchemy import create_engine
+import psycopg2
+import psycopg2.extras
+import os
+from dotenv import load_dotenv 
+from typing import Optional, List, Dict, Union, Tuple
 
 load_dotenv()
 
-class MysqlHelper:
+class PostgresqlHelper:
     """
-    MySQL数据库助手类
+    PostgreSQL数据库助手类
     支持:name格式参数和标准参数格式
     """
     
     def __init__(self):
         self.host = os.getenv('DB_HOST')
-        self.port = int(os.getenv('DB_PORT', 3306))
+        self.port = os.getenv('DB_PORT')
         self.user = os.getenv('DB_USER')
         self.password = os.getenv('DB_PASSWORD')
         self.database = os.getenv('DB_NAME')
-        self.conn = pymysql.connect(
+        
+        self.conn = psycopg2.connect(
             host=self.host,
             port=self.port,
-            user=self.user,
-            password=self.password,
             database=self.database,
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            user=self.user,
+            password=self.password
         )
-        self.cursor = self.conn.cursor()
+        self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def _convert_params(self, sql: str, params: Union[Dict, Tuple]) -> tuple:
         """
-        转换:name格式参数为MySQL格式
+        转换:name格式参数为PostgreSQL格式
         
         Args:
             sql: SQL语句
@@ -70,7 +70,7 @@ class MysqlHelper:
             converted_sql, converted_params = self._convert_params(sql, params)
             self.cursor.execute(converted_sql, converted_params)
         except Exception as e:
-            self.conn.rollback()
+            self.conn.rollback()  # 错误时回滚
             raise e
 
     def commit(self) -> None:
@@ -84,7 +84,7 @@ class MysqlHelper:
     def get_sqlalchemy_engine(self):
         """获取SQLAlchemy引擎"""
         return create_engine(
-            f'mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}?charset=utf8mb4'
+            f'postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}'
         )
 
     def query(self, sql: str, params: Union[Dict, Tuple] = None) -> List[Dict]:
@@ -100,7 +100,8 @@ class MysqlHelper:
         """
         converted_sql, converted_params = self._convert_params(sql, params)
         self.cursor.execute(converted_sql, converted_params)
-        return self.cursor.fetchall()
+        rows = self.cursor.fetchall()
+        return [dict(row) for row in rows]
 
     def query_one(self, sql: str, params: Union[Dict, Tuple] = None) -> Optional[Dict]:
         """
@@ -115,7 +116,8 @@ class MysqlHelper:
         """
         converted_sql, converted_params = self._convert_params(sql, params)
         self.cursor.execute(converted_sql, converted_params)
-        return self.cursor.fetchone()
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
 
     def close(self):
         """安全关闭数据库连接"""
@@ -131,4 +133,4 @@ class MysqlHelper:
             self.conn = None
 
     def __del__(self):
-        self.close() 
+        self.close()

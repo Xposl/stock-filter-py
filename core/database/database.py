@@ -17,12 +17,12 @@ def get_database_url() -> str:
     Returns:
         str: 数据库连接URL
     """
-    # 从环境变量获取数据库配置
-    database_type = os.getenv("DATABASE_TYPE", "sqlite").lower()
+    # 从环境变量获取数据库配置，统一使用DB_*变量名
+    database_type = os.getenv("DB_TYPE", "sqlite").lower()
     
     if database_type == "sqlite":
         # SQLite配置
-        db_path = os.getenv("DATABASE_PATH", "investnote.db")
+        db_path = os.getenv("SQLITE_DB_PATH", "investnote.db")
         
         # 确保数据库文件路径是绝对路径
         if not os.path.isabs(db_path):
@@ -37,21 +37,21 @@ def get_database_url() -> str:
     
     elif database_type == "postgresql":
         # PostgreSQL配置
-        host = os.getenv("DATABASE_HOST", "localhost")
-        port = os.getenv("DATABASE_PORT", "5432")
-        user = os.getenv("DATABASE_USER", "investnote")
-        password = os.getenv("DATABASE_PASSWORD", "")
-        database = os.getenv("DATABASE_NAME", "investnote")
+        host = os.getenv("DB_HOST", "localhost")
+        port = os.getenv("DB_PORT", "5432")
+        user = os.getenv("DB_USER", "investnote")
+        password = os.getenv("DB_PASSWORD", "")
+        database = os.getenv("DB_NAME", "investnote")
         
         return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
     
     elif database_type == "mysql":
         # MySQL配置
-        host = os.getenv("DATABASE_HOST", "localhost")
-        port = os.getenv("DATABASE_PORT", "3306")
-        user = os.getenv("DATABASE_USER", "investnote")
-        password = os.getenv("DATABASE_PASSWORD", "")
-        database = os.getenv("DATABASE_NAME", "investnote")
+        host = os.getenv("DB_HOST", "localhost")
+        port = os.getenv("DB_PORT", "3306")
+        user = os.getenv("DB_USER", "investnote")
+        password = os.getenv("DB_PASSWORD", "")
+        database = os.getenv("DB_NAME", "investnote")
         
         return f"mysql+aiomysql://{user}:{password}@{host}:{port}/{database}"
     
@@ -65,32 +65,32 @@ def get_database_config() -> dict:
     Returns:
         dict: 数据库配置字典
     """
-    database_type = os.getenv("DATABASE_TYPE", "sqlite").lower()
+    database_type = os.getenv("DB_TYPE", "sqlite").lower()
     
     config = {
         "type": database_type,
         "url": get_database_url(),
-        "echo": os.getenv("DATABASE_ECHO", "false").lower() == "true",
-        "pool_size": int(os.getenv("DATABASE_POOL_SIZE", "5")),
-        "max_overflow": int(os.getenv("DATABASE_MAX_OVERFLOW", "10")),
-        "pool_recycle": int(os.getenv("DATABASE_POOL_RECYCLE", "3600")),
+        "echo": os.getenv("DB_ECHO", "false").lower() == "true",
+        "pool_size": int(os.getenv("DB_POOL_SIZE", "5")),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "10")),
+        "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "3600")),
     }
     
     if database_type == "sqlite":
         # SQLite特有配置
         config.update({
-            "path": os.getenv("DATABASE_PATH", "investnote.db"),
-            "timeout": int(os.getenv("DATABASE_TIMEOUT", "10")),
+            "path": os.getenv("SQLITE_DB_PATH", "investnote.db"),
+            "timeout": int(os.getenv("DB_TIMEOUT", "10")),
         })
     else:
         # PostgreSQL/MySQL共有配置
         config.update({
-            "host": os.getenv("DATABASE_HOST", "localhost"),
-            "port": int(os.getenv("DATABASE_PORT", "5432" if database_type == "postgresql" else "3306")),
-            "user": os.getenv("DATABASE_USER", "investnote"),
-            "password": os.getenv("DATABASE_PASSWORD", ""),
-            "database": os.getenv("DATABASE_NAME", "investnote"),
-            "charset": os.getenv("DATABASE_CHARSET", "utf8mb4"),
+            "host": os.getenv("DB_HOST", "localhost"),
+            "port": int(os.getenv("DB_PORT", "5432" if database_type == "postgresql" else "3306")),
+            "user": os.getenv("DB_USER", "investnote"),
+            "password": os.getenv("DB_PASSWORD", ""),
+            "database": os.getenv("DB_NAME", "investnote"),
+            "charset": os.getenv("DB_CHARSET", "utf8mb4"),
         })
     
     return config
@@ -104,7 +104,7 @@ def is_database_available() -> bool:
     """
     try:
         database_url = get_database_url()
-        database_type = os.getenv("DATABASE_TYPE", "sqlite").lower()
+        database_type = os.getenv("DB_TYPE", "sqlite").lower()
         
         if database_type == "sqlite":
             # SQLite检查：确保文件路径有效
@@ -114,7 +114,7 @@ def is_database_available() -> bool:
         else:
             # 对于其他数据库类型，需要实际连接测试
             # 这里简化处理，仅检查环境变量是否完整
-            required_vars = ["DATABASE_HOST", "DATABASE_USER", "DATABASE_NAME"]
+            required_vars = ["DB_HOST", "DB_USER", "DB_NAME"]
             return all(os.getenv(var) for var in required_vars)
     
     except Exception:

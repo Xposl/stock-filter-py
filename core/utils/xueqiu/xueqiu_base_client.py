@@ -36,7 +36,7 @@ class XueqiuBaseClient(ABC):
             session: 可选的aiohttp客户端会话
         """
         self.session = session
-        self._own_session = session is None
+        self._own_session = session is None  # 只有我们创建的会话才由我们管理
         self.xqat = None  # 雪球访问令牌
         
         # 标准请求头
@@ -51,7 +51,8 @@ class XueqiuBaseClient(ABC):
     
     async def __aenter__(self):
         """异步上下文管理器入口"""
-        if self._own_session:
+        # 只有当我们需要创建自己的会话时才创建
+        if self._own_session and self.session is None:
             connector = aiohttp.TCPConnector(
                 limit=100, 
                 limit_per_host=30,
@@ -63,12 +64,20 @@ class XueqiuBaseClient(ABC):
                 timeout=timeout,
                 headers=self.headers
             )
+            logger.debug("创建新的HTTP会话")
+        elif self.session:
+            logger.debug("使用外部提供的HTTP会话")
+        
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """异步上下文管理器出口"""
+        # 只关闭我们自己创建的会话
         if self._own_session and self.session:
             await self.session.close()
+            self.session = None
+            logger.debug("关闭自有HTTP会话")
+        # 对于外部传入的会话，不关闭，由外部管理
     
     async def _get_token_with_puppeteer(self) -> Optional[str]:
         """使用pyppeteer获取雪球的token"""

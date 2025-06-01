@@ -214,8 +214,8 @@ async def get_news_article(article_id: int):
 async def fetch_news_background_task(source_ids: Optional[List[int]] = None, limit: int = 50):
     """后台新闻抓取任务"""
     try:
-        session_factory = get_async_session_factory()
-        manager = NewsAggregatorManager(session_factory)
+        # 使用新的初始化方式，不需要session_factory
+        manager = NewsAggregatorManager()
         
         if source_ids:
             # 抓取指定新闻源

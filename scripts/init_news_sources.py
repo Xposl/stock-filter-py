@@ -27,10 +27,55 @@ logger = logging.getLogger(__name__)
 
 # 预定义的新闻源配置
 FINANCIAL_NEWS_SOURCES = [
-    # Investing.com 相关源
+    # ===== 英为财情(Investing.com) RSS源 =====
+    # 基于实际验证的可用RSS源
+    {
+        "name": "英为财情-技术分析",
+        "description": "英为财情技术分析RSS源",
+        "source_type": NewsSourceType.RSS,
+        "url": "https://cn.investing.com/rss/market_overview_Technical.rss",
+        "update_frequency": 1800,  # 30分钟
+        "max_articles_per_fetch": 20,
+        "language": "zh",
+        "region": "CN",
+        "status": NewsSourceStatus.ACTIVE
+    },
+    {
+        "name": "英为财情-基本面分析",
+        "description": "英为财情基本面分析RSS源",
+        "source_type": NewsSourceType.RSS,
+        "url": "https://cn.investing.com/rss/market_overview_Fundamental.rss",
+        "update_frequency": 1800,  # 30分钟
+        "max_articles_per_fetch": 20,
+        "language": "zh",
+        "region": "CN",
+        "status": NewsSourceStatus.ACTIVE
+    },
+    {
+        "name": "英为财情-观点分析",
+        "description": "英为财情观点分析RSS源",
+        "source_type": NewsSourceType.RSS,
+        "url": "https://cn.investing.com/rss/market_overview_Opinion.rss",
+        "update_frequency": 1800,  # 30分钟
+        "max_articles_per_fetch": 20,
+        "language": "zh",
+        "region": "CN",
+        "status": NewsSourceStatus.ACTIVE
+    },
+    {
+        "name": "英为财情-投资想法",
+        "description": "英为财情投资想法RSS源",
+        "source_type": NewsSourceType.RSS,
+        "url": "https://cn.investing.com/rss/market_overview_investing_ideas.rss",
+        "update_frequency": 1800,  # 30分钟
+        "max_articles_per_fetch": 20,
+        "language": "zh",
+        "region": "CN",
+        "status": NewsSourceStatus.ACTIVE
+    },
     {
         "name": "英为财情-综合新闻",
-        "description": "英为财情(Investing.com)综合金融新闻RSS源",
+        "description": "英为财情综合金融新闻RSS源",
         "source_type": NewsSourceType.RSS,
         "url": "https://cn.investing.com/rss/news.rss",
         "update_frequency": 1800,  # 30分钟
@@ -41,151 +86,55 @@ FINANCIAL_NEWS_SOURCES = [
     },
     {
         "name": "英为财情-股票新闻",
-        "description": "英为财情(Investing.com)股票市场新闻RSS源",
+        "description": "英为财情股票市场新闻RSS源",
         "source_type": NewsSourceType.RSS,
-        "url": "https://cn.investing.com/rss/news_285.rss",
+        "url": "https://cn.investing.com/rss/stock.rss",
         "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 15,
+        "max_articles_per_fetch": 20,
         "language": "zh",
         "region": "CN",
         "status": NewsSourceStatus.ACTIVE
     },
     {
-        "name": "英为财情-外汇新闻",
-        "description": "英为财情(Investing.com)外汇市场新闻RSS源",
+        "name": "英为财情-最热评论与分析",
+        "description": "英为财情最热评论与分析RSS源",
         "source_type": NewsSourceType.RSS,
-        "url": "https://cn.investing.com/rss/news_1.rss",
-        "update_frequency": 3600,  # 1小时
+        "url": "https://cn.investing.com/rss/286.rss",
+        "update_frequency": 7200,  # 120分钟
         "max_articles_per_fetch": 10,
         "language": "zh",
         "region": "CN",
         "status": NewsSourceStatus.ACTIVE
     },
     {
-        "name": "英为财情-商品新闻",
-        "description": "英为财情(Investing.com)商品市场新闻RSS源",
+        "name": "英为财情-编辑精选",
+        "description": "英为财情编辑精选RSS源",
         "source_type": NewsSourceType.RSS,
-        "url": "https://cn.investing.com/rss/news_49.rss",
-        "update_frequency": 3600,  # 1小时
+        "url": "https://cn.investing.com/rss/290.rss",
+        "update_frequency": 7200,  # 120分钟
         "max_articles_per_fetch": 10,
         "language": "zh",
         "region": "CN",
         "status": NewsSourceStatus.ACTIVE
     },
-    
-    # 国内主要财经媒体
     {
-        "name": "第一财经-综合新闻",
-        "description": "第一财经官方RSS新闻源",
+        "name": "和讯网-股票频道要闻",
+        "description": "和讯网-股票频道要闻RSS源",
         "source_type": NewsSourceType.RSS,
-        "url": "https://www.yicai.com/rss/news.xml",
-        "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 25,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.ACTIVE
-    },
-    {
-        "name": "新浪财经-要闻",
-        "description": "新浪财经重要新闻RSS源",
-        "source_type": NewsSourceType.RSS,
-        "url": "https://feed.sina.com.cn/api/roll/get?pageid=153&lid=1686&k=&num=20&page=1",
-        "update_frequency": 1200,  # 20分钟
-        "max_articles_per_fetch": 20,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.ACTIVE
-    },
-    {
-        "name": "网易财经-股票",
-        "description": "网易财经股票新闻RSS源",
-        "source_type": NewsSourceType.RSS,
-        "url": "http://money.163.com/special/002557S6/rss_jsxw.xml",
-        "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 15,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.ACTIVE
-    },
-    {
-        "name": "凤凰财经-综合",
-        "description": "凤凰财经综合新闻RSS源",
-        "source_type": NewsSourceType.RSS,
-        "url": "http://finance.ifeng.com/rss/index.xml",
-        "update_frequency": 2400,  # 40分钟
-        "max_articles_per_fetch": 15,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.ACTIVE
-    },
-    
-    # 雪球相关 (注：雪球没有公开RSS，这里使用API方式)
-    {
-        "name": "雪球-热门话题",
-        "description": "雪球社区热门投资话题和讨论",
-        "source_type": NewsSourceType.API,
-        "url": "https://xueqiu.com/statuses/hot/listV2.json",
-        "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 20,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.INACTIVE  # 先设为不活跃，需要实现专门的抓取逻辑
-    },
-    {
-        "name": "雪球-今日话题",
-        "description": "雪球今日热门投资话题",
-        "source_type": NewsSourceType.API,
-        "url": "https://xueqiu.com/v4/statuses/public_timeline_by_category.json",
-        "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 15,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.INACTIVE  # 先设为不活跃
-    },
-    
-    # 东方财富相关
-    {
-        "name": "东方财富-股票资讯",
-        "description": "东方财富网股票资讯",
-        "source_type": NewsSourceType.API,
-        "url": "http://feed.eastmoney.com/api/api/get/getfeedlist",
-        "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 20,
-        "language": "zh",
-        "region": "CN",
-        "status": NewsSourceStatus.INACTIVE  # 先设为不活跃，需要实现专门的抓取逻辑
-    },
-    {
-        "name": "东方财富-研报中心",
-        "description": "东方财富研究报告中心",
-        "source_type": NewsSourceType.API,
-        "url": "http://reportapi.eastmoney.com/report/list",
-        "update_frequency": 3600,  # 1小时
+        "url": "https://news.hexun.com/rss/stock_rss.xml",
+        "update_frequency": 7200,  # 120分钟
         "max_articles_per_fetch": 10,
         "language": "zh",
         "region": "CN",
-        "status": NewsSourceStatus.INACTIVE  # 先设为不活跃
-    },
-    
-    # 其他重要财经媒体
-    {
-        "name": "财联社-快讯",
-        "description": "财联社实时财经快讯",
-        "source_type": NewsSourceType.RSS,
-        "url": "https://www.cls.cn/rss/telegraph",
-        "update_frequency": 900,  # 15分钟
-        "max_articles_per_fetch": 30,
-        "language": "zh",
-        "region": "CN",
         "status": NewsSourceStatus.ACTIVE
     },
     {
-        "name": "证券时报-新闻",
-        "description": "证券时报官方新闻RSS源",
+        "name": "和讯网-金融与资本市场",
+        "description": "和讯网-金融与资本市场RSS源",
         "source_type": NewsSourceType.RSS,
-        "url": "http://www.stcn.com/rss/news.xml",
-        "update_frequency": 1800,  # 30分钟
-        "max_articles_per_fetch": 15,
+        "url": "https://news.hexun.com/rss/finance.xml",
+        "update_frequency": 7200,  # 120分钟
+        "max_articles_per_fetch": 10,
         "language": "zh",
         "region": "CN",
         "status": NewsSourceStatus.ACTIVE

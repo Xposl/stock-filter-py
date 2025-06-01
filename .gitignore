@@ -45,3 +45,7 @@ package-lock.json
 .env.test.local
 .env.production.local
 
+# Coverage
+htmlcov/
+.pyppeteer/
+.pytest_cache/

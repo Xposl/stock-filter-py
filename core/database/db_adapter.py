@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union, Tuple
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -10,20 +10,21 @@ load_dotenv()
 
 class DbAdapter:
     """
-    数据库适配器，可以根据环境配置选择使用不同数据库
+    数据库适配器，根据环境配置选择使用不同数据库
+    统一使用:name参数格式，由底层helper处理具体数据库的参数转换
     """
     
     def __init__(self):
         """
         初始化数据库适配器
         """
-        # 默认使用SQLite，除非环境变量明确指定使用PostgreSQL或MySQL
+        # 使用统一的DB_TYPE环境变量
         self.db_type = os.getenv('DB_TYPE', 'sqlite').lower()
         
         if self.db_type == 'postgres' or self.db_type == 'postgresql':
             # 使用PostgreSQL
-            from .db_helper import DbHelper
-            self.db = DbHelper()
+            from .postgresql_helper import PostgresqlHelper
+            self.db = PostgresqlHelper()
         elif self.db_type == 'mysql':
             # 使用MySQL
             from .mysql_helper import MysqlHelper
@@ -34,63 +35,41 @@ class DbAdapter:
             db_path = os.getenv('SQLITE_DB_PATH', 'investnote.db')
             self.db = SqliteHelper(db_path)
     
-    def _convert_sql_params(self, sql: str, params: Dict) -> tuple:
-        """
-        转换SQL语句和参数格式以匹配目标数据库
-        """
-        if not params:
-            return sql, params
-            
-        if self.db_type == 'mysql':
-            # MySQL使用 %(name)s 格式
-            converted_sql = sql
-            # 按参数名长度倒序排列，避免短参数名匹配长参数名的问题
-            sorted_keys = sorted(params.keys(), key=len, reverse=True)
-            for key in sorted_keys:
-                converted_sql = converted_sql.replace(f':{key}', f'%({key})s')
-            return converted_sql, params
-        else:
-            # SQLite和PostgreSQL使用 :name 格式（保持原样）
-            return sql, params
-    
-    def execute(self, sql: str, params=None) -> None:
+    def execute(self, sql: str, params: Union[Dict, Tuple] = None) -> None:
         """
         执行SQL语句
         
         Args:
-            sql: SQL语句
-            params: SQL参数
+            sql: SQL语句，使用:name格式参数
+            params: SQL参数，字典或元组格式
         """
-        converted_sql, converted_params = self._convert_sql_params(sql, params or {})
-        self.db.execute(converted_sql, converted_params)
+        self.db.execute(sql, params)
     
-    def query(self, sql: str, params=None) -> List[Dict]:
+    def query(self, sql: str, params: Union[Dict, Tuple] = None) -> List[Dict]:
         """
         查询数据
         
         Args:
-            sql: SQL查询语句
-            params: SQL参数
+            sql: SQL查询语句，使用:name格式参数
+            params: SQL参数，字典或元组格式
             
         Returns:
             查询结果列表，每个元素为字典
         """
-        converted_sql, converted_params = self._convert_sql_params(sql, params or {})
-        return self.db.query(converted_sql, converted_params)
+        return self.db.query(sql, params)
     
-    def query_one(self, sql: str, params=None) -> Optional[Dict]:
+    def query_one(self, sql: str, params: Union[Dict, Tuple] = None) -> Optional[Dict]:
         """
         查询单条数据
         
         Args:
-            sql: SQL查询语句
-            params: SQL参数
+            sql: SQL查询语句，使用:name格式参数
+            params: SQL参数，字典或元组格式
             
         Returns:
             单条查询结果，为字典或None
         """
-        converted_sql, converted_params = self._convert_sql_params(sql, params or {})
-        return self.db.query_one(converted_sql, converted_params)
+        return self.db.query_one(sql, params)
     
     def commit(self) -> None:
         """
@@ -114,7 +93,10 @@ class DbAdapter:
         """
         析构函数，确保连接关闭
         """
-        self.close()
+        try:
+            self.close()
+        except Exception:
+            pass
     
     @property
     def cursor(self):
@@ -141,10 +123,11 @@ class DbAdapter:
         获取SQLAlchemy引擎
         
         Returns:
-            SQLAlchemy引擎或None(如果不支持)
+            SQLAlchemy引擎
         """
         if hasattr(self.db, 'get_sqlalchemy_engine'):
             return self.db.get_sqlalchemy_engine()
         else:
+            # SQLite fallback
             import sqlalchemy
             return sqlalchemy.create_engine(f'sqlite:///{self.db.db_path}')

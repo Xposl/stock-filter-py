@@ -2,10 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import sqlite3
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union
 from sqlite3 import Connection, Cursor
 
 class SqliteHelper:
+    """
+    SQLite数据库助手类
+    支持:name格式参数和标准参数格式
+    """
+    
     def __init__(self, db_path: str = 'investnote.db'):
         """
         初始化SQLite数据库连接
@@ -33,7 +38,28 @@ class SqliteHelper:
             print(f"数据库连接错误: {e}")
             raise e
     
-    def execute(self, sql: str, params: Tuple = None) -> None:
+    def _convert_params(self, sql: str, params: Union[Dict, Tuple]) -> tuple:
+        """
+        转换参数格式以适配SQLite
+        
+        Args:
+            sql: SQL语句
+            params: 参数（字典或元组）
+            
+        Returns:
+            (转换后的SQL, 转换后的参数)
+        """
+        if not params:
+            return sql, params
+            
+        if isinstance(params, dict):
+            # 字典参数：SQLite原生支持:name格式，保持原样
+            return sql, params
+        else:
+            # 元组参数：保持原样
+            return sql, params
+    
+    def execute(self, sql: str, params: Union[Dict, Tuple] = None) -> None:
         """
         执行SQL语句
         
@@ -42,10 +68,11 @@ class SqliteHelper:
             params: SQL参数
         """
         try:
-            if params:
-                self.cursor.execute(sql, params)
+            converted_sql, converted_params = self._convert_params(sql, params)
+            if converted_params:
+                self.cursor.execute(converted_sql, converted_params)
             else:
-                self.cursor.execute(sql)
+                self.cursor.execute(converted_sql)
         except Exception as e:
             self.conn.rollback()
             print(f"SQL执行错误: {e}")
@@ -53,7 +80,7 @@ class SqliteHelper:
             print(f"参数: {params}")
             raise e
     
-    def execute_many(self, sql: str, params_list: List[Tuple]) -> None:
+    def execute_many(self, sql: str, params_list: List[Union[Dict, Tuple]]) -> None:
         """
         批量执行SQL语句
         
@@ -68,7 +95,7 @@ class SqliteHelper:
             print(f"批量SQL执行错误: {e}")
             raise e
     
-    def query(self, sql: str, params: Tuple = None) -> List[Dict[str, Any]]:
+    def query(self, sql: str, params: Union[Dict, Tuple] = None) -> List[Dict[str, Any]]:
         """
         查询数据
         
@@ -80,10 +107,11 @@ class SqliteHelper:
             查询结果列表，每个元素为字典
         """
         try:
-            if params:
-                self.cursor.execute(sql, params)
+            converted_sql, converted_params = self._convert_params(sql, params)
+            if converted_params:
+                self.cursor.execute(converted_sql, converted_params)
             else:
-                self.cursor.execute(sql)
+                self.cursor.execute(converted_sql)
             
             rows = self.cursor.fetchall()
             # 将 sqlite3.Row 对象转换为字典列表
@@ -93,7 +121,7 @@ class SqliteHelper:
             print(f"查询错误: {e}")
             raise e
     
-    def query_one(self, sql: str, params: Tuple = None) -> Optional[Dict[str, Any]]:
+    def query_one(self, sql: str, params: Union[Dict, Tuple] = None) -> Optional[Dict[str, Any]]:
         """
         查询单条数据
         
@@ -105,10 +133,11 @@ class SqliteHelper:
             单条查询结果，为字典或None
         """
         try:
-            if params:
-                self.cursor.execute(sql, params)
+            converted_sql, converted_params = self._convert_params(sql, params)
+            if converted_params:
+                self.cursor.execute(converted_sql, converted_params)
             else:
-                self.cursor.execute(sql)
+                self.cursor.execute(converted_sql)
             
             row = self.cursor.fetchone()
             if row:

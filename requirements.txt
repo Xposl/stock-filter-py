@@ -12,7 +12,7 @@ asyncpg==0.29.0
 psycopg2-binary==2.9.9
 # MySQL数据库驱动
 aiomysql==0.2.0
-PyMySQL==1.1.0
+PyMySQL==1.1.1
 
 # 新闻聚合相关依赖
 feedparser==6.0.11
