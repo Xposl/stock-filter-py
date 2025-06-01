@@ -1,3 +1,4 @@
+# Python缓存和虚拟环境
 __pycache__
 *.pyc
 *.pyo
@@ -9,6 +10,8 @@ venv/
 .venv
 pip-log.txt
 pip-delete-this-directory.txt
+
+# 测试和覆盖率
 .tox/
 .coverage
 .coverage.*
@@ -18,7 +21,40 @@ coverage.xml
 *.cover
 *.log
 .pytest_cache/
+htmlcov/
+tests/
+
+# Git相关
 .git
 .gitignore
-Dockerfile
-docker-compose.yml
+
+# Docker相关
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+
+# IDE配置
+.vscode
+.idea
+*.swp
+*.swo
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+investnote.db
+
+# 文档和脚本
+docs/
+*.md
+README.md
+scripts/
+deploy.sh
+memory-bank/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db

@@ -60,6 +60,24 @@ alwaysApply: true
   - 重构代码适配规范和迁移原则
   - 向后兼容性保证的编码实践
 
+### 🆕 5. AI分析模块架构规范 ⭐ 新增
+- **文档**: [ai_analysis_architecture.mdc](mdc:.cursor/rules/fast-api/ai_analysis_architecture.mdc)
+- **作用**: 定义基于PocketFlow的AI分析模块架构设计和实施规范
+- **核心内容**:
+  - PocketFlow框架集成方案（100行LLM框架）
+  - 千问+硅基流动LLM服务集成
+  - ChromaDB向量数据库嵌入式部署
+  - 四层新闻分析流水线设计（规则预筛选→AI深度分析→情感评估→投资建议）
+  - 与现有三层架构（API-Handler-Repository）的集成规范
+  - Token优化策略和成本控制
+  - 监控告警和性能要求
+  - Agent to Agent通信和MCP集成准备
+- **解决问题**:
+  - 提供新闻智能分析和情感识别
+  - 实现投资机会自动检测和评估
+  - 股票关联度计算和短期投资建议
+  - 基于向量数据库的语义相似性分析
+
 ## 原有规范文档
 
 ### 4. FastAPI 测试规范

@@ -1,0 +1,274 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI分析模块架构规范
+
+## 概述
+
+本文档定义了InvestNote-py项目中AI分析模块的架构设计和实施规范，基于PocketFlow框架构建轻量级AI Agent系统。
+
+## 技术栈确定
+
+### 核心框架
+- **PocketFlow**: 100行LLM框架，专为AI Agent构建设计
+  - GitHub: https://github.com/The-Pocket/PocketFlow
+  - 安装: `pip install git+https://github.com/The-Pocket/PocketFlow.git`
+  - 版本: 0.0.2
+
+### LLM服务商
+- **主要**: 千问模型（阿里云）
+- **备用**: 硅基流动API
+- **接口**: OpenAI兼容格式
+
+### 向量数据库
+- **主选**: ChromaDB (嵌入式部署)
+- **备选**: Faiss-CPU (本地计算)
+
+## 架构设计
+
+### 模块结构
+```
+core/ai_agents/
+├── __init__.py                 # 模块初始化
+├── flow_definitions/           # PocketFlow工作流定义
+│   ├── news_analysis_flow.py   # 新闻分析工作流
+│   ├── sentiment_flow.py       # 情感分析工作流
+│   └── investment_flow.py      # 投资建议工作流
+├── llm_clients/               # LLM客户端
+│   ├── qwen_client.py         # 千问模型客户端
+│   └── silicon_flow_client.py  # 硅基流动客户端
+├── vector_store/              # 向量存储
+│   ├── chroma_store.py        # ChromaDB实现
+│   └── vector_similarity.py   # 相似性计算
+├── analyzers/                 # 分析器组件
+│   ├── news_analyzer.py       # 新闻分析器
+│   ├── sentiment_analyzer.py  # 情感分析器
+│   └── investment_analyzer.py # 投资分析器
+└── utils/                     # 工具类
+    ├── token_optimizer.py     # Token优化器
+    └── prompt_templates.py    # Prompt模板
+```
+
+### 工作流设计
+
+#### 新闻分析流水线
+```python
+# 基于PocketFlow的四层处理流水线
+@flow
+def news_analysis_flow():
+    """
+    新闻分析主工作流
+    1. 规则预筛选 → 2. AI深度分析 → 3. 情感评估 → 4. 投资建议
+    """
+    # Step 1: 规则预筛选层
+    filtered_news = prefilter_news()
+    
+    # Step 2: AI深度分析层  
+    analysis_result = ai_analyze_news(filtered_news)
+    
+    # Step 3: 情感评估层
+    sentiment_scores = analyze_sentiment(analysis_result)
+    
+    # Step 4: 投资建议层
+    investment_advice = generate_investment_advice(sentiment_scores)
+    
+    return investment_advice
+```
+
+#### 核心节点实现
+1. **PrefilterNode**: 基于关键词和规则的快速筛选
+2. **AIAnalysisNode**: 调用千问LLM进行深度分析
+3. **SentimentNode**: 情感分析和市场影响评估
+4. **InvestmentNode**: 生成投资建议和风险评估
+5. **VectorNode**: 向量相似性计算和历史对比
+
+## 集成规范
+
+### 与现有架构集成
+
+#### Handler层集成
+```python
+# core/handler/news_analysis_handler.py
+from core.ai_agents import NewsAnalysisFlow
+
+class NewsAnalysisHandler:
+    def __init__(self):
+        self.news_repo = NewsRepository()
+        self.analysis_flow = NewsAnalysisFlow()
+    
+    async def analyze_pending_news(self) -> Dict[str, Any]:
+        """分析pending状态的新闻"""
+        pending_articles = await self.news_repo.get_pending_articles()
+        
+        # 使用PocketFlow工作流
+        result = await self.analysis_flow.run({
+            "articles": pending_articles,
+            "analysis_type": "batch"
+        })
+        
+        return result
+```
+
+#### Repository层数据访问
+```python
+# 复用现有Repository模式
+from core.service.news_article_repository import NewsArticleRepository
+from core.models.news_article import NewsArticle
+
+# AI分析结果存储在news_article表的AI分析字段中
+```
+
+### API层集成
+```python
+# api/routers/ai_analysis.py
+from fastapi import APIRouter
+from core.handler.news_analysis_handler import NewsAnalysisHandler
+
+router = APIRouter(prefix="/ai-analysis", tags=["AI分析"])
+
+@router.post("/analyze-news")
+async def analyze_news():
+    """触发新闻AI分析"""
+    handler = NewsAnalysisHandler()
+    result = await handler.analyze_pending_news()
+    return {"status": "success", "data": result}
+```
+
+## Token优化策略
+
+### Prompt设计原则
+1. **最小化输入**: 只传递必要的新闻摘要和关键信息
+2. **结构化输出**: 使用JSON格式减少解析开销
+3. **批量处理**: 一次请求分析多条新闻
+4. **缓存机制**: 相似新闻复用分析结果
+
+### 成本控制
+- **目标**: 单条新闻分析成本 < 0.01元
+- **策略**: 规则预筛选 + 批量AI处理 + 结果缓存
+- **监控**: Token使用量实时统计和告警
+
+## 部署和配置
+
+### 环境变量配置
+```bash
+# LLM配置
+QWEN_API_KEY=your_qwen_api_key
+QWEN_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+SILICON_FLOW_API_KEY=your_silicon_flow_key
+
+# 向量数据库
+CHROMA_DB_PATH=./data/chroma_db
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+
+# AI分析配置  
+AI_ANALYSIS_ENABLED=true
+MAX_DAILY_TOKENS=1000000
+BATCH_SIZE=10
+```
+
+### 性能要求
+- **响应时间**: 单条新闻分析 < 5秒
+- **并发处理**: 支持10个并发分析任务
+- **准确率**: 情感分析准确率 > 85%
+- **资源消耗**: 额外内存占用 < 100MB
+
+## 测试规范
+
+### 单元测试
+```python
+# tests/test_ai_analysis.py
+import pytest
+from core.ai_agents import NewsAnalysisFlow
+
+class TestNewsAnalysisFlow:
+    async def test_news_analysis_flow(self):
+        """测试新闻分析工作流"""
+        flow = NewsAnalysisFlow()
+        
+        test_articles = [
+            {"title": "央行降准释放流动性", "content": "..."},
+            {"title": "科技股大涨", "content": "..."}
+        ]
+        
+        result = await flow.run({"articles": test_articles})
+        
+        assert result["status"] == "success"
+        assert "sentiment_scores" in result
+        assert "investment_advice" in result
+```
+
+### 集成测试
+```python
+# tests/test_ai_integration.py
+async def test_end_to_end_analysis():
+    """端到端AI分析测试"""
+    # 1. 创建测试新闻
+    # 2. 触发AI分析
+    # 3. 验证分析结果
+    # 4. 检查数据库更新
+```
+
+## 监控和告警
+
+### 关键指标
+- **成功率**: AI分析成功处理的新闻比例
+- **Token消耗**: 日/周/月Token使用统计
+- **响应时间**: 分析任务平均执行时间
+- **错误率**: LLM调用失败率
+
+### 告警规则
+- Token使用量超过日限额80%
+- AI分析成功率低于90%
+- 平均响应时间超过10秒
+- ChromaDB存储空间不足
+
+## 扩展性设计
+
+### 多Agent支持
+- 基于PocketFlow的Agent to Agent通信
+- 支持专业领域Agent（科技、金融、医疗等）
+- 动态Agent路由和负载均衡
+
+### MCP集成准备
+- 预留MCP协议接口
+- 支持外部工具调用
+- Agent能力动态扩展
+
+### 模型升级路径
+- 支持多LLM模型并存
+- A/B测试框架
+- 渐进式模型升级
+
+## 安全和合规
+
+### 数据安全
+- 新闻内容加密传输
+- LLM调用日志审计
+- 敏感信息脱敏处理
+
+### 合规要求
+- 优先使用国产化LLM
+- 数据不出境原则
+- 符合金融行业监管要求
+
+## 开发计划
+
+### 第一阶段 (1周)
+- [ ] PocketFlow基础框架集成
+- [ ] 千问LLM客户端实现
+- [ ] ChromaDB向量存储配置
+- [ ] 基础新闻分析工作流
+
+### 第二阶段 (1周)  
+- [ ] 情感分析和投资建议
+- [ ] Token优化和成本控制
+- [ ] 与现有Handler集成
+- [ ] 基础测试用例
+
+### 第三阶段 (1周)
+- [ ] API接口实现
+- [ ] 定时任务集成
+- [ ] 监控和告警系统
+- [ ] 生产环境部署
