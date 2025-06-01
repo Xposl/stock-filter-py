@@ -11,14 +11,14 @@ def get_database_url() -> str:
     
     支持多种数据库类型，根据环境变量自动选择：
     - SQLite（默认）: sqlite+aiosqlite:///path/to/database.db
-    - PostgreSQL: postgresql+asyncpg://user:password@host:port/database
+    - PostgreSQL: postgresql+psycopg://user:password@host:port/database
     - MySQL: mysql+aiomysql://user:password@host:port/database
     
     Returns:
         str: 数据库连接URL
     """
     # 从环境变量获取数据库配置，统一使用DB_*变量名
-    database_type = os.getenv("DB_TYPE", "sqlite").lower()
+    database_type = os.getenv("DB_TYPE", "mysql").lower()
     
     if database_type == "sqlite":
         # SQLite配置
@@ -43,7 +43,8 @@ def get_database_url() -> str:
         password = os.getenv("DB_PASSWORD", "")
         database = os.getenv("DB_NAME", "investnote")
         
-        return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
+        # 使用 psycopg3 代替 asyncpg (Python 3.13 兼容性更好)
+        return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
     
     elif database_type == "mysql":
         # MySQL配置

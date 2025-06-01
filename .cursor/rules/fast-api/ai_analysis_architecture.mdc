@@ -24,7 +24,6 @@ alwaysApply: false
 
 ### 向量数据库
 - **主选**: ChromaDB (嵌入式部署)
-- **备选**: Faiss-CPU (本地计算)
 
 ## 架构设计
 

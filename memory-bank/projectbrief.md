@@ -25,7 +25,7 @@ InvestNote-py 是一款基于 Python 和 FastAPI 构建的智能系统，旨在�
 
 ### 核心技术栈设想
 - **后端框架**: FastAPI + Uvicorn
-- **AI与NLP**: 自然语言处理库 (如spaCy, NLTK), 大语言模型集成 (如GPT API), Agent框架 (如LangChain或自研)
+- **AI与NLP**: 自然语言处理库 (如spaCy, NLTK), 大语言模型集成 (如GPT API), Agent框架(Pocketflow)
 - **数据处理**: Pandas + NumPy
 - **数据库**: PostgreSQL/SQLite (SQLAlchemy ORM)
 - **消息队列/任务调度**: Celery/Redis (用于异步处理新闻和Agent分析)

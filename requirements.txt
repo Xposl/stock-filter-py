@@ -1,22 +1,19 @@
 # InvestNote-py 项目依赖 (2025.06.01 更新)
 # Python版本要求：>=3.9 (ChromaDB 1.0.12要求)
+# NumPy 2.0兼容性验证通过 ✅
 
 # FastAPI核心依赖
 fastapi==0.115.9
 uvicorn[standard]==0.34.3
 starlette==0.45.3
-sqlalchemy==2.0.23
+sqlalchemy==2.0.36
 pydantic==2.11.5
 pydantic-settings==2.9.1
 
 # 数据库相关
 aiosqlite==0.21.0
 alembic==1.12.1
-asyncpg==0.29.0
-# PostgreSQL驱动 - 使用更兼容的版本
-psycopg2-binary==2.9.9
-# 备用：如果psycopg2-binary有问题，可以使用psycopg3
-# psycopg[binary]==3.1.13
+psycopg[binary]==3.2.9
 # MySQL数据库驱动
 aiomysql==0.2.0
 PyMySQL==1.1.1
@@ -35,26 +32,19 @@ html2text==2024.2.26
 requests-html==0.10.0
 
 # 股票数据源集成
-akshare==1.16.68
+akshare==1.16.96
 pyppeteer==1.0.2
 
-# AI/NLP相关依赖
+# AI/NLP相关依赖 - 全面支持NumPy 2.0
 openai==1.58.1
-langchain==0.0.350
-langchain-core==0.3.43
-langchain-openai==0.3.1
-langchain-anthropic==0.3.3
-langchain-ollama==0.2.2
-spacy==3.7.2
 nltk==3.9.1
 sentence-transformers==4.1.0
-transformers==4.49.0
+transformers==4.52.4
 torch==2.6.0
 pocketflow==0.0.2
 
 # 向量数据库 - 支持NumPy 2.0
 chromadb==1.0.12
-faiss-cpu==1.7.4
 scikit-learn==1.6.1
 
 # 任务队列和定时调度
@@ -100,11 +90,11 @@ prometheus-client==0.19.0
 python-dotenv==1.1.0
 pyyaml==6.0.2
 
-# 数据处理 - 支持NumPy 2.0
+# 数据处理 - NumPy 2.0兼容版本
 pandas==2.2.3
 numpy>=2.0.0
-matplotlib==3.8.2
-seaborn==0.13.0
+matplotlib==3.10.3
+seaborn==0.13.2
 
 # 其他工具
 tqdm==4.67.1

@@ -11,8 +11,9 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     volumes:
-      # 开发时代码同步（生产环境可以移除）
-      - .:/app
+      # 开发时代码同步（暂时注释以解决依赖覆盖问题）
+      # 如需实时代码同步，请使用: docker-compose -f docker-compose.dev.yaml up
+      # - .:/app
       # 专门的卷用于存储 Pyppeteer 下载的 Chromium
       - pyppeteer_data:/app/.pyppeteer
     env_file:

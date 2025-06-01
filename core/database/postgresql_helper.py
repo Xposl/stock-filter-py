@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from sqlalchemy import create_engine
-import psycopg2
-import psycopg2.extras
+import psycopg
+from psycopg.rows import dict_row
 import os
 from dotenv import load_dotenv 
 from typing import Optional, List, Dict, Union, Tuple
@@ -23,18 +23,19 @@ class PostgresqlHelper:
         self.password = os.getenv('DB_PASSWORD')
         self.database = os.getenv('DB_NAME')
         
-        self.conn = psycopg2.connect(
+        self.conn = psycopg.connect(
             host=self.host,
             port=self.port,
-            database=self.database,
+            dbname=self.database,
             user=self.user,
-            password=self.password
+            password=self.password,
+            row_factory=dict_row
         )
-        self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        self.cursor = self.conn.cursor()
 
     def _convert_params(self, sql: str, params: Union[Dict, Tuple]) -> tuple:
         """
-        转换:name格式参数为PostgreSQL格式
+        转换:name格式参数为psycopg3格式
         
         Args:
             sql: SQL语句
@@ -47,7 +48,7 @@ class PostgresqlHelper:
             return sql, params
             
         if isinstance(params, dict):
-            # 字典参数：将:name转换为%(name)s
+            # 字典参数：将:name转换为%(name)s (psycopg3仍然支持这种格式)
             converted_sql = sql
             # 按参数名长度倒序排列，避免短参数名匹配长参数名的问题
             sorted_keys = sorted(params.keys(), key=len, reverse=True)
@@ -101,7 +102,8 @@ class PostgresqlHelper:
         converted_sql, converted_params = self._convert_params(sql, params)
         self.cursor.execute(converted_sql, converted_params)
         rows = self.cursor.fetchall()
-        return [dict(row) for row in rows]
+        # psycopg3 with dict_row already returns dict objects
+        return rows
 
     def query_one(self, sql: str, params: Union[Dict, Tuple] = None) -> Optional[Dict]:
         """
@@ -117,7 +119,8 @@ class PostgresqlHelper:
         converted_sql, converted_params = self._convert_params(sql, params)
         self.cursor.execute(converted_sql, converted_params)
         row = self.cursor.fetchone()
-        return dict(row) if row else None
+        # psycopg3 with dict_row already returns dict objects
+        return row
 
     def close(self):
         """安全关闭数据库连接"""

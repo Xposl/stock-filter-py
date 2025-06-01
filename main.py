@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 # 抑制absl日志警告
 try:
-    import grpc
     import logging as absl_logging
     # 设置gRPC日志级别为ERROR，避免INFO级别的警告
     grpc_logger = logging.getLogger('grpc')
