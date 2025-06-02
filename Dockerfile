@@ -67,8 +67,7 @@ RUN mkdir -p /app/.pyppeteer && chmod -R 777 /app/.pyppeteer
 COPY requirements.txt .
 
 # 安装剩余的核心依赖
-RUN pip install --no-cache-dir -r requirements.txt || \
-    (echo "部分依赖安装失败，继续使用已安装的依赖" && pip list)
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 预下载Chromium（在不复制代码的情况下）
 RUN python -c "import asyncio; from pyppeteer import launch; asyncio.get_event_loop().run_until_complete(launch())" || echo "Chromium预下载完成或失败，将在运行时重试"

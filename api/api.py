@@ -30,6 +30,15 @@ app.include_router(scheduler.router)
 async def root():
     return {"message": "InvestNote API Service"}
 
+@app.get("/health")
+async def health_check():
+    """健康检查端点，用于Docker健康检查和负载均衡器检查"""
+    return {
+        "status": "healthy",
+        "service": "InvestNote API",
+        "timestamp": "2025-06-02"
+    }
+
 @app.get("/me")
 async def get_current_user(current_user: Dict[str, Any] = Depends(auth_required())):
     """获取当前认证用户的信息

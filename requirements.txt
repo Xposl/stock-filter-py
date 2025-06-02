@@ -100,6 +100,8 @@ seaborn==0.13.2
 tqdm==4.67.1
 schedule==1.2.0
 tenacity==9.1.2
+mplfinance==0.12.10b0
+mplcursors==0.6
 
 # OpenTelemetry监控 (ChromaDB 1.0.12依赖)
 opentelemetry-api>=1.33.1
