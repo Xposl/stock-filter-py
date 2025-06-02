@@ -115,6 +115,7 @@ overrides>=7.7.0
 mmh3>=5.1.0
 orjson>=3.10.15
 jsonschema>=4.24.0
+tiktoken==0.9.0
 
 # 安全相关
 bcrypt>=4.3.0

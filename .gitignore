@@ -5,6 +5,8 @@
 *.iml
 *.zip
 *.icls
+venv/
+.venv/
 
 /_windows/
 /codestyles/

@@ -10,28 +10,27 @@ from .qwen_client import (
     QwenLLMClient,
     QwenResponse,
     TokenUsage,
-    TokenCalculator,
     get_qwen_client,
     quick_analyze
 )
 
-from .silicon_flow_client import (
-    SiliconFlowClient,
-    SiliconFlowResponse,
-    get_silicon_flow_client
-)
+# 硅基流动客户端暂未实现，先注释掉
+# from .silicon_flow_client import (
+#     SiliconFlowClient,
+#     SiliconFlowResponse,
+#     get_silicon_flow_client
+# )
 
 __all__ = [
     # 千问客户端
     'QwenLLMClient',
     'QwenResponse', 
     'TokenUsage',
-    'TokenCalculator',
     'get_qwen_client',
     'quick_analyze',
     
-    # 硅基流动客户端
-    'SiliconFlowClient',
-    'SiliconFlowResponse',
-    'get_silicon_flow_client'
+    # 硅基流动客户端（暂未实现）
+    # 'SiliconFlowClient',
+    # 'SiliconFlowResponse',
+    # 'get_silicon_flow_client'
 ]

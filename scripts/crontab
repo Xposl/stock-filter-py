@@ -1,0 +1,19 @@
+# 设置时区为东八区
+TZ='Asia/Shanghai'
+
+# ===== 股票数据更新任务 =====
+# 美股：每周二到周六早上6点 (北京时间对应美股收盘后)
+0 6 * * 2-6 curl -X POST http://localhost:8000/investnote/cron/ticker/us/update
+
+# A股：每周一到周五下午3点10分 (收盘后10分钟)
+10 15 * * 1-5 curl -X POST http://localhost:8000/investnote/cron/ticker/zh/update
+
+# 港股：每周一到周五下午5点10分 (收盘后10分钟)
+10 17 * * 1-5 curl -X POST http://localhost:8000/investnote/cron/ticker/hk/update
+
+# ===== 新闻抓取任务 =====
+# 新闻抓取：每天早上6点、中午12点、下午6点、晚上10点 (4次/天)
+0 6,12,18,22 * * * curl -X POST http://localhost:8000/investnote/cron/news
+
+# 周末新闻抓取：周六周日每天上午10点和晚上8点 (2次/天)
+0 10,20 * * 6,7 curl -X POST http://localhost:8000/investnote/cron/news
