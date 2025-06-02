@@ -4,14 +4,29 @@
 """
 LLM客户端模块
 提供统一的LLM访问接口，支持千问和硅基流动API
+基于OpenAI设计模式实现
 """
 
 from .qwen_client import (
-    QwenLLMClient,
+    # 客户端类
+    QwenClient,
+    AsyncQwenClient,
+    QwenLLMClient,  # 向后兼容别名
+    
+    # 响应和消息类
     QwenResponse,
-    TokenUsage,
+    QwenStreamResponse,
+    QwenMessage,
+    
+    # 全局客户端获取函数
     get_qwen_client,
-    quick_analyze
+    get_async_qwen_client,
+    
+    # 便捷函数
+    chat,
+    async_chat,
+    stream_chat,
+    async_stream_chat
 )
 
 # 硅基流动客户端暂未实现，先注释掉
@@ -22,12 +37,25 @@ from .qwen_client import (
 # )
 
 __all__ = [
-    # 千问客户端
-    'QwenLLMClient',
-    'QwenResponse', 
-    'TokenUsage',
+    # 千问客户端类
+    'QwenClient',
+    'AsyncQwenClient',
+    'QwenLLMClient',  # 向后兼容
+    
+    # 响应和消息类
+    'QwenResponse',
+    'QwenStreamResponse', 
+    'QwenMessage',
+    
+    # 全局客户端函数
     'get_qwen_client',
-    'quick_analyze',
+    'get_async_qwen_client',
+    
+    # 便捷函数
+    'chat',
+    'async_chat',
+    'stream_chat',
+    'async_stream_chat',
     
     # 硅基流动客户端（暂未实现）
     # 'SiliconFlowClient',

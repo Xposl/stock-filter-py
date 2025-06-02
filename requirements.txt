@@ -12,7 +12,7 @@ pydantic-settings==2.9.1
 
 # 数据库相关
 aiosqlite==0.21.0
-alembic==1.12.1
+alembic==1.13.0
 psycopg[binary]==3.2.9
 # MySQL数据库驱动
 aiomysql==0.2.0
@@ -61,6 +61,7 @@ python-multipart==0.0.6
 # gRPC支持
 grpcio==1.71.0
 grpcio-tools==1.71.0
+protobuf==4.25.1
 
 # HTTP客户端
 httpx==0.28.1
@@ -122,3 +123,6 @@ bcrypt>=4.3.0
 
 # Kubernetes支持 (ChromaDB依赖)
 kubernetes>=32.0.1
+
+# 🆕 AI和LLM客户端相关依赖
+dashscope>=1.14.0

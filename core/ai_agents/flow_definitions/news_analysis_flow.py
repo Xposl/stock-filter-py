@@ -2,583 +2,752 @@
 # -*- coding: utf-8 -*-
 
 """
-新闻分析工作流
+新闻分析流水线
 
-基于PocketFlow框架的新闻分析四层处理流水线：
-1. 规则预筛选层 - 基于关键词和规则的快速筛选
-2. AI深度分析层 - 调用千问LLM进行深度分析
-3. 情感评估层 - 情感分析和市场影响评估
-4. 投资建议层 - 生成投资建议和风险评估
+基于PocketFlow框架的多Agent协作新闻分析系统。
+通过四个专业Agent协作，实现从新闻内容到投资建议的完整分析流程。
 """
 
 import json
 import logging
-from typing import Dict, List, Any, Optional
+import asyncio
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
 from datetime import datetime
-from pocketflow import AsyncFlow, AsyncNode
 
+# PocketFlow框架导入
+from pocketflow import Flow, Node
+
+# 项目内部模块导入
 from ..llm_clients.qwen_client import QwenLLMClient
+from ..llm_clients.silicon_flow_client import SiliconFlowClient
+from ...data_providers.stock_data_factory import StockDataFactory
+from ...models.news_source import NewsSource
 
 logger = logging.getLogger(__name__)
 
-class PrefilterNode(AsyncNode):
-    """
-    规则预筛选节点
-    基于关键词、新闻源权重、时效性进行快速筛选
-    """
-    
-    def __init__(self):
-        super().__init__()
-        # 投资相关关键词
-        self.investment_keywords = {
-            "positive": ["上涨", "增长", "突破", "利好", "收购", "合作", "创新", "盈利"],
-            "negative": ["下跌", "暴跌", "亏损", "风险", "警告", "危机", "裁员", "退市"],
-            "sectors": ["科技", "医疗", "金融", "地产", "新能源", "消费", "制造", "互联网"]
-        }
-        
-        # 新闻源权重（1-10，数字越大权重越高）
-        self.source_weights = {
-            "新华社": 9, "人民日报": 9, "央视": 8,
-            "第一财经": 8, "财新": 8, "21世纪经济报道": 7,
-            "东方财富": 6, "雪球": 5, "其他": 3
-        }
-    
-    async def run_async(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        预筛选处理逻辑
-        
-        Args:
-            data: 包含articles列表的输入数据
-            
-        Returns:
-            筛选后的文章和评分
-        """
-        articles = data.get("articles", [])
-        filtered_articles = []
-        
-        for article in articles:
-            score = self._calculate_relevance_score(article)
-            
-            # 只保留评分大于阈值的文章
-            if score >= 3.0:
-                article["relevance_score"] = score
-                filtered_articles.append(article)
-                logger.debug(f"文章通过预筛选: {article.get('title', '')} (评分: {score})")
-        
-        logger.info(f"预筛选完成: {len(articles)} -> {len(filtered_articles)} 篇文章")
-        
-        return {
-            "filtered_articles": filtered_articles,
-            "original_count": len(articles),
-            "filtered_count": len(filtered_articles),
-            "filter_ratio": len(filtered_articles) / len(articles) if articles else 0,
-            **data  # 保留原始数据
-        }
-    
-    def _calculate_relevance_score(self, article: Dict[str, Any]) -> float:
-        """计算文章相关性评分"""
-        score = 0.0
-        title = article.get("title", "")
-        content = article.get("content", "")
-        source = article.get("source_name", "其他")
-        
-        # 关键词评分
-        text = f"{title} {content}".lower()
-        
-        # 正面关键词
-        positive_count = sum(1 for kw in self.investment_keywords["positive"] if kw in text)
-        score += positive_count * 0.5
-        
-        # 负面关键词
-        negative_count = sum(1 for kw in self.investment_keywords["negative"] if kw in text)
-        score += negative_count * 0.5
-        
-        # 行业关键词
-        sector_count = sum(1 for kw in self.investment_keywords["sectors"] if kw in text)
-        score += sector_count * 0.3
-        
-        # 新闻源权重
-        source_weight = self.source_weights.get(source, 3) / 10.0
-        score *= (1 + source_weight)
-        
-        # 时效性评分（假设有publish_time字段）
-        publish_time = article.get("publish_time")
-        if publish_time:
-            # 简单时效性评分逻辑
-            score *= 1.2  # 有发布时间的文章加分
-        
-        return min(score, 10.0)  # 限制最大评分
+@dataclass
+class NewsAnalysisResult:
+    """新闻分析结果"""
+    news_id: str
+    news_content: str
+    classification: Dict[str, Any]
+    industry_analysis: Dict[str, Any]
+    related_stocks: List[Dict[str, Any]]
+    investment_advice: Dict[str, Any]
+    analysis_time: datetime
+    confidence_score: float
+    processing_time: float
 
-class AIAnalysisNode(AsyncNode):
-    """
-    AI深度分析节点
-    调用千问LLM进行文章深度分析
-    """
+class NewsClassifierAgent(Node):
+    """新闻分类器Agent - 快速判断新闻性质和重要性"""
     
-    def __init__(self, qwen_client: Optional[QwenLLMClient] = None):
+    def __init__(self, llm_client: QwenLLMClient):
         super().__init__()
-        self.qwen_client = qwen_client
+        self.llm_client = llm_client
     
-    async def run_async(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        AI分析处理逻辑
+    def prep(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
+        """准备分类所需的数据"""
+        return {
+            "news_content": shared_store.get("news_content", ""),
+            "shared_store": shared_store  # 传递共享存储的引用
+        }
+    
+    def exec(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """执行新闻分类 - 同步方法"""
+        return asyncio.run(self._exec_async(prep_data))
+    
+    async def _exec_async(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """异步执行新闻分类"""
+        news_content = prep_data.get("news_content", "")
         
-        Args:
-            data: 包含filtered_articles的数据
+        if not news_content:
+            logger.error("新闻内容为空")
+            return {"error": "新闻内容为空", "action": "error"}
+        
+        prompt = self._build_classification_prompt(news_content)
+        
+        try:
+            async with self.llm_client as client:
+                response = await client.chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=500
+                )
             
-        Returns:
-            AI分析结果
-        """
-        articles = data.get("filtered_articles", [])
-        
-        if not articles:
+            # 解析分类结果
+            classification = self._parse_classification_response(response.content)
+            
+            # 判断是否值得进一步分析
+            if classification.get("worth_analysis", False):
+                logger.info(f"新闻分类完成，重要性评分: {classification.get('importance_score', 0)}")
+                action = "analyze_industry"
+            else:
+                logger.info("新闻被判定为不值得投资分析，跳过后续步骤")
+                action = "skip"
+            
             return {
-                **data,
-                "ai_analysis_results": [], 
-                "analysis_count": 0
+                "classification": classification,
+                "action": action
             }
         
-        # 使用千问客户端进行批量分析
-        if not self.qwen_client:
-            # 模拟分析结果
-            results = await self._mock_analyze(articles)
-        else:
-            # 真实AI分析
-            results = await self._batch_analyze(self.qwen_client, articles)
+        except Exception as e:
+            logger.error(f"新闻分类失败: {e}")
+            return {
+                "error": str(e),
+                "action": "error"
+            }
+    
+    def post(self, shared_store: Dict[str, Any], prep_data: Dict[str, Any], exec_result: Dict[str, Any]) -> str:
+        """后处理 - 保存结果到共享存储并返回下一步动作"""
+        if "classification" in exec_result:
+            shared_store["classification"] = exec_result["classification"]
         
-        logger.info(f"AI分析完成: {len(results)} 篇文章")
+        if "error" in exec_result:
+            shared_store["error"] = exec_result["error"]
         
+        return exec_result.get("action", "error")
+    
+    def _build_classification_prompt(self, news_content: str) -> str:
+        """构建新闻分类Prompt"""
+        return f"""你是一个专业的金融新闻分类器。请分析以下新闻并提供结构化输出：
+
+新闻内容：
+{news_content[:2000]}  # 限制长度避免token超限
+
+请从以下维度分析：
+1. 新闻类型：[政策/财报/市场/技术/人事/并购/IPO/其他]
+2. 重要性评分：1-10分（10分最重要，考虑对股市的潜在影响）
+3. 涉及实体：提取公司名、行业名、产品名（最多5个）
+4. 情感倾向：[正面/负面/中性]
+5. 是否值得投资分析：[true/false]
+
+返回JSON格式：
+{{
+  "news_type": "类型",
+  "importance_score": 分数,
+  "entities": ["实体1", "实体2"],
+  "sentiment": "倾向",
+  "worth_analysis": true/false,
+  "reason": "判断理由"
+}}"""
+    
+    def _parse_classification_response(self, response_text: str) -> Dict[str, Any]:
+        """解析分类响应"""
+        try:
+            # 尝试提取JSON部分
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
+            
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                return json.loads(json_str)
+            else:
+                raise ValueError("无法找到有效的JSON内容")
+        
+        except Exception as e:
+            logger.error(f"解析分类结果失败: {e}")
+            # 返回默认结果
+            return {
+                "news_type": "其他",
+                "importance_score": 5,
+                "entities": [],
+                "sentiment": "中性",
+                "worth_analysis": True,
+                "reason": "解析失败，使用默认值"
+            }
+
+class IndustryAnalyzerAgent(Node):
+    """行业分析器Agent - 确定新闻利好/利空的行业领域"""
+    
+    def __init__(self, llm_client: QwenLLMClient):
+        super().__init__()
+        self.llm_client = llm_client
+    
+    def prep(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
+        """准备行业分析所需的数据"""
         return {
-            **data,
-            "ai_analysis_results": results,
-            "analysis_count": len(results),
-            "input_articles": articles
+            "news_content": shared_store.get("news_content", ""),
+            "classification": shared_store.get("classification", {}),
+            "shared_store": shared_store
         }
     
-    async def _mock_analyze(self, articles: List[Dict]) -> List[Dict]:
-        """模拟分析结果"""
-        results = []
-        for i, article in enumerate(articles, 1):
-            # 基于文章标题简单分析
-            title = article.get("title", "").lower()
-            
-            # 简单的情感判断
-            if any(word in title for word in ["上涨", "增长", "利好", "创新"]):
-                sentiment = "positive"
-                market_impact = "medium"
-                relevance = 7
-            elif any(word in title for word in ["下跌", "危机", "风险", "亏损"]):
-                sentiment = "negative"
-                market_impact = "medium"
-                relevance = 6
-            else:
-                sentiment = "neutral"
-                market_impact = "low"
-                relevance = 5
-            
-            results.append({
-                "article_index": i,
-                "summary": article.get("title", ""),
-                "key_points": [f"关键点{i}"],
-                "sentiment": sentiment,
-                "market_impact": market_impact,
-                "affected_sectors": ["金融", "科技"],
-                "investment_relevance": relevance
-            })
-        
-        return results
+    def exec(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """执行行业影响分析 - 同步方法"""
+        return asyncio.run(self._exec_async(prep_data))
     
-    async def _batch_analyze(self, client: QwenLLMClient, articles: List[Dict]) -> List[Dict]:
-        """真实AI批量分析文章"""
-        # 构建分析提示词
-        analysis_prompt = """
-请分析以下新闻文章的投资价值：
+    async def _exec_async(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """异步执行行业影响分析"""
+        news_content = prep_data.get("news_content", "")
+        classification = prep_data.get("classification", {})
+        
+        prompt = self._build_industry_analysis_prompt(news_content, classification)
+        
+        try:
+            async with self.llm_client as client:
+                response = await client.chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=800
+                )
+            
+            # 解析行业分析结果
+            industry_analysis = self._parse_industry_response(response.content)
+            
+            logger.info(f"行业分析完成，影响 {len(industry_analysis.get('affected_industries', []))} 个行业")
+            
+            return {
+                "industry_analysis": industry_analysis,
+                "action": "relate_stocks"
+            }
+        
+        except Exception as e:
+            logger.error(f"行业分析失败: {e}")
+            return {
+                "error": str(e),
+                "action": "error"
+            }
+    
+    def post(self, shared_store: Dict[str, Any], prep_data: Dict[str, Any], exec_result: Dict[str, Any]) -> str:
+        """后处理 - 保存结果到共享存储并返回下一步动作"""
+        if "industry_analysis" in exec_result:
+            shared_store["industry_analysis"] = exec_result["industry_analysis"]
+        
+        if "error" in exec_result:
+            shared_store["error"] = exec_result["error"]
+        
+        return exec_result.get("action", "error")
+    
+    def _build_industry_analysis_prompt(self, news_content: str, classification: Dict) -> str:
+        """构建行业分析Prompt"""
+        return f"""你是一个资深的行业分析师。请分析新闻对各行业的影响：
 
-{articles}
+新闻内容：
+{news_content[:2000]}
 
-对每篇文章进行分析，返回JSON格式：
+新闻分类信息：
+- 类型：{classification.get('news_type', '未知')}
+- 重要性：{classification.get('importance_score', 0)}分
+- 涉及实体：{', '.join(classification.get('entities', []))}
+- 情感倾向：{classification.get('sentiment', '中性')}
+
+请分析：
+1. 主要影响行业：最多3个最相关的行业
+2. 影响类型：[利好/利空/中性]
+3. 影响程度：1-10分（10分影响最大）
+4. 影响时间：[短期/中期/长期]
+5. 传导路径：影响如何传递到该行业
+
+中国股市主要行业分类：
+- 科技：人工智能、芯片半导体、软件、互联网、通信
+- 金融：银行、保险、证券、支付、金融科技
+- 医药：生物医药、医疗器械、化学制药、中药
+- 消费：食品饮料、家电、零售、汽车、教育
+- 制造：机械设备、化工、建材、钢铁、有色金属
+- 能源：石油石化、煤炭、新能源、电力、环保
+- 地产：房地产开发、建筑工程、装修装饰
+- 农业：农林牧渔、种业、农业机械
+
+返回JSON格式：
 {{
-  "analyses": [
+  "affected_industries": [
     {{
-      "article_index": 1,
-      "summary": "文章摘要",
-      "key_points": ["要点1", "要点2"],
-      "sentiment": "positive/neutral/negative",
-      "market_impact": "high/medium/low",
-      "affected_sectors": ["行业1", "行业2"],
-      "investment_relevance": 1-10
+      "industry": "行业名称",
+      "impact_type": "利好/利空/中性",
+      "impact_degree": 分数,
+      "time_horizon": "短期/中期/长期",
+      "reasoning": "影响逻辑说明"
+    }}
+  ],
+  "overall_market_impact": "对整体市场的影响评估"
+}}"""
+    
+    def _parse_industry_response(self, response_text: str) -> Dict[str, Any]:
+        """解析行业分析响应"""
+        try:
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
+            
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                return json.loads(json_str)
+            else:
+                raise ValueError("无法找到有效的JSON内容")
+        
+        except Exception as e:
+            logger.error(f"解析行业分析结果失败: {e}")
+            return {
+                "affected_industries": [],
+                "overall_market_impact": "影响未明"
+            }
+
+class StockRelatorAgent(Node):
+    """股票关联器Agent - 根据行业分析获取相关股票"""
+    
+    def __init__(self, llm_client: QwenLLMClient):
+        super().__init__()
+        self.llm_client = llm_client
+        self.stock_factory = StockDataFactory()
+    
+    def prep(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
+        """准备股票关联分析所需的数据"""
+        return {
+            "industry_analysis": shared_store.get("industry_analysis", {}),
+            "shared_store": shared_store
+        }
+    
+    def exec(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """执行股票关联分析 - 同步方法"""
+        return asyncio.run(self._exec_async(prep_data))
+    
+    async def _exec_async(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """异步执行股票关联分析"""
+        industry_analysis = prep_data.get("industry_analysis", {})
+        affected_industries = industry_analysis.get("affected_industries", [])
+        
+        if not affected_industries:
+            logger.warning("没有找到受影响的行业，跳过股票关联")
+            return {
+                "related_stocks": [],
+                "action": "generate_advice"
+            }
+        
+        try:
+            related_stocks = []
+            
+            # 为每个受影响的行业查找相关股票
+            for industry_info in affected_industries:
+                industry_name = industry_info.get("industry", "")
+                impact_type = industry_info.get("impact_type", "中性")
+                impact_degree = industry_info.get("impact_degree", 5)
+                
+                # 使用LLM推荐该行业的代表性股票
+                stocks = await self._get_industry_stocks(industry_name, impact_type, impact_degree)
+                related_stocks.extend(stocks)
+            
+            # 去重并按影响程度排序
+            unique_stocks = self._deduplicate_and_rank_stocks(related_stocks)
+            
+            logger.info(f"股票关联完成，找到 {len(unique_stocks)} 只相关股票")
+            
+            return {
+                "related_stocks": unique_stocks,
+                "action": "generate_advice"
+            }
+        
+        except Exception as e:
+            logger.error(f"股票关联失败: {e}")
+            return {
+                "error": str(e),
+                "action": "error"
+            }
+    
+    def post(self, shared_store: Dict[str, Any], prep_data: Dict[str, Any], exec_result: Dict[str, Any]) -> str:
+        """后处理 - 保存结果到共享存储并返回下一步动作"""
+        if "related_stocks" in exec_result:
+            shared_store["related_stocks"] = exec_result["related_stocks"]
+        
+        if "error" in exec_result:
+            shared_store["error"] = exec_result["error"]
+        
+        return exec_result.get("action", "error")
+    
+    async def _get_industry_stocks(self, industry: str, impact_type: str, impact_degree: int) -> List[Dict]:
+        """获取特定行业的代表性股票"""
+        prompt = f"""请推荐{industry}行业中最具代表性的股票（中国A股市场）：
+
+行业：{industry}
+影响类型：{impact_type}
+影响程度：{impact_degree}分
+
+请推荐3-5只该行业的龙头股票，包括：
+1. 股票代码（6位数字）
+2. 股票名称
+3. 选择理由（为什么是行业代表）
+4. 关联度评分（1-10分）
+
+返回JSON格式：
+{{
+  "stocks": [
+    {{
+      "code": "000001",
+      "name": "平安银行", 
+      "reason": "选择理由",
+      "relevance_score": 9
     }}
   ]
 }}
-"""
-        
-        # 格式化文章文本
-        articles_text = ""
-        for i, article in enumerate(articles, 1):
-            title = article.get("title", "无标题")
-            content = article.get("content", "")[:300]  # 限制内容长度
-            articles_text += f"{i}. {title}\n{content}\n\n"
-        
+
+注意：
+- 只推荐真实存在的A股股票
+- 股票代码必须是6位数字格式
+- 优先推荐市值较大的龙头企业"""
+
         try:
-            # 调用千问API
-            response = await client.chat_completion([
-                {"role": "user", "content": analysis_prompt.format(articles=articles_text)}
-            ], temperature=0.3)
+            async with self.llm_client as client:
+                response = await client.chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2,
+                    max_tokens=600
+                )
             
-            # 解析JSON响应
-            analysis_result = json.loads(response.content)
-            return analysis_result.get("analyses", [])
+            result = self._parse_stocks_response(response.content)
             
+            # 为每只股票添加行业信息
+            stocks = result.get("stocks", [])
+            for stock in stocks:
+                stock["industry"] = industry
+                stock["impact_type"] = impact_type
+                stock["impact_degree"] = impact_degree
+            
+            return stocks
+        
         except Exception as e:
-            logger.error(f"AI分析失败: {e}")
-            # 返回模拟结果作为备用
-            return await self._mock_analyze(articles)
-
-class SentimentAnalysisNode(AsyncNode):
-    """
-    情感评估节点
-    基于AI分析结果进行情感量化和市场影响评估
-    """
+            logger.error(f"获取{industry}行业股票失败: {e}")
+            return []
     
-    async def run_async(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        情感评估处理逻辑
-        
-        Args:
-            data: 包含ai_analysis_results的数据
+    def _parse_stocks_response(self, response_text: str) -> Dict[str, Any]:
+        """解析股票推荐响应"""
+        try:
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
             
-        Returns:
-            情感评估结果
-        """
-        analyses = data.get("ai_analysis_results", [])
-        sentiment_results = []
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                return json.loads(json_str)
+            else:
+                raise ValueError("无法找到有效的JSON内容")
         
-        for analysis in analyses:
-            sentiment_score = self._calculate_sentiment_score(analysis)
-            market_impact_score = self._calculate_market_impact(analysis)
-            
-            sentiment_result = {
-                "article_index": analysis.get("article_index"),
-                "sentiment_score": sentiment_score,  # -10 到 10
-                "market_impact_score": market_impact_score,  # 0 到 10
-                "sentiment_label": self._get_sentiment_label(sentiment_score),
-                "impact_label": analysis.get("market_impact", "low"),
-                "confidence": self._calculate_confidence(analysis)
-            }
-            
-            sentiment_results.append(sentiment_result)
-        
-        # 计算整体情感
-        overall_sentiment = self._calculate_overall_sentiment(sentiment_results)
-        
-        logger.info(f"情感评估完成: {len(sentiment_results)} 篇文章，整体情感: {overall_sentiment}")
-        
-        return {
-            **data,
-            "sentiment_results": sentiment_results,
-            "overall_sentiment": overall_sentiment,
-            "ai_analysis_results": analyses
-        }
+        except Exception as e:
+            logger.error(f"解析股票推荐失败: {e}")
+            return {"stocks": []}
     
-    def _calculate_sentiment_score(self, analysis: Dict) -> float:
-        """计算情感评分"""
-        sentiment = analysis.get("sentiment", "neutral").lower()
-        relevance = analysis.get("investment_relevance", 5)
+    def _deduplicate_and_rank_stocks(self, stocks: List[Dict]) -> List[Dict]:
+        """去重并按影响程度排序股票"""
+        # 按股票代码去重
+        unique_stocks = {}
+        for stock in stocks:
+            code = stock.get("code", "")
+            if code and (code not in unique_stocks or 
+                        stock.get("impact_degree", 0) > unique_stocks[code].get("impact_degree", 0)):
+                unique_stocks[code] = stock
         
-        # 基础情感评分
-        base_scores = {"positive": 6, "neutral": 0, "negative": -6}
-        base_score = base_scores.get(sentiment, 0)
-        
-        # 根据投资相关性调整
-        adjusted_score = base_score * (relevance / 5.0)
-        
-        return max(-10, min(10, adjusted_score))
-    
-    def _calculate_market_impact(self, analysis: Dict) -> float:
-        """计算市场影响评分"""
-        impact = analysis.get("market_impact", "low").lower()
-        relevance = analysis.get("investment_relevance", 5)
-        
-        # 基础影响评分
-        base_scores = {"high": 8, "medium": 5, "low": 2}
-        base_score = base_scores.get(impact, 2)
-        
-        # 根据投资相关性调整
-        adjusted_score = base_score * (relevance / 5.0)
-        
-        return max(0, min(10, adjusted_score))
-    
-    def _get_sentiment_label(self, score: float) -> str:
-        """获取情感标签"""
-        if score > 3:
-            return "积极"
-        elif score < -3:
-            return "消极"
-        else:
-            return "中性"
-    
-    def _calculate_confidence(self, analysis: Dict) -> float:
-        """计算置信度"""
-        relevance = analysis.get("investment_relevance", 5)
-        has_key_points = len(analysis.get("key_points", [])) > 0
-        has_sectors = len(analysis.get("affected_sectors", [])) > 0
-        
-        confidence = relevance / 10.0
-        if has_key_points:
-            confidence += 0.1
-        if has_sectors:
-            confidence += 0.1
-        
-        return min(1.0, confidence)
-    
-    def _calculate_overall_sentiment(self, sentiment_results: List[Dict]) -> Dict[str, Any]:
-        """计算整体市场情感"""
-        if not sentiment_results:
-            return {"score": 0, "label": "中性", "confidence": 0}
-        
-        # 加权平均（根据置信度）
-        total_weight = sum(r["confidence"] for r in sentiment_results)
-        if total_weight == 0:
-            weighted_score = 0
-        else:
-            weighted_score = sum(
-                r["sentiment_score"] * r["confidence"] 
-                for r in sentiment_results
-            ) / total_weight
-        
-        return {
-            "score": round(weighted_score, 2),
-            "label": self._get_sentiment_label(weighted_score),
-            "confidence": total_weight / len(sentiment_results),
-            "article_count": len(sentiment_results)
-        }
-
-class InvestmentAdviceNode(AsyncNode):
-    """
-    投资建议节点
-    基于情感分析结果生成投资建议和风险评估
-    """
-    
-    async def run_async(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        投资建议处理逻辑
-        
-        Args:
-            data: 包含sentiment_results的数据
-            
-        Returns:
-            投资建议结果
-        """
-        sentiment_results = data.get("sentiment_results", [])
-        overall_sentiment = data.get("overall_sentiment", {})
-        
-        # 生成投资建议
-        investment_advice = self._generate_investment_advice(overall_sentiment)
-        
-        # 生成风险评估
-        risk_assessment = self._generate_risk_assessment(sentiment_results)
-        
-        # 生成行业建议
-        sector_recommendations = self._generate_sector_recommendations(
-            data.get("ai_analysis_results", [])
+        # 按影响程度和关联度排序
+        sorted_stocks = sorted(
+            unique_stocks.values(),
+            key=lambda x: (x.get("impact_degree", 0) * x.get("relevance_score", 0)),
+            reverse=True
         )
         
-        logger.info(f"投资建议生成完成: {investment_advice['action']}")
-        
+        # 限制返回数量
+        return sorted_stocks[:10]
+
+class InvestmentAdvisorAgent(Node):
+    """投资建议Agent - 综合分析并提供最终投资建议"""
+    
+    def __init__(self, llm_client: QwenLLMClient):
+        super().__init__()
+        self.llm_client = llm_client
+    
+    def prep(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
+        """准备投资建议生成所需的数据"""
         return {
-            "investment_advice": investment_advice,
-            "risk_assessment": risk_assessment,
-            "sector_recommendations": sector_recommendations,
-            "analysis_summary": {
-                "total_articles": len(sentiment_results),
-                "overall_sentiment": overall_sentiment,
-                "generation_time": datetime.now().isoformat()
+            "classification": shared_store.get("classification", {}),
+            "industry_analysis": shared_store.get("industry_analysis", {}),
+            "related_stocks": shared_store.get("related_stocks", []),
+            "shared_store": shared_store
+        }
+    
+    def exec(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """生成投资建议 - 同步方法"""
+        return asyncio.run(self._exec_async(prep_data))
+    
+    async def _exec_async(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
+        """异步生成投资建议"""
+        classification = prep_data.get("classification", {})
+        industry_analysis = prep_data.get("industry_analysis", {})
+        related_stocks = prep_data.get("related_stocks", [])
+        
+        prompt = self._build_investment_advice_prompt(
+            classification, industry_analysis, related_stocks
+        )
+        
+        try:
+            async with self.llm_client as client:
+                response = await client.chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.4,
+                    max_tokens=1000
+                )
+            
+            # 解析投资建议
+            investment_advice = self._parse_advice_response(response.content)
+            
+            logger.info("投资建议生成完成")
+            
+            return {
+                "investment_advice": investment_advice,
+                "action": "done"
             }
-        }
+        
+        except Exception as e:
+            logger.error(f"生成投资建议失败: {e}")
+            return {
+                "error": str(e),
+                "action": "error"
+            }
     
-    def _generate_investment_advice(self, overall_sentiment: Dict) -> Dict[str, Any]:
-        """生成投资建议"""
-        score = overall_sentiment.get("score", 0)
-        confidence = overall_sentiment.get("confidence", 0)
+    def post(self, shared_store: Dict[str, Any], prep_data: Dict[str, Any], exec_result: Dict[str, Any]) -> str:
+        """后处理 - 保存结果到共享存储并返回下一步动作"""
+        if "investment_advice" in exec_result:
+            shared_store["investment_advice"] = exec_result["investment_advice"]
         
-        # 基于情感评分和置信度生成建议
-        if score > 5 and confidence > 0.7:
-            action = "买入"
-            reason = "市场情感积极，投资机会良好"
-        elif score > 2 and confidence > 0.5:
-            action = "关注"
-            reason = "市场情感偏积极，可考虑逐步建仓"
-        elif score < -5 and confidence > 0.7:
-            action = "减仓"
-            reason = "市场情感消极，建议降低风险敞口"
-        elif score < -2 and confidence > 0.5:
-            action = "谨慎"
-            reason = "市场情感偏消极，建议观望"
-        else:
-            action = "持有"
-            reason = "市场情感中性或信息不足，维持现状"
+        if "error" in exec_result:
+            shared_store["error"] = exec_result["error"]
         
-        return {
-            "action": action,
-            "reason": reason,
-            "confidence_level": confidence,
-            "time_horizon": "短期" if confidence > 0.8 else "中期",
-            "position_size": self._calculate_position_size(score, confidence)
-        }
+        return exec_result.get("action", "done")
     
-    def _generate_risk_assessment(self, sentiment_results: List[Dict]) -> Dict[str, Any]:
-        """生成风险评估"""
-        if not sentiment_results:
-            return {"level": "中", "factors": ["信息不足"], "score": 5}
+    def _build_investment_advice_prompt(self, classification: Dict, 
+                                      industry_analysis: Dict, 
+                                      related_stocks: List[Dict]) -> str:
+        """构建投资建议Prompt"""
+        stocks_info = "\n".join([
+            f"- {stock.get('code', '')} {stock.get('name', '')}: {stock.get('reason', '')}"
+            for stock in related_stocks[:5]
+        ])
         
-        # 计算风险因子
-        volatility = self._calculate_volatility(sentiment_results)
-        negative_ratio = len([r for r in sentiment_results if r["sentiment_score"] < 0]) / len(sentiment_results)
-        low_confidence_ratio = len([r for r in sentiment_results if r["confidence"] < 0.5]) / len(sentiment_results)
-        
-        risk_score = volatility * 3 + negative_ratio * 4 + low_confidence_ratio * 3
-        
-        if risk_score > 7:
-            level = "高"
-            factors = ["市场情感波动大", "负面消息较多", "信息可靠性低"]
-        elif risk_score > 4:
-            level = "中"
-            factors = ["市场情感一般", "存在一定不确定性"]
-        else:
-            level = "低"
-            factors = ["市场情感稳定", "信息相对可靠"]
-        
-        return {
-            "level": level,
-            "score": round(risk_score, 2),
-            "factors": factors,
-            "volatility": volatility,
-            "negative_ratio": negative_ratio
-        }
+        return f"""你是一位资深的投资顾问。请基于以下分析结果提供专业的投资建议：
+
+新闻分类：
+- 类型：{classification.get('news_type', '未知')}
+- 重要性：{classification.get('importance_score', 0)}分
+- 情感倾向：{classification.get('sentiment', '中性')}
+
+行业影响分析：
+{json.dumps(industry_analysis, ensure_ascii=False, indent=2)}
+
+相关股票：
+{stocks_info}
+
+请提供：
+1. 投资建议：[买入/持有/卖出/观望]
+2. 投资逻辑：详细说明投资理由
+3. 风险评估：主要风险点和注意事项
+4. 时间建议：[短期/中期/长期]持有建议
+5. 仓位建议：建议的仓位比例
+6. 止损建议：风险控制措施
+7. 信心指数：1-10分（对这个建议的信心程度）
+
+返回JSON格式：
+{{
+  "recommendation": "买入/持有/卖出/观望",
+  "rationale": "投资逻辑详细说明",
+  "risk_assessment": "风险评估内容",
+  "time_horizon": "短期/中期/长期",
+  "position_size": "仓位建议",
+  "stop_loss": "止损建议",
+  "confidence_level": 分数,
+  "key_factors": ["关键因素1", "关键因素2"],
+  "alternative_scenarios": "其他可能情况分析"
+}}
+
+注意：
+- 建议要具体可操作
+- 必须包含风险提示
+- 考虑当前市场环境
+- 提供客观理性的分析"""
     
-    def _generate_sector_recommendations(self, analyses: List[Dict]) -> List[Dict[str, Any]]:
-        """生成行业建议"""
-        sector_stats = {}
-        
-        for analysis in analyses:
-            sectors = analysis.get("affected_sectors", [])
-            sentiment = analysis.get("sentiment", "neutral")
-            relevance = analysis.get("investment_relevance", 5)
+    def _parse_advice_response(self, response_text: str) -> Dict[str, Any]:
+        """解析投资建议响应"""
+        try:
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
             
-            for sector in sectors:
-                if sector not in sector_stats:
-                    sector_stats[sector] = {"positive": 0, "negative": 0, "total": 0, "relevance_sum": 0}
-                
-                sector_stats[sector]["total"] += 1
-                sector_stats[sector]["relevance_sum"] += relevance
-                
-                if sentiment == "positive":
-                    sector_stats[sector]["positive"] += 1
-                elif sentiment == "negative":
-                    sector_stats[sector]["negative"] += 1
-        
-        # 生成行业建议
-        recommendations = []
-        for sector, stats in sector_stats.items():
-            if stats["total"] == 0:
-                continue
-                
-            positive_ratio = stats["positive"] / stats["total"]
-            avg_relevance = stats["relevance_sum"] / stats["total"]
-            
-            if positive_ratio > 0.6 and avg_relevance > 6:
-                recommendation = "看好"
-            elif positive_ratio > 0.4 and avg_relevance > 4:
-                recommendation = "中性"
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                return json.loads(json_str)
             else:
-                recommendation = "谨慎"
-            
-            recommendations.append({
-                "sector": sector,
-                "recommendation": recommendation,
-                "positive_ratio": positive_ratio,
-                "avg_relevance": avg_relevance,
-                "mention_count": stats["total"]
-            })
+                raise ValueError("无法找到有效的JSON内容")
         
-        # 按相关性和提及次数排序
-        recommendations.sort(key=lambda x: (x["avg_relevance"], x["mention_count"]), reverse=True)
-        
-        return recommendations[:5]  # 返回前5个行业
-    
-    def _calculate_position_size(self, score: float, confidence: float) -> str:
-        """计算建议仓位大小"""
-        if abs(score) > 6 and confidence > 0.8:
-            return "大仓位"
-        elif abs(score) > 3 and confidence > 0.6:
-            return "中仓位"
-        else:
-            return "小仓位"
-    
-    def _calculate_volatility(self, sentiment_results: List[Dict]) -> float:
-        """计算情感波动性"""
-        scores = [r["sentiment_score"] for r in sentiment_results]
-        if len(scores) < 2:
-            return 0
-        
-        avg_score = sum(scores) / len(scores)
-        variance = sum((s - avg_score) ** 2 for s in scores) / len(scores)
-        volatility = variance ** 0.5 / 10  # 标准化到0-1
-        
-        return min(1.0, volatility)
+        except Exception as e:
+            logger.error(f"解析投资建议失败: {e}")
+            return {
+                "recommendation": "观望",
+                "rationale": "分析结果解析失败",
+                "risk_assessment": "存在不确定性",
+                "time_horizon": "短期",
+                "position_size": "谨慎参与",
+                "stop_loss": "及时止损",
+                "confidence_level": 3,
+                "key_factors": [],
+                "alternative_scenarios": "需要进一步分析"
+            }
 
 class NewsAnalysisFlow:
-    """
-    新闻分析主工作流
-    使用PocketFlow实现四层处理流水线
-    """
+    """新闻分析流水线主类"""
     
-    def __init__(self, qwen_client: Optional[QwenLLMClient] = None):
-        # 创建处理节点
-        self.prefilter = PrefilterNode()
-        self.ai_analysis = AIAnalysisNode(qwen_client)
-        self.sentiment_analysis = SentimentAnalysisNode()
-        self.investment_advice = InvestmentAdviceNode()
-    
-    async def analyze_news(self, articles: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def __init__(self, llm_client: QwenLLMClient):
         """
-        分析新闻文章
+        初始化新闻分析流水线
         
         Args:
-            articles: 新闻文章列表
+            llm_client: 千问LLM客户端
+        """
+        self.llm_client = llm_client
+        
+        # 初始化各个Agent
+        self.classifier_agent = NewsClassifierAgent(self.llm_client)
+        self.industry_agent = IndustryAnalyzerAgent(self.llm_client)
+        self.stock_agent = StockRelatorAgent(self.llm_client)
+        self.advisor_agent = InvestmentAdvisorAgent(self.llm_client)
+        
+        # 构建PocketFlow流程
+        self.flow = self._build_flow()
+    
+    def _build_flow(self) -> Flow:
+        """构建PocketFlow工作流程"""
+        # 创建Agent实例
+        self.classifier_agent = NewsClassifierAgent(self.llm_client)
+        self.industry_agent = IndustryAnalyzerAgent(self.llm_client)
+        self.stock_agent = StockRelatorAgent(self.llm_client)
+        self.advisor_agent = InvestmentAdvisorAgent(self.llm_client)
+        
+        # 设置节点连接关系 - 根据action决定下一步
+        # PocketFlow使用字典方式定义路径规则
+        self.classifier_agent.successors = {
+            "analyze_industry": self.industry_agent,
+            "skip": None,  # 跳过分析
+            "error": None  # 错误终止
+        }
+        
+        self.industry_agent.successors = {
+            "relate_stocks": self.stock_agent,
+            "error": None
+        }
+        
+        self.stock_agent.successors = {
+            "generate_advice": self.advisor_agent,
+            "error": None
+        }
+        
+        self.advisor_agent.successors = {
+            "done": None,  # 流程完成
+            "error": None
+        }
+        
+        # 创建Flow，从分类器开始
+        flow = Flow(start=self.classifier_agent)
+        
+        return flow
+    
+    def analyze_news(self, news_content: str, news_id: str = None) -> NewsAnalysisResult:
+        """
+        分析单条新闻
+        
+        Args:
+            news_content: 新闻内容
+            news_id: 新闻ID（可选）
             
         Returns:
-            完整的分析结果
+            新闻分析结果
         """
-        logger.info(f"开始新闻分析工作流，输入文章数: {len(articles)}")
+        start_time = datetime.now()
+        news_id = news_id or f"news_{int(start_time.timestamp())}"
         
-        # 创建PocketFlow流水线
-        flow = AsyncFlow(start=self.prefilter)
-        flow = flow.next(self.ai_analysis)
-        flow = flow.next(self.sentiment_analysis)
-        flow = flow.next(self.investment_advice)
+        # 初始化共享存储
+        shared_store = {
+            "news_content": news_content,
+            "news_id": news_id,
+            "start_time": start_time
+        }
         
-        # 执行工作流
-        input_data = {"articles": articles}
-        result = await flow.run_async(input_data)
+        try:
+            # 执行流水线
+            self.flow.run(shared_store)
+            
+            # 计算处理时间
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            # 计算信心评分
+            confidence_score = self._calculate_confidence_score(shared_store)
+            
+            # 构建结果对象
+            result = NewsAnalysisResult(
+                news_id=news_id,
+                news_content=news_content,
+                classification=shared_store.get("classification", {}),
+                industry_analysis=shared_store.get("industry_analysis", {}),
+                related_stocks=shared_store.get("related_stocks", []),
+                investment_advice=shared_store.get("investment_advice", {}),
+                analysis_time=start_time,
+                confidence_score=confidence_score,
+                processing_time=processing_time
+            )
+            
+            logger.info(f"新闻分析完成: {news_id}, 耗时: {processing_time:.2f}秒")
+            return result
         
-        logger.info("新闻分析工作流完成")
-        return result
+        except Exception as e:
+            logger.error(f"新闻分析流水线执行失败: {e}")
+            # 返回错误结果
+            return NewsAnalysisResult(
+                news_id=news_id,
+                news_content=news_content,
+                classification={},
+                industry_analysis={},
+                related_stocks=[],
+                investment_advice={"recommendation": "观望", "rationale": f"分析失败: {str(e)}"},
+                analysis_time=start_time,
+                confidence_score=0.0,
+                processing_time=(datetime.now() - start_time).total_seconds()
+            )
+    
+    def _calculate_confidence_score(self, shared_store: Dict[str, Any]) -> float:
+        """计算分析结果的信心评分"""
+        try:
+            # 基础分数
+            base_score = 0.5
+            
+            # 分类质量评分
+            classification = shared_store.get("classification", {})
+            if classification.get("importance_score", 0) >= 7:
+                base_score += 0.2
+            
+            # 行业分析质量评分
+            industry_analysis = shared_store.get("industry_analysis", {})
+            affected_industries = industry_analysis.get("affected_industries", [])
+            if len(affected_industries) > 0:
+                avg_impact = sum(ind.get("impact_degree", 0) for ind in affected_industries) / len(affected_industries)
+                if avg_impact >= 7:
+                    base_score += 0.2
+            
+            # 股票关联质量评分
+            related_stocks = shared_store.get("related_stocks", [])
+            if len(related_stocks) >= 3:
+                base_score += 0.1
+            
+            # 投资建议质量评分
+            investment_advice = shared_store.get("investment_advice", {})
+            advice_confidence = investment_advice.get("confidence_level", 0)
+            if advice_confidence >= 7:
+                base_score += 0.2
+            
+            return min(1.0, base_score)
+        
+        except Exception:
+            return 0.5
 
-# 便捷接口
-async def analyze_news_articles(
-    articles: List[Dict[str, Any]], 
-    qwen_client: Optional[QwenLLMClient] = None
-) -> Dict[str, Any]:
+# 便捷函数
+def analyze_single_news(news_content: str, news_id: str = None) -> NewsAnalysisResult:
     """
-    便捷的新闻分析接口
+    快速分析单条新闻的便捷函数
     
     Args:
-        articles: 新闻文章列表
-        qwen_client: 可选的千问客户端
+        news_content: 新闻内容
+        news_id: 新闻ID（可选）
         
     Returns:
-        分析结果
+        新闻分析结果
     """
-    flow = NewsAnalysisFlow(qwen_client)
-    return await flow.analyze_news(articles) 
+    flow = NewsAnalysisFlow()
+    return flow.analyze_news(news_content, news_id) 
