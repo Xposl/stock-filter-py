@@ -23,6 +23,7 @@ from ..llm_clients.qwen_client import QwenLLMClient
 from ..llm_clients.silicon_flow_client import SiliconFlowClient
 from ...data_providers.stock_data_factory import StockDataFactory
 from ...models.news_source import NewsSource
+from ..utils.akshare_industry_provider import get_industry_stocks_from_akshare
 
 logger = logging.getLogger(__name__)
 
@@ -282,56 +283,77 @@ class IndustryAnalyzerAgent(Node):
             }
 
 class StockRelatorAgent(Node):
-    """股票关联器Agent - 根据行业分析获取相关股票"""
+    """股票关联Agent - 根据行业影响分析找出相关股票"""
     
     def __init__(self, llm_client: QwenLLMClient):
         super().__init__()
         self.llm_client = llm_client
-        self.stock_factory = StockDataFactory()
+        self.use_akshare = True  # 🆕 默认使用AKShare数据源
+        self.use_vector_db = False  # 🆕 向量数据库支持（待实现）
     
     def prep(self, shared_store: Dict[str, Any]) -> Dict[str, Any]:
-        """准备股票关联分析所需的数据"""
+        """准备股票关联所需的数据"""
         return {
+            "classification": shared_store.get("classification", {}),
             "industry_analysis": shared_store.get("industry_analysis", {}),
             "shared_store": shared_store
         }
     
     def exec(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
-        """执行股票关联分析 - 同步方法"""
+        """执行股票关联 - 同步方法"""
         return asyncio.run(self._exec_async(prep_data))
     
     async def _exec_async(self, prep_data: Dict[str, Any]) -> Dict[str, Any]:
-        """异步执行股票关联分析"""
+        """异步执行股票关联"""
         industry_analysis = prep_data.get("industry_analysis", {})
-        affected_industries = industry_analysis.get("affected_industries", [])
-        
-        if not affected_industries:
-            logger.warning("没有找到受影响的行业，跳过股票关联")
-            return {
-                "related_stocks": [],
-                "action": "generate_advice"
-            }
         
         try:
-            related_stocks = []
+            # 解析行业影响信息
+            affected_industries = industry_analysis.get("affected_industries", [])
+            if not affected_industries:
+                logger.warning("未找到受影响的行业信息")
+                return {
+                    "related_stocks": [],
+                    "action": "generate_advice"
+                }
             
-            # 为每个受影响的行业查找相关股票
+            # 获取相关股票
+            all_stocks = []
+            
             for industry_info in affected_industries:
-                industry_name = industry_info.get("industry", "")
-                impact_type = industry_info.get("impact_type", "中性")
+                industry = industry_info.get("industry", "")
+                impact_type = industry_info.get("impact_type", "正面")
                 impact_degree = industry_info.get("impact_degree", 5)
                 
-                # 使用LLM推荐该行业的代表性股票
-                stocks = await self._get_industry_stocks(industry_name, impact_type, impact_degree)
-                related_stocks.extend(stocks)
+                if not industry:
+                    continue
+                
+                # 🆕 使用AKShare获取行业股票
+                if self.use_akshare:
+                    stocks = await self._get_industry_stocks_akshare(
+                        industry, impact_type, impact_degree
+                    )
+                else:
+                    # 保留LLM方式作为备用
+                    stocks = await self._get_industry_stocks_llm(
+                        industry, impact_type, impact_degree
+                    )
+                
+                if stocks:
+                    all_stocks.extend(stocks)
+                    logger.info(f"行业 {industry} 获取到 {len(stocks)} 只股票")
             
-            # 去重并按影响程度排序
-            unique_stocks = self._deduplicate_and_rank_stocks(related_stocks)
+            # 去重并排序
+            final_stocks = self._deduplicate_and_rank_stocks(all_stocks)
             
-            logger.info(f"股票关联完成，找到 {len(unique_stocks)} 只相关股票")
+            # 🆕 如果启用向量数据库，添加标签信息
+            if self.use_vector_db:
+                final_stocks = await self._add_vector_tags(final_stocks)
+            
+            logger.info(f"股票关联完成，共获取 {len(final_stocks)} 只股票")
             
             return {
-                "related_stocks": unique_stocks,
+                "related_stocks": final_stocks,
                 "action": "generate_advice"
             }
         
@@ -350,61 +372,47 @@ class StockRelatorAgent(Node):
         if "error" in exec_result:
             shared_store["error"] = exec_result["error"]
         
-        return exec_result.get("action", "error")
+        return exec_result.get("action", "generate_advice")
     
-    async def _get_industry_stocks(self, industry: str, impact_type: str, impact_degree: int) -> List[Dict]:
-        """获取特定行业的代表性股票"""
-        prompt = f"""请推荐{industry}行业中最具代表性的股票（中国A股市场）：
-
-行业：{industry}
-影响类型：{impact_type}
-影响程度：{impact_degree}分
-
-请推荐3-5只该行业的龙头股票，包括：
-1. 股票代码（6位数字）
-2. 股票名称
-3. 选择理由（为什么是行业代表）
-4. 关联度评分（1-10分）
-
-返回JSON格式：
-{{
-  "stocks": [
-    {{
-      "code": "000001",
-      "name": "平安银行", 
-      "reason": "选择理由",
-      "relevance_score": 9
-    }}
-  ]
-}}
-
-注意：
-- 只推荐真实存在的A股股票
-- 股票代码必须是6位数字格式
-- 优先推荐市值较大的龙头企业"""
-
+    async def _get_industry_stocks_akshare(self, industry: str, impact_type: str, impact_degree: int) -> List[Dict]:
+        """🆕 使用AKShare获取行业股票"""
         try:
-            async with self.llm_client as client:
-                response = await client.chat_completion(
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.2,
-                    max_tokens=600
-                )
+            logger.info(f"使用AKShare获取行业股票: {industry}")
+            stocks = await get_industry_stocks_from_akshare(industry, impact_type, impact_degree)
             
-            result = self._parse_stocks_response(response.content)
+            if stocks:
+                logger.info(f"AKShare获取到 {len(stocks)} 只 {industry} 行业股票")
+                return stocks
+            else:
+                logger.warning(f"AKShare未获取到 {industry} 行业股票，切换到LLM方式")
+                # 如果AKShare失败，自动降级到LLM方式
+                return await self._get_industry_stocks_llm(industry, impact_type, impact_degree)
+                
+        except Exception as e:
+            logger.error(f"AKShare获取 {industry} 行业股票失败: {e}")
+            return []
+    
+    async def _add_vector_tags(self, stocks: List[Dict]) -> List[Dict]:
+        """🆕 使用向量数据库为股票添加标签信息"""
+        try:
+            # TODO: 实现向量数据库标签功能
+            # 1. 根据股票代码查询向量数据库
+            # 2. 获取相关标签和相似股票
+            # 3. 添加到股票信息中
             
-            # 为每只股票添加行业信息
-            stocks = result.get("stocks", [])
+            logger.info("向量数据库标签功能尚未实现，跳过")
+            
+            # 现在先添加占位符标签
             for stock in stocks:
-                stock["industry"] = industry
-                stock["impact_type"] = impact_type
-                stock["impact_degree"] = impact_degree
+                stock["vector_tags"] = []
+                stock["similar_stocks"] = []
+                stock["vector_similarity"] = 0.0
             
             return stocks
-        
+            
         except Exception as e:
-            logger.error(f"获取{industry}行业股票失败: {e}")
-            return []
+            logger.error(f"添加向量标签失败: {e}")
+            return stocks
     
     def _parse_stocks_response(self, response_text: str) -> Dict[str, Any]:
         """解析股票推荐响应"""

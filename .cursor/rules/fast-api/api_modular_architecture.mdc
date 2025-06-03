@@ -3,24 +3,132 @@ description:
 globs: 
 alwaysApply: false
 ---
-# FastAPI API模块化架构
+# FastAPI API模块化架构规范
 
 ## 概述
 
-InvestNote-py项目的API层采用模块化设计，将原本的单体[api.py](mdc:api/api.py)文件拆分为多个功能模块，提高代码可维护性和开发效率。
+本文档定义了FastAPI项目中API路由的模块化设计原则，基于InvestNote-py项目的实际经验，重点关注路由职责分离、统一定时任务管理和向后兼容性保证。
+
+## 路由模块化原则
+
+### 1. **职责分离原则** 🔥 核心
+
+#### 业务功能路由 vs 系统管理路由
+```python
+# ✅ 正确：业务功能路由 (ticker.py)
+@router.post("/pages")           # 股票列表查询
+@router.get("/ticker/{market}/{code}")  # 股票详情查看
+
+# ✅ 正确：系统管理路由 (scheduler.py)  
+@router.post("/cron/ticker/{market}/update")  # 定时任务
+@router.post("/cron/news")                    # 定时任务
+@router.get("/cron/news/status")              # 任务状态查询
+```
+
+#### 职责边界清晰定义
+- **数据查询路由**: 专注用户数据获取和展示
+- **定时任务路由**: 专注后台调度和批量处理
+- **管理功能路由**: 专注系统配置和监控
+
+### 2. **统一定时任务管理** 🔄 最新实践
+
+#### 集中式调度管理 (`scheduler.py`)
+```python
+# 所有定时任务统一管理
+@router.post("/cron/ticker/{market}/update")    # 股票数据更新
+@router.post("/cron/news")                      # 新闻抓取
+@router.post("/cron/news/scheduler/start")      # 调度器启动
+@router.post("/cron/news/scheduler/stop")       # 调度器停止
+@router.get("/cron/news/status")                # 状态查询
+```
+
+#### 优势分析
+- **统一监控**: 所有定时任务状态集中查看
+- **配置管理**: crontab文件统一管理定时规则
+- **运维友好**: 减少运维人员记忆负担
+- **错误处理**: 统一的异常处理和日志记录
+
+### 3. **路由迁移最佳实践** ⭐ 重要
+
+#### 迁移步骤
+1. **目标模块添加路由**: 在scheduler.py中添加完整功能
+2. **源模块清理路由**: 从ticker.py中移除迁移的路由
+3. **依赖清理**: 移除不再需要的导入和依赖
+4. **文档更新**: 更新API文档和项目结构说明
+5. **测试验证**: 确保迁移后功能正常
+
+#### 向后兼容保证
+```python
+# ✅ 保持API端点路径不变
+# 迁移前: ticker.py
+@router.post("/cron/ticker/{market}/update")
+
+# 迁移后: scheduler.py  
+@router.post("/cron/ticker/{market}/update")  # 路径保持一致
+```
 
 ## 模块结构
 
 ### 主应用程序
 - **[api.py](mdc:api/api.py)**: FastAPI应用实例，基础路由，中间件，路由模块注册
 
-### 路由模块
-- **[routers/ticker.py](mdc:api/routers/ticker.py)**: 股票数据相关API端点
-- **[routers/news.py](mdc:api/routers/news.py)**: 新闻聚合相关API端点  
-- **[routers/scheduler.py](mdc:api/routers/scheduler.py)**: 定时任务相关API端点
+### 路由模块 🔄 已更新
+- **[routers/ticker.py](mdc:api/routers/ticker.py)**: 股票数据查询API（分页、详情）
+- **[routers/news.py](mdc:api/routers/news.py)**: 新闻聚合API（文章查询、源管理）
+- **[routers/scheduler.py](mdc:api/routers/scheduler.py)**: 统一定时任务API（股票更新、新闻抓取、调度管理）
 
 ### 共享模型
 - **[models.py](mdc:api/models.py)**: API请求/响应的Pydantic模型定义
+
+## 部署和运维集成
+
+### 1. **自动化部署** (`deploy.sh`) 🔄 已更新
+
+#### crontab自动更新策略
+```bash
+# 1. 备份当前crontab
+crontab -l > /tmp/crontab_backup_$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
+
+# 2. 删除旧的相关任务
+crontab -l 2>/dev/null | grep -v "investnote" | crontab - 2>/dev/null || true
+
+# 3. 安装新的crontab
+crontab scripts/crontab
+
+# 4. 验证安装结果
+crontab -l | grep -E "(ticker|news|investnote)" || echo "未找到相关任务"
+```
+
+#### 部署完整性检查
+```bash
+# 容器状态检查
+docker ps | grep -q "investnote"
+
+# API健康检查  
+curl -s http://localhost:8000/health | jq -r .status
+
+# 定时任务验证
+crontab -l | grep -E "(ticker|news)"
+```
+
+### 2. **统一crontab配置** (`scripts/crontab`) 🔄 已更新
+
+#### 任务分类和注释
+```bash
+# ===== 股票数据更新任务 =====
+# 美股：每周二到周六早上6点 (北京时间对应美股收盘后)
+0 6 * * 2-6 curl -X POST http://localhost:8000/investnote/cron/ticker/us/update
+
+# ===== 新闻抓取任务 =====  
+# 新闻抓取：每天早上6点、中午12点、下午6点、晚上10点 (4次/天)
+0 6,12,18,22 * * * curl -X POST http://localhost:8000/investnote/cron/news
+```
+
+#### 最佳实践
+- **时区设置**: 明确设置TZ='Asia/Shanghai'
+- **任务分组**: 用注释分隔不同类型的任务
+- **频率说明**: 注释中说明执行频率的业务逻辑
+- **错误容错**: curl命令增加超时和重试参数
 
 ## 路由模块规范
 
@@ -70,12 +178,40 @@ async def endpoint_function(
 ### API路径保持
 - 拆分前: `/pages` → 拆分后: `/pages` (路径不变)
 - 拆分前: `/news/sources` → 拆分后: `/news/sources` (路径不变)
-- 拆分前: `/cron/news` → 拆分后: `/cron/news` (路径不变)
+- 迁移前: ticker.py中`/cron/ticker/{market}/update` → 迁移后: scheduler.py中相同路径
 
 ### 请求/响应格式
 - 所有API的请求参数格式保持不变
 - 所有API的响应数据结构保持不变
 - HTTP状态码和错误响应格式保持不变
+
+## 架构发展方向
+
+### 1. **微服务准备**
+
+#### 路由模块独立化
+```python
+# 未来可独立为微服务
+ticker_service = {
+    "routes": ["/pages", "/ticker/{market}/{code}"],
+    "dependencies": ["TickerRepository", "DataSourceHelper"]
+}
+
+scheduler_service = {
+    "routes": ["/cron/*"],
+    "dependencies": ["各种Repository", "BackgroundTasks"]
+}
+```
+
+### 2. **API网关集成**
+
+#### 路由注册中心化
+```python
+# api/api.py 作为路由注册中心
+app.include_router(ticker.router, prefix="/investnote", tags=["股票"])
+app.include_router(scheduler.router, prefix="/investnote", tags=["定时任务"])
+app.include_router(news.router, prefix="/investnote", tags=["新闻"])
+```
 
 ## 开发指南
 
@@ -85,14 +221,45 @@ async def endpoint_function(
 3. 使用统一的异常处理模式
 4. 添加适当的类型提示和文档字符串
 
+### 路由迁移指南 🆕
+1. **分析迁移必要性**: 评估路由职责是否符合模块定位
+2. **准备目标模块**: 在目标模块中实现完整功能
+3. **测试新实现**: 确保迁移后功能完整性
+4. **清理源模块**: 移除原路由和不需要的依赖
+5. **更新文档**: 同步更新相关文档和配置
+
 ### 创建新模块
 1. 在`api/routers/`下创建新的路由文件
 2. 定义APIRouter实例
 3. 在主应用中注册路由模块
 4. 更新API文档标签分组
 
-### 测试验证
-- 确保所有现有API端点功能正常
-- 验证API文档自动生成正确
-- 检查路由模块间无循环依赖
-- 测试认证中间件正常工作
+## 规范检查清单
+
+### 路由设计检查
+- [ ] 每个路由模块职责单一清晰
+- [ ] 定时任务集中在scheduler.py管理
+- [ ] API端点路径符合RESTful规范
+- [ ] 向后兼容性得到保证
+
+### 部署集成检查
+- [ ] deploy.sh包含crontab自动更新逻辑
+- [ ] scripts/crontab文件结构清晰有注释
+- [ ] 容器启动和健康检查完整
+- [ ] 错误处理和回滚机制完善
+
+### 文档维护检查
+- [ ] 项目结构文档及时更新
+- [ ] API文档反映最新路由分布
+- [ ] 部署说明包含新的部署流程
+- [ ] Memory Bank记录架构变更
+
+### 测试验证清单
+- [ ] 确保所有现有API端点功能正常
+- [ ] 验证API文档自动生成正确
+- [ ] 检查路由模块间无循环依赖
+- [ ] 测试认证中间件正常工作
+- [ ] 验证crontab任务正确配置
+- [ ] 测试部署脚本完整执行
+
+这种模块化架构确保了FastAPI项目的可维护性、可扩展性和运维友好性，为后续的微服务架构演进奠定了基础。
