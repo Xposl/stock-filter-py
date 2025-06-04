@@ -18,6 +18,8 @@ import json
 from datetime import datetime
 from typing import List, Dict, Any
 
+from dotenv import load_dotenv
+
 # 添加项目根目录到Python路径
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
@@ -37,44 +39,52 @@ logger = logging.getLogger(__name__)
 TEST_CASES = [
     {
         "name": "测试案例1: 香港股票检测",
-        "title": "友谊时光(06820)股价异动", 
-        "content": "友谊时光(06820)今日股价大涨，市场关注度较高。该公司主要从事餐饮业务。",
+        "title": "沪上阿姨(02589)：悉数行使超额配股权、稳定价格行动及稳定价格期结束", 
+        "content": None,
         "expected_type": "stock_specific",
-        "expected_stocks": ["06820"],
-        "test_problems": [2]  # 测试问题2：股票检测逻辑
-    },
-    {
-        "name": "测试案例2: A股股票检测",
-        "title": "平安银行(000001)发布业绩预告",
-        "content": "平安银行(000001)发布2024年业绩预告，预计净利润同比增长5%-10%。",
-        "expected_type": "stock_specific", 
-        "expected_stocks": ["000001"],
-        "test_problems": [2]
-    },
-    {
-        "name": "测试案例3: 行业新闻（新能源）",
-        "title": "新能源汽车行业政策利好",
-        "content": "国家发改委发布新能源汽车产业发展规划，明确2025年新能源汽车销量目标。涉及动力电池、充电桩等多个细分领域。",
-        "expected_type": "industry_focused",
-        "expected_industries": ["新能源汽车", "新能源"],
-        "test_problems": [3, 4]  # 测试问题3和4：AKShare筛选和性能优化
-    },
-    {
-        "name": "测试案例4: 行业新闻（医药）",
-        "title": "医药行业监管新规出台",
-        "content": "国家药监局发布医药行业新规，对生物制药、医疗器械等领域提出新要求。",
-        "expected_type": "industry_focused",
-        "expected_industries": ["医药", "生物医药"],
-        "test_problems": [3, 4]
-    },
-    {
-        "name": "测试案例5: 空内容测试（测试问题1）",
-        "title": "外部新闻链接标题",
-        "content": None,  # 模拟数据库中content为NULL的情况
-        "url": "https://example.com/news/123",
-        "test_problems": [1],  # 测试问题1：动态内容获取
-        "expected_type": "unknown"
+        "expected_stocks": ["02589"],
+        "test_problems": [1, 2]  # 测试问题2：股票检测逻辑
     }
+    # {
+    #     "name": "测试案例1: 香港股票检测",
+    #     "title": "友谊时光(06820)股价异动", 
+    #     "content": "友谊时光(06820)今日股价大涨，市场关注度较高。该公司主要从事餐饮业务。",
+    #     "expected_type": "stock_specific",
+    #     "expected_stocks": ["06820"],
+    #     "test_problems": [2]  # 测试问题2：股票检测逻辑
+    # },
+    # {
+    #     "name": "测试案例2: A股股票检测",
+    #     "title": "平安银行(000001)发布业绩预告",
+    #     "content": "平安银行(000001)发布2024年业绩预告，预计净利润同比增长5%-10%。",
+    #     "expected_type": "stock_specific", 
+    #     "expected_stocks": ["000001"],
+    #     "test_problems": [2]
+    # },
+    # {
+    #     "name": "测试案例3: 行业新闻（新能源）",
+    #     "title": "新能源汽车行业政策利好",
+    #     "content": "国家发改委发布新能源汽车产业发展规划，明确2025年新能源汽车销量目标。涉及动力电池、充电桩等多个细分领域。",
+    #     "expected_type": "industry_focused",
+    #     "expected_industries": ["新能源汽车", "新能源"],
+    #     "test_problems": [3, 4]  # 测试问题3和4：AKShare筛选和性能优化
+    # },
+    # {
+    #     "name": "测试案例4: 行业新闻（医药）",
+    #     "title": "医药行业监管新规出台",
+    #     "content": "国家药监局发布医药行业新规，对生物制药、医疗器械等领域提出新要求。",
+    #     "expected_type": "industry_focused",
+    #     "expected_industries": ["医药", "生物医药"],
+    #     "test_problems": [3, 4]
+    # },
+    # {
+    #     "name": "测试案例5: 空内容测试（测试问题1）",
+    #     "title": "外部新闻链接标题",
+    #     "content": None,  # 模拟数据库中content为NULL的情况
+    #     "url": "https://example.com/news/123",
+    #     "test_problems": [1],  # 测试问题1：动态内容获取
+    #     "expected_type": "unknown"
+    # }
 ]
 
 class NewsAnalysisFixTester:

@@ -7,13 +7,17 @@
 从新闻内容中分类新闻类型并检测相关股票
 """
 
-import json
 import logging
 import re
 import os
 from typing import Dict, Any, List
+
+from dotenv import load_dotenv
 from ...interfaces.node_interface import BaseAnalysisNode
 from ....handler.ticker_handler import TickerHandler
+
+# 加载环境变量
+load_dotenv()
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
