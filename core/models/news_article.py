@@ -6,6 +6,14 @@ from typing import Optional, Union, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 import json
+import logging
+import aiohttp
+import asyncio
+from newspaper import Article
+import requests
+from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 class ArticleStatus(str, Enum):
     """文章状态枚举"""
@@ -20,7 +28,7 @@ class NewsArticleBase(BaseModel):
     title: str = Field(..., description="文章标题")
     url: str = Field(..., description="文章URL")
     url_hash: str = Field(..., description="URL哈希（去重用）")
-    content: Optional[str] = Field(default=None, description="文章正文内容")
+    content: Optional[str] = Field(default=None, description="文章正文内容（数据库中可能为NULL）")
     summary: Optional[str] = Field(default=None, description="文章摘要")
     author: Optional[str] = Field(default=None, description="作者")
     source_id: int = Field(..., description="新闻源ID")
@@ -109,6 +117,171 @@ class NewsArticle(NewsArticleBase):
     updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="更新时间")
     
     model_config = ConfigDict(from_attributes=True)
+    
+    async def get_content_if_missing(self, force_refresh: bool = False) -> Optional[str]:
+        """
+        🔥 动态获取新闻内容（如果数据库中缺失或需要刷新）
+        
+        Args:
+            force_refresh: 是否强制刷新内容，即使已存在
+            
+        Returns:
+            获取到的内容或None
+        """
+        # 如果已有内容且不强制刷新，直接返回
+        if self.content and self.content.strip() and not force_refresh:
+            return self.content
+        
+        logger.info(f"开始获取新闻内容: {self.url}")
+        
+        try:
+            # 方法1: 尝试使用newspaper3k
+            content = await self._fetch_with_newspaper()
+            if content:
+                # 更新当前对象的content字段
+                self.content = content
+                self.word_count = len(content)
+                self.read_time_minutes = max(1, len(content) // 200)
+                logger.info(f"✅ 使用newspaper3k获取内容成功: {len(content)}字符")
+                return content
+            
+            # 方法2: 回退到requests + BeautifulSoup
+            content = await self._fetch_with_requests()
+            if content:
+                self.content = content  
+                self.word_count = len(content)
+                self.read_time_minutes = max(1, len(content) // 200)
+                logger.info(f"✅ 使用requests获取内容成功: {len(content)}字符")
+                return content
+            
+            logger.warning(f"⚠️ 无法获取新闻内容: {self.url}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ 获取新闻内容失败: {self.url} - {e}")
+            return None
+    
+    async def _fetch_with_newspaper(self) -> Optional[str]:
+        """使用newspaper3k获取内容"""
+        try:
+            article = Article(self.url, language='zh')
+            article.download()
+            article.parse()
+            
+            if article.text and len(article.text.strip()) > 100:
+                return article.text.strip()
+            return None
+            
+        except Exception as e:
+            logger.debug(f"newspaper3k获取失败: {e}")
+            return None
+    
+    async def _fetch_with_requests(self) -> Optional[str]:
+        """使用requests + BeautifulSoup获取内容"""
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            
+            # 使用aiohttp异步请求
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self.url, headers=headers, timeout=10) as response:
+                    if response.status == 200:
+                        html = await response.text()
+                        soup = BeautifulSoup(html, 'html.parser')
+                        
+                        # 尝试多种内容提取策略
+                        content = self._extract_content_from_soup(soup)
+                        if content and len(content.strip()) > 100:
+                            return content.strip()
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"requests获取失败: {e}")
+            return None
+    
+    def _extract_content_from_soup(self, soup: BeautifulSoup) -> Optional[str]:
+        """从BeautifulSoup对象中提取文章内容"""
+        try:
+            # 策略1: 尝试常见的文章内容选择器
+            content_selectors = [
+                'article',
+                '.article-content',
+                '.post-content', 
+                '.content',
+                '.main-content',
+                '[class*="content"]',
+                'main',
+                '.article-body',
+                '.post-body'
+            ]
+            
+            for selector in content_selectors:
+                elements = soup.select(selector)
+                if elements:
+                    content = elements[0].get_text(strip=True)
+                    if len(content) > 100:
+                        return content
+            
+            # 策略2: 回退到body中最长的文本段落
+            paragraphs = soup.find_all(['p', 'div'])
+            longest_text = ""
+            for p in paragraphs:
+                text = p.get_text(strip=True)
+                if len(text) > len(longest_text):
+                    longest_text = text
+            
+            if len(longest_text) > 100:
+                return longest_text
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"内容提取失败: {e}")
+            return None
+    
+    def get_analysis_content(self) -> str:
+        """
+        🔥 获取用于分析的内容文本
+        
+        Returns:
+            用于分析的完整文本（标题+摘要+内容）
+        """
+        content_parts = []
+        
+        # 优先级1: 标题（权重最高）
+        if self.title:
+            content_parts.append(f"【标题】{self.title}")
+        
+        # 优先级2: 摘要
+        if self.summary:
+            content_parts.append(f"【摘要】{self.summary}")
+        
+        # 优先级3: 正文内容
+        if self.content:
+            # 限制内容长度，避免token超限
+            content_text = self.content[:3000] if len(self.content) > 3000 else self.content
+            content_parts.append(f"【正文】{content_text}")
+        else:
+            # 如果没有内容，至少使用URL作为参考
+            content_parts.append(f"【来源】{self.url}")
+        
+        # 优先级4: 关键词（如果存在）
+        if self.keywords and isinstance(self.keywords, list):
+            keywords_text = "、".join(self.keywords[:10])  # 取前10个关键词
+            content_parts.append(f"【关键词】{keywords_text}")
+        
+        # 优先级5: 实体信息（如果存在）
+        if self.entities and isinstance(self.entities, list):
+            entities_text = []
+            for entity in self.entities[:5]:  # 取前5个实体
+                if isinstance(entity, dict) and 'name' in entity:
+                    entities_text.append(entity['name'])
+            if entities_text:
+                content_parts.append(f"【实体】{', '.join(entities_text)}")
+        
+        return "\n\n".join(content_parts)
 
 # 用于序列化和反序列化的辅助函数
 def news_article_to_dict(article: Union[NewsArticle, NewsArticleCreate, NewsArticleUpdate]) -> dict:

@@ -1,10 +1,11 @@
 """
 股票数据处理模块 - 负责从各种数据源获取股票列表和详情
 """
+import asyncio
 import logging
 import os
 from time import sleep
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any
 
 from core.models.ticker import Ticker, ticker_to_dict
 from core.utils.data_sources.xueqiu_source import XueqiuTicker
@@ -130,3 +131,46 @@ class TickerHandler:
             except:
                 pass
             return False
+        
+    async def get_ticker_by_code(self, code: str) -> Optional[Ticker]:
+        """
+        根据股票代码获取股票信息
+        
+        Args:
+            code: 股票代码
+            
+        Returns:
+            Ticker对象或None
+        """
+        try:
+            return self.ticker_repository.get_by_code(code)
+        except Exception as e:
+            logger.error(f"获取股票信息失败 {code}: {e}")
+            return None
+    
+    async def get_ticker_data(self, code: str, days: int = 30) -> Optional[List[Dict[str, Any]]]:
+        """
+        获取股票的评分数据
+        
+        Args:
+            code: 股票代码
+            days: 获取多少天的数据
+            
+        Returns:
+            包含评分数据的列表，每个元素包含score等字段
+        """
+        try:
+            # 这里简化实现，实际应该从ticker_score_repository获取数据
+            # 暂时返回空列表，避免阻塞流程
+            logger.debug(f"获取股票评分数据: {code}, {days}天")
+            
+            # TODO: 实现真正的评分数据获取逻辑
+            # from core.service.ticker_score_repository import TickerScoreRepository
+            # score_repo = TickerScoreRepository()
+            # return score_repo.get_scores_by_code(code, days)
+            
+            return []
+        except Exception as e:
+            logger.error(f"获取股票评分数据失败 {code}: {e}")
+            return None
+
