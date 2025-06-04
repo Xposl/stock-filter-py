@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: api/**
 alwaysApply: false
 ---
 # FastAPI API模块化架构规范
@@ -172,18 +172,6 @@ async def endpoint_function(
 - 路由模块间不能相互导入
 - 路由模块不能直接调用Repository
 - 路由模块不能包含业务逻辑代码
-
-## 向后兼容保证
-
-### API路径保持
-- 拆分前: `/pages` → 拆分后: `/pages` (路径不变)
-- 拆分前: `/news/sources` → 拆分后: `/news/sources` (路径不变)
-- 迁移前: ticker.py中`/cron/ticker/{market}/update` → 迁移后: scheduler.py中相同路径
-
-### 请求/响应格式
-- 所有API的请求参数格式保持不变
-- 所有API的响应数据结构保持不变
-- HTTP状态码和错误响应格式保持不变
 
 ## 架构发展方向
 

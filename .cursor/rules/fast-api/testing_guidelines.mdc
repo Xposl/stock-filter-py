@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: tests/**
 alwaysApply: false
 ---
 # FastAPI 测试规范
@@ -24,7 +24,7 @@ alwaysApply: false
 1.  **单元测试 (Unit Tests)**:
     *   测试最小的可测试单元（例如，单个函数、方法或 Pydantic 模型验证器）。
     *   应快速运行且不依赖外部服务（如数据库、网络）。
-    *   对 `crud` 函数、`services` 中的业务逻辑单元、Pydantic 模型的自定义验证器等进行单元测试。
+    *   对 `services` 中的业务逻辑单元、Pydantic 模型的自定义验证器等进行单元测试。
 
 2.  **集成测试 (Integration Tests)**:
     *   测试多个组件之间的交互。

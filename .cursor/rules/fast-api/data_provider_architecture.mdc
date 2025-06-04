@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: core/data_providers/**
 alwaysApply: false
 ---
 # InvestNote-py 数据提供者架构设计

@@ -78,12 +78,19 @@ TEST_CASES = [
 ]
 
 class NewsAnalysisFixTester:
-    """新闻分析修复效果测试器"""
+    """新闻分析修复验证测试器"""
     
     def __init__(self):
         """初始化测试器"""
+        # 🔧 启用测试模式，避免数据库连接问题
+        self.test_mode = True
+        logger.info("🧪 启动测试模式，避免数据库连接问题")
+        
+        # 初始化千问客户端
         self.llm_client = QwenLLMClient()
-        self.analysis_flow = NewsAnalysisFlow(self.llm_client)
+        
+        # 🔧 使用测试模式初始化分析流程，避免数据库连接
+        self.analysis_flow = NewsAnalysisFlow(self.llm_client, test_mode=self.test_mode)
         self.test_results = []
     
     async def run_all_tests(self):

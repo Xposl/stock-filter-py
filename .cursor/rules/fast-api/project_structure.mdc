@@ -73,17 +73,12 @@ alwaysApply: true
 │   │   ├── rss_aggregator.py       # RSS新闻聚合器
 │   │   ├── xueqiu_aggregator.py    # 🔄 重构后的雪球聚合器 (使用抽象层)
 │   │   └── news_aggregator_manager.py
-│   ├── ai_agents/                   # AI代理模块 (新增)
-│   │   └── __init__.py
-│   ├── nlp_utils/                   # NLP工具模块 (新增)
-│   │   └── __init__.py
-│   ├── opportunity_detector/        # 投资机会检测模块 (新增)
+│   ├── ai_agents/                   # AI代理模块
 │   │   └── __init__.py
 │   ├── quantitative_analyzer/       # 量化分析模块 (新增)
 │   │   └── __init__.py
 │   ├── database/                    # 数据库操作工具
 │   │   ├── db_adapter.py           # 数据库适配器 (MySQL/PostgreSQL/SQLite)
-│   │   └── news_db_init.py         # 新闻数据库初始化
 │   ├── auth/                        # 认证授权模块
 │   │   ├── auth_middleware.py      # 认证中间件
 │   │   └── auth_grpc_client.py     # gRPC认证客户端

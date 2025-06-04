@@ -11,6 +11,7 @@ import logging
 from .stock_data_provider import StockDataProvider, StockMarket, DataPeriod, StockDataResponse
 from .akshare_provider import AKShareProvider
 from .xueqiu_provider import XueqiuProvider
+from .akshare_industry_provider import AKShareIndustryProvider
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class StockDataFactory:
         """初始化股票数据工厂"""
         self._providers: List[StockDataProvider] = []
         self._provider_cache: Dict[str, StockDataProvider] = {}
+        self._industry_provider: Optional[AKShareIndustryProvider] = None
         self._initialize_providers()
     
     def _initialize_providers(self):
@@ -36,6 +38,10 @@ class StockDataFactory:
             xueqiu_provider = XueqiuProvider()
             self.add_provider(xueqiu_provider)
             logger.info("已添加雪球数据提供者")
+            
+            # 添加AKShare行业提供者（专门用于行业数据）
+            self._industry_provider = AKShareIndustryProvider()
+            logger.info("已添加AKShare行业数据提供者")
             
         except Exception as e:
             logger.error(f"初始化数据提供者失败: {e}")
@@ -347,6 +353,53 @@ class StockDataFactory:
             }
         return status
 
+    async def get_industry_stocks(self, industry: str, impact_type: str = "positive", 
+                                impact_degree: int = 5, limit: int = 10) -> List[Dict]:
+        """
+        获取特定行业的代表性股票
+        
+        Args:
+            industry: 行业名称
+            impact_type: 影响类型
+            impact_degree: 影响程度 (1-10)
+            limit: 返回股票数量限制
+            
+        Returns:
+            股票列表
+        """
+        if self._industry_provider and self._industry_provider.is_available:
+            try:
+                return await self._industry_provider.get_industry_stocks(
+                    industry, impact_type, impact_degree, limit
+                )
+            except Exception as e:
+                logger.error(f"获取行业股票失败: {e}")
+                return []
+        else:
+            logger.warning("行业数据提供者不可用")
+            return []
+    
+    async def get_all_industry_categories(self) -> Dict[str, List[str]]:
+        """
+        获取全市场的行业分类体系
+        
+        Returns:
+            行业分类字典
+        """
+        if self._industry_provider and self._industry_provider.is_available:
+            try:
+                return await self._industry_provider.get_all_industry_categories()
+            except Exception as e:
+                logger.error(f"获取行业分类失败: {e}")
+                return {}
+        else:
+            logger.warning("行业数据提供者不可用")
+            return {}
+    
+    def get_industry_provider(self) -> Optional[AKShareIndustryProvider]:
+        """获取行业数据提供者"""
+        return self._industry_provider
+
 
 # 全局工厂实例
 _default_factory: Optional[StockDataFactory] = None
@@ -387,5 +440,20 @@ def get_company_info(symbol: str, market: StockMarket = None, provider_name: str
 
 
 def search_stocks(keyword: str, market: StockMarket = None, limit: int = 10, provider_name: str = None) -> StockDataResponse:
-    """搜索股票的便捷函数"""
-    return get_stock_data_factory().search_stocks(keyword, market, limit, provider_name) 
+    """便捷函数：搜索股票"""
+    return get_stock_data_factory().search_stocks(keyword, market, limit, provider_name)
+
+
+# 新增：行业数据获取便捷函数
+async def get_industry_stocks(industry: str, impact_type: str = "positive", 
+                            impact_degree: int = 5, limit: int = 10) -> List[Dict]:
+    """便捷函数：获取行业股票"""
+    return await get_stock_data_factory().get_industry_stocks(industry, impact_type, impact_degree, limit)
+
+async def get_all_industry_categories() -> Dict[str, List[str]]:
+    """便捷函数：获取全市场行业分类"""
+    return await get_stock_data_factory().get_all_industry_categories()
+
+def get_industry_provider() -> Optional[AKShareIndustryProvider]:
+    """便捷函数：获取行业数据提供者"""
+    return get_stock_data_factory().get_industry_provider() 

@@ -2,39 +2,93 @@
 # -*- coding: utf-8 -*-
 
 """
-AI Agents 模块
+AI Agents 主模块
 
-基于PocketFlow框架的AI分析代理系统，专为InvestNote-py新闻分析设计。
-GitHub: https://github.com/The-Pocket/PocketFlow
-
-主要功能：
-- 新闻智能分析和情感识别
-- 投资机会自动检测和评估
-- 股票关联度计算和投资建议
-- 基于向量数据库的语义相似性分析
-
-核心架构：
-- PocketFlow: 100行LLM工作流框架
-- 千问LLM: 阿里云大语言模型服务
-- ChromaDB: 嵌入式向量数据库
-- 四层处理流水线: 预筛选→AI分析→情感评估→投资建议
+基于PocketFlow的AI代理系统，使用重构后的标准化节点、流程和代理管理。
 """
 
-# 导入已存在的模块
-from . import llm_clients
-from . import vector_store
-from . import flow_definitions
-from . import analyzers
-from . import utils
+import logging
 
-__version__ = "1.0.0"
-__author__ = "InvestNote-py Team"
-__framework__ = "PocketFlow v0.0.2"
+logger = logging.getLogger(__name__)
 
+# 🔄 标准化接口
+from .interfaces import BaseAgent, BaseFlow, BaseNode, BaseAnalysisNode
+
+# 🔄 重构后的节点
+from .nodes.analysis.news_classifier_node import NewsClassifierNode
+from .nodes.analysis.stock_analyzer_node import StockAnalyzerNode
+from .nodes.decision.investment_advisor_node import InvestmentAdvisorNode
+
+# 🔄 流程和结果类
+from .flow_definitions.news_analysis_flow import (
+    NewsAnalysisFlow,
+    EnhancedNewsAnalysisResult,
+    analyze_single_news
+)
+
+# 🔄 统一的导出列表
 __all__ = [
-    "llm_clients",
-    "vector_store", 
-    "flow_definitions",
-    "analyzers",
-    "utils"
-] 
+    # 标准化接口
+    "BaseAgent", 
+    "BaseFlow", 
+    "BaseNode", 
+    "BaseAnalysisNode",
+    
+    # 重构后的节点
+    "NewsClassifierNode", 
+    "StockAnalyzerNode", 
+    "InvestmentAdvisorNode",
+    
+    # 流程和结果类
+    "NewsAnalysisFlow",
+    "EnhancedNewsAnalysisResult",
+    "analyze_single_news",
+    
+    # 便捷函数
+    "create_news_analysis_flow",
+    "quick_analyze_news"
+]
+
+# 🔄 版本信息
+__version__ = "2.0.0-refactored"
+__status__ = "🔄 重构版本"
+__author__ = "InvestNote AI Team"
+__description__ = "基于PocketFlow的多Agent新闻分析系统"
+
+# 🔄 模块级别的便捷函数
+def create_news_analysis_flow(llm_client, test_mode: bool = False):
+    """
+    创建新闻分析流程的便捷函数
+    
+    Args:
+        llm_client: LLM客户端实例
+        test_mode: 是否为测试模式，避免数据库连接
+        
+    Returns:
+        NewsAnalysisFlow实例
+    """
+    try:
+        return NewsAnalysisFlow(llm_client, test_mode=test_mode)
+    except Exception as e:
+        logger.error(f"创建新闻分析流程失败: {e}")
+        raise
+
+def quick_analyze_news(news_content: str, news_id: str = None, test_mode: bool = False):
+    """
+    快速分析新闻的便捷函数
+    
+    Args:
+        news_content: 新闻内容
+        news_id: 新闻ID（可选）
+        test_mode: 是否为测试模式，避免数据库连接
+        
+    Returns:
+        分析结果
+    """
+    try:
+        return analyze_single_news(news_content, news_id, test_mode)
+    except Exception as e:
+        logger.error(f"快速新闻分析失败: {e}")
+        raise
+
+logger.info(f"✅ AI Agents模块已加载: {__version__} - {__status__}") 
