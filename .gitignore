@@ -53,3 +53,4 @@ htmlcov/
 .pytest_cache/
 
 test_fix_report_**
+logs/

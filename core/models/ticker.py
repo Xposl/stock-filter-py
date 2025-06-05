@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class TickerBase(BaseModel):
     """Ticker基础模型，包含共有字段"""
-    code: str = Field(..., description="股票代码")
+    code: str = Field(..., description="股票代码，必须包含市场前缀，格式：A股(SH.600000/SZ.000001)、港股(HK.00700)、美股(US.AAPL)")
     name: str = Field(..., description="股票名称")
     group_id: int = Field(default=0, description="组ID")
     type: Optional[int] = Field(default=1, description="类型")

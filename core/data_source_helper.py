@@ -173,12 +173,31 @@ class DataSourceHelper:
                 print("更新数据失败[{id}]{code} {error}".format(id=ticker.id,code=ticker.code,error=str(e)))
             time.sleep(1)
 
-    def get_ticker_code(self,market: str,ticker_code: str):
+    def get_ticker_code(self, market: str, ticker_code: str) -> str:
         """
-        计算股票代码
-        :param market: 市场
-        :param ticker_code: 股票代码
-        :return: 股票代码
+        将原始股票代码转换为系统标准格式（包含市场前缀）
+        
+        Args:
+            market: 市场标识
+                - "zh": 中国A股市场
+                - "hk": 香港股市
+                - "us": 美国股市
+            ticker_code: 原始股票代码（不含前缀）
+                - A股：如 "600000", "000001"
+                - 港股：如 "700", "00700"  
+                - 美股：如 "AAPL", "TSLA"
+                
+        Returns:
+            str: 标准格式的股票代码
+                - A股：SH.600000 或 SZ.000001 (自动判断交易所)
+                - 港股：HK.00700 (自动补零到5位)
+                - 美股：US.AAPL
+                
+        Example:
+            get_ticker_code("zh", "600000")  # 返回 "SH.600000"
+            get_ticker_code("zh", "000001")  # 返回 "SZ.000001"
+            get_ticker_code("hk", "700")     # 返回 "HK.00700"
+            get_ticker_code("us", "AAPL")    # 返回 "US.AAPL"
         """
         code = None
         if market == "hk":
@@ -231,6 +250,25 @@ class DataSourceHelper:
     def get_ticker_data(self, code: str, days: Optional[int]=600) -> tuple[Ticker,List[KLine],List[TickerScore]]:
         """
         获取指定股票数据
+        
+        Args:
+            code: 股票代码，必须包含市场前缀，格式如下：
+                - A股：SH.600000 (上交所) 或 SZ.000001 (深交所)
+                - 港股：HK.00700 (5位数字，不足5位前面补0)
+                - 美股：US.AAPL 
+                注意：不支持纯数字代码，必须包含市场前缀
+            days: 获取的历史数据天数，默认600天
+            
+        Returns:
+            tuple[Ticker, List[KLine], List[TickerScore]]: 
+                - Ticker: 股票基础信息，如果股票不存在则返回None
+                - List[KLine]: K线数据列表
+                - List[TickerScore]: 评分数据列表
+                
+        Example:
+            ticker, kl_data, score_data = helper.get_ticker_data("SH.600000", 250)
+            ticker, kl_data, score_data = helper.get_ticker_data("HK.00700", 180)
+            ticker, kl_data, score_data = helper.get_ticker_data("US.AAPL", 365)
         """
         ticker = TickerRepository().get_by_code(code)
         ticker,kl_data,scoreData =  self._update_ticker(ticker,days)
