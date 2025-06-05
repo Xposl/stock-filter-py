@@ -65,12 +65,16 @@ class TickerScoreHandler:
             return result
         
         # 按照时间排序结果（确保最新数据在最后）
-        result.sort(key=lambda x: x['time_key'])
+        result.sort(key=lambda x: x.time_key)
         
         # 获取最新的一条记录
-        latest_score = result[-1].copy()
+        latest_score = result[-1]
+        
+        # 将TickerScore对象转换为字典格式用于数据库更新
+        from core.models.ticker_score import ticker_score_to_dict
+        latest_score_dict = ticker_score_to_dict(latest_score)
         
         # 只更新最新的一条记录到数据库
-        TickerScoreRepository().update_items(ticker.id, [latest_score])
+        TickerScoreRepository().update_items(ticker.id, [latest_score_dict])
         
         return result

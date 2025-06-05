@@ -453,7 +453,7 @@ class TickerScoreUpdate(Node):
                         'ticker_status': ticker_data.status,
                         'score': latest_score.score if latest_score else None,
                         'score_time': latest_score.time_key if latest_score else None,
-                        'score_version': latest_score.version if latest_score else None,
+                        'score_id': latest_score.id if latest_score else None,
                         'kline_days': len(kl_data) if kl_data else 0,
                         'data_updated': True,
                         'update_timestamp': '2024-01-27'  # 简单的时间戳
