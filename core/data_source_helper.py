@@ -124,7 +124,7 @@ class DataSourceHelper:
                 kLineData[len(kLineData) - 1] = onTimeData
         return time_key, kLineData
 
-    def _update_ticker_data(self,ticker: Ticker, end_date: str, kl_data: List[KLine]):
+    def _update_ticker_data(self,ticker: Ticker, end_date: str, kl_data: List[KLine]) -> tuple[Ticker,List[KLine],List[TickerScore]]:
         """
         更新指定股票的分析数据
         """
@@ -300,7 +300,13 @@ class DataSourceHelper:
             return
         
         ticker,kLineData,scoreData = self._update_ticker(ticker,days)
-        TickerAnalysisHandler().run(ticker,kLineData,scoreData)
+        # 将List[TickerScore]转换为字典列表，供TickerAnalysisHandler使用
+        if scoreData and isinstance(scoreData[0], TickerScore):
+            from core.models.ticker_score import ticker_score_to_dict
+            score_dict_list = [ticker_score_to_dict(score) for score in scoreData]
+        else:
+            score_dict_list = scoreData
+        TickerAnalysisHandler().run(ticker,kLineData,score_dict_list)
 
     
     def analysis_ticker_on_time(self,code: str,days: Optional[int]=600,kLineData=None): 
@@ -308,7 +314,13 @@ class DataSourceHelper:
         分析即时项目数据
         """
         ticker,kLineData,scoreData = self.get_ticker_data_on_time(code,days,kLineData)
-        TickerAnalysisHandler().run(ticker,kLineData,scoreData)
+        # 将List[TickerScore]转换为字典列表，供TickerAnalysisHandler使用
+        if scoreData and isinstance(scoreData[0], TickerScore):
+            from core.models.ticker_score import ticker_score_to_dict
+            score_dict_list = [ticker_score_to_dict(score) for score in scoreData]
+        else:
+            score_dict_list = scoreData
+        TickerAnalysisHandler().run(ticker,kLineData,score_dict_list)
 
     
 

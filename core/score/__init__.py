@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from core.models.ticker import Ticker
+from core.models.ticker_score import TickerScore
 from core.schema.k_line import KLine
 from .normal_score import NormalScore
 from .trend_score import TrendScore
@@ -17,7 +18,7 @@ class Score:
         else:
             self.rule = TrendScore()
 
-    def calculate(self,ticker: Ticker,kl_data: List[KLine],strategyData: Optional[list]=None,indicatorData: Optional[list]=None,valuationData: Optional[list]=None):
+    def calculate(self,ticker: Ticker,kl_data: List[KLine],strategyData: Optional[list]=None,indicatorData: Optional[list]=None,valuationData: Optional[list]=None) -> List[TickerScore]:
         """
         计算评分
         """

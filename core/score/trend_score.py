@@ -4,6 +4,7 @@ from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
 from core.models.ticker import Ticker
+from core.models.ticker_score import TickerScore
 from core.schema.k_line import KLine
 from core.score.base_score import BaseScore
 
@@ -25,7 +26,7 @@ class TrendScore(BaseScore):
         self.min_data_points = 30  # 最小数据点数，用于Z分数计算
         self.time_decay_window = 10  # 时间衰减应用窗口（最近N天的信号权重更高）
 
-    def calculate(self, ticker: Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
+    def calculate(self, ticker: Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None) -> List[TickerScore]:
         """
         计算趋势增强型评分
         
@@ -43,13 +44,20 @@ class TrendScore(BaseScore):
         length = len(kl_data)
         if length == 0:
             print('无数据')
-            return
+            return []
         
         # 初始化结果数组
         result = []
         for i in range(length):
+            # 处理不同数据类型（KLine对象或字典）
+            kline_item = kl_data[i]
+            if hasattr(kline_item, 'time_key'):  # KLine对象
+                time_key = kline_item.time_key
+            else:  # 字典
+                time_key = kline_item.get('time_key', '')
+                
             result.append({
-                'time_key': kl_data[i].time_key,
+                'time_key': time_key,
                 'ma_buy': 0.0,  # 浮点型，表示买入信号强度
                 'ma_sell': 0.0,  # 浮点型，表示卖出信号强度
                 'ma_score': 0.0,
@@ -202,7 +210,37 @@ class TrendScore(BaseScore):
                 normalized = (result[i]['raw_score'] - min_score) / score_range * 100
                 result[i]['score'] = float(format(max(0, min(100, normalized)), '.4f'))
         
-        return result
+        # 将字典列表转换为TickerScore对象列表
+        ticker_scores = []
+        for data in result:
+            # 将趋势相关数据存储在history字段中，以支持未来不同的评分模型
+            history_data = {
+                'raw_score': data.get('raw_score', 0),
+                'z_score': data.get('z_score', 0), 
+                'trend_strength': data.get('trend_strength', 0),
+                'trend_persistence': data.get('trend_persistence', 0),
+                'volume_price_confirm': data.get('volume_price_confirm', 0)
+            }
+            
+            ticker_score = TickerScore(
+                id=0,  # 新建记录，ID由数据库自动生成
+                time_key=data['time_key'] if isinstance(data['time_key'], str) else data['time_key'].strftime('%Y-%m-%d'),
+                ticker_id=tickerId,
+                ma_buy=int(data['ma_buy']),  # 转换为整数
+                ma_sell=int(data['ma_sell']),  # 转换为整数
+                ma_score=data['ma_score'],
+                in_buy=int(data['in_buy']),  # 转换为整数
+                in_sell=int(data['in_sell']),  # 转换为整数
+                in_score=data['in_score'],
+                strategy_buy=data['strategy_buy'],
+                strategy_sell=data['strategy_sell'],
+                strategy_score=data['strategy_score'],
+                score=data['score'],
+                history=history_data  # 将趋势相关数据存储在history中
+            )
+            ticker_scores.append(ticker_score)
+        
+        return ticker_scores
     
     def _calculate_indicator_weights(self, indicator_data: Optional[list]=None, kl_data: Optional[list]=None):
         """
@@ -276,8 +314,16 @@ class TrendScore(BaseScore):
         if not kl_data:
             return [], []
             
-        closes = [item.close for item in kl_data]
-        volumes = [item.volume for item in kl_data]
+        # 处理不同数据类型（KLine对象或字典）
+        closes = []
+        volumes = []
+        for item in kl_data:
+            if hasattr(item, 'close'):  # KLine对象
+                closes.append(item.close)
+                volumes.append(item.volume)
+            else:  # 字典
+                closes.append(item.get('close', 0))
+                volumes.append(item.get('volume', 0))
         
         trend_strength = []
         trend_persistence = []
@@ -340,8 +386,13 @@ class TrendScore(BaseScore):
         factors = [0]  # 第一个点没有前一天数据
         
         for i in range(1, len(kl_data)):
-            price_change = kl_data[i].close - kl_data[i-1].close
-            volume_change = kl_data[i].volume - kl_data[i-1].volume
+            # 处理不同数据类型（KLine对象或字典）
+            if hasattr(kl_data[i], 'close'):  # KLine对象
+                price_change = kl_data[i].close - kl_data[i-1].close
+                volume_change = kl_data[i].volume - kl_data[i-1].volume
+            else:  # 字典
+                price_change = kl_data[i].get('close', 0) - kl_data[i-1].get('close', 0)
+                volume_change = kl_data[i].get('volume', 0) - kl_data[i-1].get('volume', 0)
             
             # 价格上涨且成交量增加是强烈的做多信号 (+1.0)
             if price_change > 0 and volume_change > 0:

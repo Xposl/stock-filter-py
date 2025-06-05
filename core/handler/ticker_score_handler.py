@@ -7,6 +7,7 @@ TickerScore处理程序 - 负责股票评分计算和数据库更新
 
 from typing import List, Optional
 from core.models.ticker import Ticker
+from core.models.ticker_score import TickerScore
 from core.schema.k_line import KLine
 from core.score import Score
 from core.service.ticker_score_repository import TickerScoreRepository
@@ -27,7 +28,7 @@ class TickerScoreHandler:
         if rule is not None:
             self.rule = rule
     
-    def calculate(self, ticker: Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
+    def calculate(self, ticker: Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None) -> List[TickerScore]:
         """
         计算股票评分
         
@@ -43,7 +44,7 @@ class TickerScoreHandler:
         """
         return Score(self.rule).calculate(ticker, kl_data, strategyData, indicatorData, valuationData)
     
-    def update_ticker_score(self, ticker : Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None):
+    def update_ticker_score(self, ticker : Ticker, kl_data: List[KLine], strategyData: Optional[list]=None, indicatorData: Optional[list]=None, valuationData: Optional[list]=None) -> List[TickerScore]:
         """
         更新股票评分
         

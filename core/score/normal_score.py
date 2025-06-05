@@ -1,14 +1,15 @@
-from typing import Optional
+from typing import Optional, List
 from core.indicator import Indicator as Helper
 from core.enum.indicator_group import IndicatorGroup
 import numpy as np
 from scipy import stats
 from core.models.ticker import Ticker
+from core.models.ticker_score import TickerScore
 from core.score.base_score import BaseScore
 
 class NormalScore(BaseScore):
 
-    def calculate(self,ticker: Ticker,kLineData: Optional[list]=None,strategyData: Optional[list]=None,indicatorData: Optional[list]=None,valuationData: Optional[list]=None):
+    def calculate(self,ticker: Ticker,kLineData: Optional[list]=None,strategyData: Optional[list]=None,indicatorData: Optional[list]=None,valuationData: Optional[list]=None) -> List[TickerScore]:
         """
         计算普通评分
         """
@@ -16,16 +17,29 @@ class NormalScore(BaseScore):
         length = len(kLineData)
         if length == 0:
             print('无数据')
-            return
+            return []
         
         result = []
         maTotal = 0
         inTotal = 0
         strategyTotal = len(strategyData)
         for i in range(length):
+            # 处理不同数据类型（KLine对象或字典）
+            kline_item = kLineData[i]
+            if hasattr(kline_item, 'time_key'):  # KLine对象
+                time_key = kline_item.time_key
+                item_id = 0  # KLine对象没有id字段
+            else:  # 字典
+                time_key = kline_item.get('time_key', '')
+                item_id = kline_item.get('id', 0)
+            
+            # 格式化时间键
+            if hasattr(time_key, 'strftime'):
+                time_key = time_key.strftime('%Y-%m-%d')
+                
             result.append({
-                'id': kLineData[i].get('id', 0),  # 使用get方法，如果没有id键则默认为0
-                'time_key': kLineData[i]['time_key'].strftime('%Y-%m-%d') if hasattr(kLineData[i]['time_key'], 'strftime') else kLineData[i]['time_key'],
+                'id': item_id,
+                'time_key': time_key,
                 'ticker_id': tickerId,
                 'ma_buy': 0,
                 'ma_sell': 0,
@@ -111,4 +125,32 @@ class NormalScore(BaseScore):
                 # 将Z-分数转换为百分位数 (0-100)
                 percentile = stats.norm.cdf(z_score) * 100
                 result[i]['score'] = float(format(percentile, '.4f'))
-        return result
+        
+        # 将字典列表转换为TickerScore对象列表
+        ticker_scores = []
+        for data in result:
+            # 将附加数据存储在history字段中
+            history_data = {
+                'raw_score': data.get('raw_score', 0),
+                'z_score': data.get('z_score', 0)
+            }
+            
+            ticker_score = TickerScore(
+                id=data.get('id', 0),
+                time_key=data['time_key'],
+                ticker_id=data['ticker_id'],
+                ma_buy=data['ma_buy'],
+                ma_sell=data['ma_sell'],
+                ma_score=data['ma_score'],
+                in_buy=data['in_buy'],
+                in_sell=data['in_sell'],
+                in_score=data['in_score'],
+                strategy_buy=data['strategy_buy'],
+                strategy_sell=data['strategy_sell'],
+                strategy_score=data['strategy_score'],
+                score=data['score'],
+                history=history_data  # 将附加数据存储在history中
+            )
+            ticker_scores.append(ticker_score)
+        
+        return ticker_scores

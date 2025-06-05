@@ -21,16 +21,6 @@ class TickerBase(BaseModel):
     pb: Optional[float] = Field(default=None, description="市净率")
     total_share: Optional[float] = Field(default=None, description="总股本")
     lot_size: Optional[int] = Field(default=100, description="每手股数")
-
-    # K线相关字段
-    time_key: Optional[str] = Field(default=None, description="时间键")
-    open: Optional[float] = Field(default=None, description="开盘价")
-    close: Optional[float] = Field(default=None, description="收盘价")
-    high: Optional[float] = Field(default=None, description="最高价")
-    low: Optional[float] = Field(default=None, description="最低价")
-    volume: Optional[float] = Field(default=None, description="成交量")
-    turnover: Optional[float] = Field(default=None, description="成交额")
-    turnover_rate: Optional[float] = Field(default=None, description="换手率")
     
     # 日期相关字段
     update_date: Optional[datetime] = Field(default=None, description="更新日期")
@@ -52,16 +42,6 @@ class TickerUpdate(BaseModel):
     lot_size: Optional[int] = Field(default=None, description="每手股数")
     is_deleted: Optional[bool] = Field(default=None, description="是否删除")
     remark: Optional[str] = Field(default=None, description="备注信息")
-    
-    # K线相关字段
-    time_key: Optional[str] = Field(default=None, description="时间键")
-    open: Optional[float] = Field(default=None, description="开盘价")
-    close: Optional[float] = Field(default=None, description="收盘价")
-    high: Optional[float] = Field(default=None, description="最高价")
-    low: Optional[float] = Field(default=None, description="最低价")
-    volume: Optional[float] = Field(default=None, description="成交量")
-    turnover: Optional[float] = Field(default=None, description="成交额")
-    turnover_rate: Optional[float] = Field(default=None, description="换手率")
     
     # 日期相关字段
     update_date: Optional[datetime] = Field(default=None, description="更新日期")
@@ -148,7 +128,7 @@ def dict_to_ticker(data: dict) -> Ticker:
                             processed_data[date_field] = None
     
     # 处理数值字段，确保是正确的类型
-    for float_field in ['open', 'close', 'high', 'low', 'volume', 'turnover', 'turnover_rate']:
+    for float_field in ['pe_forecast', 'pettm', 'pb', 'total_share']:
         if float_field in processed_data and processed_data[float_field] is not None:
             try:
                 processed_data[float_field] = float(processed_data[float_field])
