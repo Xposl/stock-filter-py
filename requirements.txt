@@ -1,4 +1,4 @@
-# InvestNote-py 项目依赖 (2025.06.01 更新)
+# InvestNote-py 项目依赖
 # Python版本要求：>=3.9 (ChromaDB 1.0.12要求)
 # NumPy 2.0兼容性验证通过 ✅
 
