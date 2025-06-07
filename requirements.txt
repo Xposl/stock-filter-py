@@ -83,6 +83,16 @@ isort==5.12.0
 flake8==6.1.0
 mypy==1.7.1
 
+# 额外的代码质量工具
+ruff==0.1.6              # 现代Python linter，速度极快
+bandit==1.7.5            # 安全漏洞检测
+pre-commit==3.6.0        # Git hooks管理
+pylint==3.0.3            # 详细的代码分析
+autopep8==2.0.4          # 自动PEP8格式化
+vulture==2.10            # 死代码检测
+safety==2.3.5            # 依赖安全检查
+pydocstyle==6.3.0        # 文档字符串风格检查
+
 # 监控和日志
 structlog==23.2.0
 prometheus-client==0.19.0

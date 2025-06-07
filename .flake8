@@ -1,0 +1,23 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203,E501,W503,F401
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .eggs,
+    *.egg,
+    htmlcov,
+    logs,
+    memory-bank,
+    proto,
+    migrations,
+    build,
+    dist
+per-file-ignores =
+    __init__.py:F401
+    tests/*:S101,S105,S106
+max-complexity = 10
+import-order-style = google
+application-import-names = core,api

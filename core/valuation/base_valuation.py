@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class BaseValuation(ABC):
     @abstractmethod
     def getKey(self):
@@ -9,4 +10,4 @@ class BaseValuation(ABC):
     @abstractmethod
     def calculate(self, ticker):
         """计算估值，返回估值结果"""
-        pass 
+        pass

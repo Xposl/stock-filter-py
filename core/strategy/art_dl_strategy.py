@@ -1,16 +1,17 @@
 """
 ART双线策略模块
 """
-from typing import List
+
 from core.schema.k_line import KLine
-from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
+from core.utils.utils import UtilsHelper
+
 
 class ArtDLStrategy(BaseStrategy):
     """ART双线策略实现类"""
-    
+
     day_count = 21  # 计算天数
-    multi = 6.3     # 止损倍数
+    multi = 6.3  # 止损倍数
 
     def get_params(self):
         """获取策略参数
@@ -18,10 +19,7 @@ class ArtDLStrategy(BaseStrategy):
         Returns:
             dict: 策略参数字典
         """
-        return {
-            'day_count': self.day_count,
-            'multi': self.multi
-        }
+        return {"day_count": self.day_count, "multi": self.multi}
 
     def set_params(self, param: dict):
         """设置策略参数
@@ -29,8 +27,8 @@ class ArtDLStrategy(BaseStrategy):
         Args:
             param: 参数字典
         """
-        self.day_count = param['day_count'] if 'day_count' in param else self.day_count
-        self.multi = param['multi'] if 'multi' in param else self.multi
+        self.day_count = param["day_count"] if "day_count" in param else self.day_count
+        self.multi = param["multi"] if "multi" in param else self.multi
 
     def get_key(self):
         """获取策略键名
@@ -38,9 +36,9 @@ class ArtDLStrategy(BaseStrategy):
         Returns:
             str: 策略键名
         """
-        return 'ART_DL_strategy'
+        return "ART_DL_strategy"
 
-    def calculate(self, kl_data:List[KLine]):
+    def calculate(self, kl_data: list[KLine]):
         """计算ART双线策略
 
         Args:

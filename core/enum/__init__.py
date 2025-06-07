@@ -5,9 +5,9 @@ from .ticker_k_type import TickerKType
 from .ticker_type import TickerType
 
 __all__ = [
-    'IndicatorGroup',
-    'TickerGroup',
-    'get_group_id_by_code',
-    'TickerKType',
-    'TickerType'
+    "IndicatorGroup",
+    "TickerGroup",
+    "get_group_id_by_code",
+    "TickerKType",
+    "TickerType",
 ]

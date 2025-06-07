@@ -1,37 +1,35 @@
-from typing import List
+
 from core.enum.indicator_group import IndicatorGroup
+from core.indicator.base_indicator import BaseIndicator
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
-from core.indicator.base_indicator import BaseIndicator
+
 
 class EMAIndicator(BaseIndicator):
-    dayCount = 0
-    
-    def __init__(self,dayCount):
-        self.dayCount = dayCount
+    day_count = 0
 
-    def getKey(self):
-        return 'EMA'+str(self.dayCount)+'_indicator'
-    
-    def getGroup(self):
+    def __init__(self, day_count):
+        self.day_count = day_count
+
+    def get_key(self):
+        return "EMA" + str(self.day_count) + "_indicator"
+
+    def get_group(self):
         return IndicatorGroup.BASE
-    
-    def calculate(self,klData: List[KLine]):
-        length = len(klData)
-        closeData = []
-        posData = []
-        for klItem in klData:
-            closeData.append(klItem.close)
-            
-        ma = UtilsHelper().ema(closeData,self.dayCount)
+
+    def calculate(self, kl_data: list[KLine]):
+        length = len(kl_data)
+        close_data = []
+        pos_data = []
+        for kl_item in kl_data:
+            close_data.append(kl_item.close)
+
+        ma = UtilsHelper().ema(close_data, self.day_count)
         for i in range(length):
             if i < 2:
-                posData.append(0)
+                pos_data.append(0)
                 continue
-            close = closeData[i]
-            posData.append(1 if close > ma[i] else (-1 if close < ma[i] else 0))
-        
-        return {
-            'posData': posData,
-            'score': ma[length-1]
-        }
+            close = close_data[i]
+            pos_data.append(1 if close > ma[i] else (-1 if close < ma[i] else 0))
+
+        return {"posData": pos_data, "score": ma[length - 1]}

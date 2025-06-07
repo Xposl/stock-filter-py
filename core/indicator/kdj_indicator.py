@@ -1,65 +1,63 @@
-from typing import List
+
 from core.enum.indicator_group import IndicatorGroup
+from core.indicator.base_indicator import BaseIndicator
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
-from core.indicator.base_indicator import BaseIndicator
+
 
 class KDJIndicator(BaseIndicator):
     P1 = 9
     P2 = 3
     P3 = 3
 
-    def getKey(self):
-        return 'KDJ_indicator'
+    def get_key(self):
+        return "KDJ_indicator"
 
-    def getGroup(self):
+    def get_group(self):
         return IndicatorGroup.POWER
-    
-    def calculate(self,klData: List[KLine]):
-        length = len(klData)
-        closeData = []
-        highData = []
-        lowData = []
-        rsvData = []
-        jData = []
-        posData = []
-        for klItem in klData:
-            highData.append(klItem.high)
-            lowData.append(klItem.low)
-            closeData.append(klItem.close)
 
-        lowestData = UtilsHelper().lowest(lowData,self.P1)
-        highestData = UtilsHelper().highest(highData,self.P1)
+    def calculate(self, kl_data: list[KLine]):
+        length = len(kl_data)
+        close_data = []
+        high_data = []
+        low_data = []
+        rsv_data = []
+        j_data = []
+        pos_data = []
+        for kl_item in kl_data:
+            high_data.append(kl_item.high)
+            low_data.append(kl_item.low)
+            close_data.append(kl_item.close)
+
+        lowest_data = UtilsHelper().lowest(low_data, self.P1)
+        highest_data = UtilsHelper().highest(high_data, self.P1)
 
         for i in range(length):
-            divid = highestData[i]-lowestData[i]
-            rsv = (closeData[i] - lowestData[i])/divid if divid > 0 else 0
+            divid = highest_data[i] - lowest_data[i]
+            rsv = (close_data[i] - lowest_data[i]) / divid if divid > 0 else 0
             rsv = rsv * 100
-            rsvData.append(rsv)
-            
-        kData = UtilsHelper().ma(rsvData,self.P2,1)
-        dData = UtilsHelper().ma(kData,self.P3,1)
- 
+            rsv_data.append(rsv)
+
+        k_data = UtilsHelper().ma(rsv_data, self.P2, 1)
+        d_data = UtilsHelper().ma(k_data, self.P3, 1)
+
         for i in range(length):
-            jValue = 3 * kData[i] - 2 * dData[i]
-            jData.append(jValue)
+            j_value = 3 * k_data[i] - 2 * d_data[i]
+            j_data.append(j_value)
 
             if i < 2:
-                posData.append(0)
+                pos_data.append(0)
                 continue
 
-            if jValue > 100 and kData[i] > 90 and dData[i] > 80:
-                posData.append(-1)
-            elif jValue < 0 and kData[i] < 10 and dData[i] < 20:
-                posData.append(1)
-            elif jValue > kData[i]:
-                posData.append(1)
-            elif jValue < kData[i]:
-                posData.append(-1)
+            if j_value > 100 and k_data[i] > 90 and d_data[i] > 80:
+                pos_data.append(-1)
+            elif j_value < 0 and k_data[i] < 10 and d_data[i] < 20:
+                pos_data.append(1)
+            elif j_value > k_data[i]:
+                pos_data.append(1)
+            elif j_value < k_data[i]:
+                pos_data.append(-1)
             else:
-                posData.append(0)
-        
-        return {
-            'posData': posData,
-            'score': jData[length-1]
-        }
+                pos_data.append(0)
+
+        return {"posData": pos_data, "score": j_data[length - 1]}

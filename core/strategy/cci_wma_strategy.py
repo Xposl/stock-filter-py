@@ -1,18 +1,19 @@
 """
 CCI-WMA策略模块
 """
-from typing import List
+
 from core.schema.k_line import KLine
-from core.utils.utils import UtilsHelper
 from core.strategy.base_strategy import BaseStrategy
+from core.utils.utils import UtilsHelper
+
 
 class CCIWmaStrategy(BaseStrategy):
     """CCI-WMA趋势策略实现类"""
-    
+
     cci_s_len = 13  # 短期CCI长度
     cci_m_len = 21  # 中期CCI长度
     cci_l_len = 34  # 长期CCI长度
-    day_wait = 2    # 等待天数
+    day_wait = 2  # 等待天数
 
     def get_params(self):
         """获取策略参数
@@ -21,10 +22,10 @@ class CCIWmaStrategy(BaseStrategy):
             dict: 策略参数字典
         """
         return {
-            'cci_s_len': self.cci_s_len,
-            'cci_m_len': self.cci_m_len,
-            'cci_l_len': self.cci_l_len,
-            'day_wait': self.day_wait
+            "cci_s_len": self.cci_s_len,
+            "cci_m_len": self.cci_m_len,
+            "cci_l_len": self.cci_l_len,
+            "day_wait": self.day_wait,
         }
 
     def set_params(self, param):
@@ -33,10 +34,10 @@ class CCIWmaStrategy(BaseStrategy):
         Args:
             param: 参数字典
         """
-        self.cci_s_len = param['cci_s_len'] if 'cci_s_len' in param else self.cci_s_len
-        self.cci_m_len = param['cci_m_len'] if 'cci_m_len' in param else self.cci_m_len
-        self.cci_l_len = param['cci_l_len'] if 'cci_l_len' in param else self.cci_l_len
-        self.day_wait = param['day_wait'] if 'day_wait' in param else self.day_wait
+        self.cci_s_len = param["cci_s_len"] if "cci_s_len" in param else self.cci_s_len
+        self.cci_m_len = param["cci_m_len"] if "cci_m_len" in param else self.cci_m_len
+        self.cci_l_len = param["cci_l_len"] if "cci_l_len" in param else self.cci_l_len
+        self.day_wait = param["day_wait"] if "day_wait" in param else self.day_wait
 
     def get_key(self):
         """获取策略键名
@@ -44,9 +45,9 @@ class CCIWmaStrategy(BaseStrategy):
         Returns:
             str: 策略键名
         """
-        return 'CCI_WMA_strategy'
-    
-    def calculate(self, kl_data: List[KLine]):
+        return "CCI_WMA_strategy"
+
+    def calculate(self, kl_data: list[KLine]):
         """计算CCI-WMA策略
 
         Args:
@@ -62,7 +63,7 @@ class CCIWmaStrategy(BaseStrategy):
 
         for kl_item in kl_data:
             close_data.append(kl_item.close)
-            
+
         cci_s = UtilsHelper().cci(kl_data, self.cci_s_len)
         cci_m = UtilsHelper().cci(kl_data, self.cci_m_len)
         cci_l = UtilsHelper().cci(kl_data, self.cci_l_len)
@@ -73,10 +74,18 @@ class CCIWmaStrategy(BaseStrategy):
 
         # 计算趋势停损点
         for i in range(2, len(kl_data)):
-            is_short = -1 if ma_m[i-2] > ma_l[i-2] and ma_m[i-1] <= ma_l[i-1] else stop_data[i-1]
-            is_long = 1 if ma_s[i-2] < ma_m[i-2] and ma_s[i-1] >= ma_m[i-1] else is_short
+            is_short = (
+                -1
+                if ma_m[i - 2] > ma_l[i - 2] and ma_m[i - 1] <= ma_l[i - 1]
+                else stop_data[i - 1]
+            )
+            is_long = (
+                1
+                if ma_s[i - 2] < ma_m[i - 2] and ma_s[i - 1] >= ma_m[i - 1]
+                else is_short
+            )
             stop_data.append(is_long)
-        
+
         status = 0
         for i in range(length):
             # 检查各周期CCI趋势
@@ -96,10 +105,10 @@ class CCIWmaStrategy(BaseStrategy):
 
             if buy:
                 status = 1
-            
+
             if sell:
                 status = -1
-                
+
             pos_data.append(status)
-            
+
         return pos_data

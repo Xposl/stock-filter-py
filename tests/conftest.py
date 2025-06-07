@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Pytest 共享 fixtures 和配置
 为所有测试提供通用的设置和依赖项
 """
 
-import pytest
 import os
 import sys
 from pathlib import Path
 from unittest.mock import Mock
+
+import pytest
 from fastapi.testclient import TestClient
 
 # 添加项目根目录到路径
@@ -24,8 +24,8 @@ os.environ["AUTH_ENABLED"] = "false"
 os.environ["LOG_LEVEL"] = "WARNING"  # 减少测试时的日志输出
 
 # 导入应用
-from api.api import app
-from core.database.db_adapter import DbAdapter
+from api.api import app  # noqa: E402
+from core.database.db_adapter import DbAdapter  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -123,7 +123,7 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--run-slow"):
         # 如果指定运行slow测试，则跳过此配置
         return
-    
+
     skip_slow = pytest.mark.skip(reason="需要 --run-slow 选项运行")
     for item in items:
         if "slow" in item.keywords:
@@ -131,4 +131,4 @@ def pytest_collection_modifyitems(config, items):
 
 
 # 异步测试配置
-pytest_plugins = ["pytest_asyncio"] 
+pytest_plugins = ["pytest_asyncio"]

@@ -1,14 +1,16 @@
-from fastapi import FastAPI, HTTPException, Depends
-from typing import Dict, Any
-from core.auth.auth_middleware import auth_required
 import os
-from fastapi.requests import Request
-from core.service.api_log_repository import ApiLogRepository
-from core.models.api_log import ApiLog
 import traceback as tb
+from typing import Any
+
+from fastapi import Depends, FastAPI
+from fastapi.requests import Request
+
+from core.auth.auth_middleware import auth_required
+from core.models.api_log import ApiLog
+from core.service.api_log_repository import ApiLogRepository
 
 # 导入路由模块
-from .routers import ticker, news, scheduler
+from .routers import news, scheduler, ticker
 
 app = FastAPI(
     title="InvestNote API",
@@ -26,29 +28,27 @@ app.include_router(ticker.router)
 app.include_router(news.router)
 app.include_router(scheduler.router)
 
+
 @app.get("/")
 async def root():
     return {"message": "InvestNote API Service"}
 
+
 @app.get("/health")
 async def health_check():
+    from datetime import datetime
     """健康检查端点，用于Docker健康检查和负载均衡器检查"""
-    return {
-        "status": "healthy",
-        "service": "InvestNote API",
-        "timestamp": "2025-06-02"
-    }
+    return {"status": "healthy", "service": "InvestNote API", "timestamp": str(datetime.now())}
+
 
 @app.get("/me")
-async def get_current_user(current_user: Dict[str, Any] = Depends(auth_required())):
+async def get_current_user(current_user: dict[str, Any] = Depends(auth_required())):
     """获取当前认证用户的信息
-    
+
     需要有效的认证Token
     """
-    return {
-        "status": "success",
-        "data": current_user
-    }
+    return {"status": "success", "data": current_user}
+
 
 @app.middleware("http")
 async def api_log_exception_middleware(request: Request, call_next):
@@ -68,7 +68,7 @@ async def api_log_exception_middleware(request: Request, call_next):
                 method=request.method,
                 params=params,
                 exception=str(e),
-                traceback=tb.format_exc()
+                traceback=tb.format_exc(),
             )
             ApiLogRepository().insert(log)
         except Exception as log_e:

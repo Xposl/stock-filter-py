@@ -1,31 +1,33 @@
-from core.enum.indicator_group import IndicatorGroup
-from core.utils.utils import UtilsHelper
 import pandas as pd
+
+from core.enum.indicator_group import IndicatorGroup
 from core.indicator.base_indicator import BaseIndicator
+from core.utils.utils import UtilsHelper
+
 
 class WMSRIndicator(BaseIndicator):
-    dayCount = 14
-    
-    def __init__(self,dayCount):
-        self.dayCount = dayCount
+    day_count = 14
 
-    def getKey(self):
-        return 'WMSR'+str(self.dayCount)+'_indicator'
-    
-    def getGroup(self):
+    def __init__(self, day_count):
+        self.day_count = day_count
+
+    def get_key(self):
+        return "WMSR" + str(self.day_count) + "_indicator"
+
+    def get_group(self):
         return IndicatorGroup.POWER
-    
-    def calculate(self,klData):
-        length = len(klData)
-        posData = []
+
+    def calculate(self, kl_data):
+        length = len(kl_data)
+        pos_data = []
         data = []
-        Kline = pd.DataFrame(klData)
-        lowestData = UtilsHelper().lowest(Kline['low'].values,self.dayCount)
-        highestData = UtilsHelper().highest(Kline['high'].values,self.dayCount)
-            
+        k_line = pd.DataFrame(kl_data)
+        lowest_data = UtilsHelper().lowest(k_line["low"].values, self.day_count)
+        highest_data = UtilsHelper().highest(k_line["high"].values, self.day_count)
+
         for i in range(length):
-            temp1 = highestData[i] - Kline['close'][i]
-            temp2 = highestData[i] - lowestData[i]
+            temp1 = highest_data[i] - k_line["close"][i]
+            temp2 = highest_data[i] - lowest_data[i]
             wr = -100 * temp1 / temp2 if temp2 > 0 else -100
             data.append(wr)
             status = 0
@@ -33,10 +35,6 @@ class WMSRIndicator(BaseIndicator):
                 status = 1
             elif wr < -50:
                 status = -1
-            posData.append(status)
-            
-        
-        return {
-            'posData': posData,
-            'score': data[length-1]
-        }
+            pos_data.append(status)
+
+        return {"posData": pos_data, "score": data[length - 1]}

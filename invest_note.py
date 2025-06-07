@@ -1,15 +1,18 @@
 #coding=UTF-8
-import sys
 import os
+import sys
+
 import matplotlib
+
+from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
+from core.analysis.strategy_evaluator import StrategyEvaluator
+from core.data_source_helper import DataSourceHelper
+from core.strategy import DEFAULT_STRATEGIES
+
+# 配置matplotlib字体
 matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS', 'Microsoft YaHei', 'STHeiti', 'Heiti TC']
 matplotlib.rcParams['axes.unicode_minus'] = False
-from core.data_source_helper import DataSourceHelper
-from core.score.normal_score import NormalScore
 
-from core.analysis.strategy_evaluator import StrategyEvaluator
-from core.analysis.advanced_backtest_engine import AdvancedBacktestEngine
-from core.strategy import DEFAULT_STRATEGIES
 
 def print_header():
     """打印程序标题"""
@@ -36,9 +39,9 @@ def get_ticker_code():
     print("1. 中国股市 (zh)")
     print("2. 香港股市 (hk)")
     print("3. 美国股市 (us)")
-    
+
     market_choice = input("请输入选择 (1-3): ")
-    
+
     if market_choice == "1":
         market = "zh"
     elif market_choice == "2":
@@ -48,9 +51,9 @@ def get_ticker_code():
     else:
         print("无效选择，默认使用中国股市")
         market = "zh"
-    
+
     ticker_code = input(f"请输入{market}股票代码: ")
-    
+
     code = None
     if market == "hk":
         code = f"HK.{ticker_code.zfill(5)}"
@@ -62,19 +65,19 @@ def get_ticker_code():
             code = f"SH.{code}"
     elif market == "us":
         code = f"US.{ticker_code}"
-    
+
     return code
 
 def analyze_strategies(code, days=250):
     """分析股票的多个策略表现"""
     dataSource = DataSourceHelper()
-    
+
     # 获取K线数据
     kl_data = dataSource.get_kline_data(code, days)
     if kl_data is None or len(kl_data) == 0:
         print(f"无法获取股票 {code} 的K线数据")
         return
-        
+
     # 初始化策略评估器
     evaluator = StrategyEvaluator()
     # 设置回测引擎参数，包括跟踪止损等风险管理参数
@@ -87,22 +90,22 @@ def analyze_strategies(code, days=250):
         slippage_pct=0.001,
         commission_pct=0.0003
     )
-    
+
     # 准备策略列表
     strategies = DEFAULT_STRATEGIES
-    
+
     print(f"\n开始分析股票 {code} 的策略表现...")
     print("-" * 50)
-    
+
     # 评估所有策略
     results = evaluator.evaluate_strategies(strategies, kl_data)
-    
+
     # 打印评估结果
     for strategy_name, result in results.items():
         print(f"\n策略: {strategy_name}")
         metrics = result['backtest_result']['metrics']
         trades = result['backtest_result']['trades']
-        
+
         # 打印策略总体表现
         print("\n策略总体表现:")
         print(f"总评分: {result['rating']['total_score']:.2f}")
@@ -114,18 +117,18 @@ def analyze_strategies(code, days=250):
         print(f"夏普比率: {metrics['sharpe_ratio']:.2f}")
         print(f"索提诺比率: {metrics['sortino_ratio']:.2f}")
         print(f"波动率: {metrics['volatility']:.2%}")
-        
+
         # 打印市场环境分析
         if 'bull' in result['regime_analysis'] and 'bear' in result['regime_analysis']:
             print("\n市场环境分析:")
             print(f"牛市胜率: {result['regime_analysis']['bull']['win_rate']:.2%}")
             print(f"熊市胜率: {result['regime_analysis']['bear']['win_rate']:.2%}")
-        
+
         # 计算总收益和收益率
         total_profit = sum(trade['profit'] for trade in trades)
         initial_capital = evaluator.backtest_engine.initial_capital
         total_return = total_profit / initial_capital if initial_capital > 0 else 0
-        
+
         # 打印交易详情
         print("\n交易记录:")
         print("序号  操作      时间          价格      数量      收益")
@@ -136,12 +139,12 @@ def analyze_strategies(code, days=250):
             direction = "买入" if trade['direction'] == 1 else "卖空"
             print(f"{i:2d}. {direction:6} {entry_date:10} {trade['entry_price']:9.3f} {trade['size']:8d}")
             print(f"    {'平仓':6} {exit_date:10} {trade['exit_price']:9.3f} {trade['size']:8d} {trade['profit']:9.2f}")
-        
+
         print("-" * 60)
         print(f"总收益: {total_profit:,.2f}")
         print(f"收益率: {total_return:.2%}")
         print("-" * 60)
-        
+
         # 检查是否有未平仓交易
         last_equity_point = result['backtest_result']['equity_curve'][-1]
         if last_equity_point['holdings'] != 0:
@@ -158,11 +161,11 @@ def update_batch_tickers():
     print("1. 更新所有股票数据")
     print("2. 更新指定前缀的股票数据")
     print("0. 返回主菜单")
-    
+
     choice = input("请输入选择 (0-2): ")
-    
+
     dataSource = DataSourceHelper()
-    
+
     if choice == "1":
         print("\n开始更新所有股票数据...")
         dataSource.update_all_tickers()
@@ -178,22 +181,22 @@ def update_batch_tickers():
 def run_interactive_mode():
     """运行交互式模式"""
     print_header()
-    
+
     while True:
         print_main_menu()
         choice = input("请输入选择 (0-6): ")
-        
+
         dataSource = DataSourceHelper()
-        
+
         if choice == "0":
             print("谢谢使用，再见！")
             break
-        
+
         elif choice == "1":
             print("\n开始更新股票列表...")
             dataSource.update_ticker_list()
             print("股票列表更新完成")
-            
+
         elif choice == "2":
             code = get_ticker_code()
             if code:
@@ -207,7 +210,7 @@ def run_interactive_mode():
                 print(f"股票 {code} 分析完成")
             else:
                 print("无效的股票代码")
-                
+
         elif choice == "3":
             code = get_ticker_code()
             if code:
@@ -221,10 +224,10 @@ def run_interactive_mode():
                 print(f"股票 {code} 分时分析完成")
             else:
                 print("无效的股票代码")
-                
+
         elif choice == "4":
             update_batch_tickers()
-            
+
         elif choice == "5":
             code = get_ticker_code()
             if code:
@@ -237,7 +240,7 @@ def run_interactive_mode():
                 analyze_strategies(code, days)
             else:
                 print("无效的股票代码")
-        
+
         elif choice == "6":
             from tools.high_score_tickers import print_high_score_tickers
             score_threshold = input("\n请输入评分阈值 (默认75): ")
@@ -245,11 +248,11 @@ def run_interactive_mode():
                 score_threshold = float(score_threshold) if score_threshold.strip() else 75.0
             except ValueError:
                 score_threshold = 75.0
-            
+
             # 询问是否导出到JSON文件
             export_choice = input("\n是否导出到JSON文件? (y/n, 默认n): ").strip().lower()
             export_json = export_choice in ('y', 'yes', '1')
-            
+
             file_path = None
             if export_json:
                 # 询问是否使用自定义文件名
@@ -262,16 +265,16 @@ def run_interactive_mode():
                         file_path = f"output/{filename}"
                         if not file_path.endswith('.json'):
                             file_path += '.json'
-            
+
             print(f"\n获取评分 >= {score_threshold} 的股票列表...")
             json_path = print_high_score_tickers(score_threshold, export_json, file_path)
-            
+
             if json_path:
                 print(f"数据已导出到: {json_path}")
-            
+
         else:
             print("无效选择，请重新输入")
-        
+
         input("\n按回车键继续...")
 
 def run_command_line_mode():
@@ -281,46 +284,46 @@ def run_command_line_mode():
     if sys.argv[1] == '-export-hs' or sys.argv[1] == '--export-high-score':
         # 导入高评分股票模块
         from tools.high_score_tickers import export_high_score_tickers_to_json
-        
+
         # 获取评分阈值参数（如果有）
         threshold = 75.0
         output_path = None
-        
+
         # 解析命令行参数
         if len(sys.argv) > 2 and not sys.argv[2].startswith('-'):
             try:
                 threshold = float(sys.argv[2])
             except ValueError:
                 print(f"警告：无效的评分阈值 '{sys.argv[2]}'，使用默认值 75.0")
-        
+
         # 检查是否指定了输出文件路径
         for i in range(2, len(sys.argv)):
             if sys.argv[i] in ('-o', '--output') and i + 1 < len(sys.argv):
                 output_path = sys.argv[i + 1]
                 break
-        
+
         print(f"获取评分 >= {threshold} 的股票并导出到JSON...")
-        
+
         # 执行导出
         json_path = export_high_score_tickers_to_json(threshold, output_path)
-        
+
         print(f"数据已导出到: {json_path}")
         print(f"文件大小: {os.path.getsize(json_path) / 1024:.2f} KB")
 
     elif sys.argv[1] == '-hs' or sys.argv[1] == '--high-score':
         # 导入高评分股票模块
         from tools.high_score_tickers import print_high_score_tickers
-        
+
         # 获取评分阈值参数（如果有）
         threshold = 75.0
         export_json = False
         file_path = None
-        
+
         # 解析命令行参数
         i = 2
         while i < len(sys.argv):
             arg = sys.argv[i]
-            
+
             # 解析评分阈值
             if not arg.startswith('-') and i == 2:
                 try:
@@ -329,13 +332,13 @@ def run_command_line_mode():
                     print(f"警告：无效的评分阈值 '{arg}'，使用默认值 75.0")
                 i += 1
                 continue
-            
+
             # 解析导出选项
             if arg in ('-e', '--export'):
                 export_json = True
                 i += 1
                 continue
-            
+
             # 解析输出文件路径
             if arg in ('-o', '--output') and i + 1 < len(sys.argv):
                 file_path = sys.argv[i + 1]
@@ -343,31 +346,31 @@ def run_command_line_mode():
                 os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else "output", exist_ok=True)
                 i += 2
                 continue
-            
+
             # 如果参数不匹配任何选项，跳过
             i += 1
-        
+
         print(f"获取评分 >= {threshold} 的股票列表...")
         json_path = print_high_score_tickers(threshold, export_json, file_path)
-        
+
         if json_path:
             print(f"数据已导出到: {json_path}")
-    
+
     elif sys.argv[1] == '-ticker':
         dataSource.update_ticker_list()
 
     elif sys.argv[1] == '-a':
         code = None
         if sys.argv[2] == 'hk':
-            code = 'HK.%s'%sys.argv[3].zfill(5)
+            code = f'HK.{sys.argv[3].zfill(5)}'
         elif sys.argv[2] == 'zh':
             code = sys.argv[3].zfill(6)
             if code.startswith('0') or code.startswith('3'):
-                code  = 'SZ.%s'%code
+                code  = f'SZ.{code}'
             elif code.startswith('6') or code.startswith('7') or code.startswith('9'):
-                code  = 'SH.%s'%code
+                code  = f'SH.{code}'
         elif sys.argv[2] == 'us':
-            code = 'US.%s'%sys.argv[3]
+            code = f'US.{sys.argv[3]}'
 
         if code is not None:
             days = 250
@@ -381,16 +384,16 @@ def run_command_line_mode():
     elif sys.argv[1] == '-ao':
         code = None
         if sys.argv[2] == 'hk':
-            code = 'HK.%s'%sys.argv[3].zfill(5)
+            code = f'HK.{sys.argv[3].zfill(5)}'
         elif sys.argv[2] == 'zh':
             code = sys.argv[3].zfill(6)
             if code.startswith('0') or code.startswith('3'):
-                code  = 'SZ.%s'%code
+                code  = f'SZ.{code}'
             elif code.startswith('6') or code.startswith('7') or code.startswith('9'):
-                code  = 'SH.%s'%code
+                code  = f'SH.{code}'
         elif sys.argv[2] == 'us':
-            code = 'US.%s'%sys.argv[3]
-        
+            code = f'US.{sys.argv[3]}'
+
         if code is not None:
             days = 400
             if len(sys.argv) > 4:
@@ -399,29 +402,29 @@ def run_command_line_mode():
                 except ValueError:
                     pass
             dataSource.analysis_ticker_on_time(code, days)
-    
+
     elif sys.argv[1] == '-all':
         dataSource.update_all_tickers()
-    
+
     elif sys.argv[1] == '-prefix':
         if len(sys.argv) > 2:
             dataSource.update_tickers_start_with(sys.argv[2])
         else:
             print("错误：缺少前缀参数")
-    
+
     elif sys.argv[1] == '-s':
         code = None
         if len(sys.argv) >= 4:
             if sys.argv[2] == 'hk':
-                code = 'HK.%s'%sys.argv[3].zfill(5)
+                code = f'HK.{sys.argv[3].zfill(5)}'
             elif sys.argv[2] == 'zh':
                 code = sys.argv[3].zfill(6)
                 if code.startswith('0') or code.startswith('3'):
-                    code = 'SZ.%s'%code
+                    code = f'SZ.{code}'
                 elif code.startswith('6') or code.startswith('7') or code.startswith('9'):
-                    code = 'SH.%s'%code
+                    code = f'SH.{code}'
             elif sys.argv[2] == 'us':
-                code = 'US.%s'%sys.argv[3]
+                code = f'US.{sys.argv[3]}'
 
             if code is not None:
                 days = 250
@@ -436,10 +439,10 @@ def run_command_line_mode():
         else:
             print("错误：缺少参数")
             print_help()
-            
+
     elif sys.argv[1] == '-h' or sys.argv[1] == '--help':
         print_help()
-    
+
     else:
         print("未知命令，请使用 -h 或 --help 查看帮助")
 
@@ -456,7 +459,7 @@ def print_help():
     print("  -hs, --high-score [阈值] [-e/--export] [-o/--output 文件路径]: 显示高评分股票")
     print("                        [阈值]: 评分阈值，可选，默认75")
     print("                        [-e/--export]: 导出到JSON，可选")
-    print("                        [-o/--output]: 指定导出文件路径，可选") 
+    print("                        [-o/--output]: 指定导出文件路径，可选")
     print("  -export-hs, --export-high-score [阈值] [-o/--output 文件路径]: 将高评分股票导出到JSON")
     print("                        [阈值]: 评分阈值，可选，默认75")
     print("                        [-o/--output]: 指定导出文件路径，可选")

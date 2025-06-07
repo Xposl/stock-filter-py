@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 LLM客户端模块
@@ -7,26 +6,19 @@ LLM客户端模块
 基于OpenAI设计模式实现
 """
 
-from .qwen_client import (
-    # 客户端类
-    QwenClient,
+from .qwen_client import (  # 客户端类; 响应和消息类; 全局客户端获取函数; 便捷函数
     AsyncQwenClient,
+    QwenClient,
     QwenLLMClient,  # 向后兼容别名
-    
-    # 响应和消息类
+    QwenMessage,
     QwenResponse,
     QwenStreamResponse,
-    QwenMessage,
-    
-    # 全局客户端获取函数
-    get_qwen_client,
-    get_async_qwen_client,
-    
-    # 便捷函数
-    chat,
     async_chat,
+    async_stream_chat,
+    chat,
+    get_async_qwen_client,
+    get_qwen_client,
     stream_chat,
-    async_stream_chat
 )
 
 # 硅基流动客户端暂未实现，先注释掉
@@ -38,25 +30,21 @@ from .qwen_client import (
 
 __all__ = [
     # 千问客户端类
-    'QwenClient',
-    'AsyncQwenClient',
-    'QwenLLMClient',  # 向后兼容
-    
+    "QwenClient",
+    "AsyncQwenClient",
+    "QwenLLMClient",  # 向后兼容
     # 响应和消息类
-    'QwenResponse',
-    'QwenStreamResponse', 
-    'QwenMessage',
-    
+    "QwenResponse",
+    "QwenStreamResponse",
+    "QwenMessage",
     # 全局客户端函数
-    'get_qwen_client',
-    'get_async_qwen_client',
-    
+    "get_qwen_client",
+    "get_async_qwen_client",
     # 便捷函数
-    'chat',
-    'async_chat',
-    'stream_chat',
-    'async_stream_chat',
-    
+    "chat",
+    "async_chat",
+    "stream_chat",
+    "async_stream_chat",
     # 硅基流动客户端（暂未实现）
     # 'SiliconFlowClient',
     # 'SiliconFlowResponse',

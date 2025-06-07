@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 新闻源初始化脚本
@@ -15,8 +14,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.handler.news_source_handler import NewsSourceHandler
-from core.models.news_source import NewsSourceType, NewsSourceStatus
+from core.handler.news_source_handler import NewsSourceHandler  # noqa: E402
+from core.models.news_source import NewsSourceStatus, NewsSourceType  # noqa: E402
 
 # 配置日志
 logging.basicConfig(
@@ -145,25 +144,25 @@ async def init_news_sources():
     """初始化新闻源"""
     try:
         logger.info("🚀 开始初始化金融新闻源...")
-        
+
         # 创建新闻源处理器
         handler = NewsSourceHandler()
-        
+
         created_count = 0
         skipped_count = 0
         failed_count = 0
-        
+
         for source_config in FINANCIAL_NEWS_SOURCES:
             try:
                 logger.info(f"处理新闻源: {source_config['name']}")
-                
+
                 # 检查是否已存在
                 existing = await handler.get_news_source_by_name(source_config['name'])
                 if existing:
                     logger.info(f"  ⏭️  已存在，跳过: {source_config['name']}")
                     skipped_count += 1
                     continue
-                
+
                 # 创建新闻源
                 result = await handler.create_news_source(source_config)
                 if result:
@@ -172,23 +171,23 @@ async def init_news_sources():
                 else:
                     logger.error(f"  ❌ 创建失败: {source_config['name']}")
                     failed_count += 1
-                    
+
             except Exception as e:
                 logger.error(f"  ❌ 处理新闻源失败 {source_config['name']}: {e}")
                 failed_count += 1
                 continue
-        
+
         # 输出统计信息
-        logger.info(f"\n📊 初始化完成统计:")
+        logger.info("\n📊 初始化完成统计:")
         logger.info(f"  ✅ 新创建: {created_count} 个")
         logger.info(f"  ⏭️  已存在: {skipped_count} 个")
         logger.info(f"  ❌ 失败: {failed_count} 个")
         logger.info(f"  📝 总计: {len(FINANCIAL_NEWS_SOURCES)} 个")
-        
+
         # 显示活跃源统计
         active_sources = await handler.get_active_news_sources()
         logger.info(f"  🔄 当前活跃源: {len(active_sources)} 个")
-        
+
         return {
             "created": created_count,
             "skipped": skipped_count,
@@ -196,7 +195,7 @@ async def init_news_sources():
             "total": len(FINANCIAL_NEWS_SOURCES),
             "active": len(active_sources)
         }
-        
+
     except Exception as e:
         logger.error(f"初始化新闻源异常: {e}")
         return None
@@ -205,26 +204,26 @@ async def list_current_sources():
     """列出当前数据库中的新闻源"""
     try:
         logger.info("\n📋 当前数据库中的新闻源:")
-        
+
         handler = NewsSourceHandler()
         sources = await handler.get_all_news_sources(limit=100)
-        
+
         if not sources:
             logger.info("  (无新闻源)")
             return
-        
+
         for source in sources:
             status_emoji = "🟢" if source.status == NewsSourceStatus.ACTIVE else "🔴"
             type_emoji = "📡" if source.source_type == NewsSourceType.RSS else "🔗"
-            
+
             logger.info(f"  {status_emoji} {type_emoji} [{source.id:2d}] {source.name}")
             logger.info(f"      类型: {source.source_type.value} | 状态: {source.status.value}")
             logger.info(f"      URL: {source.url}")
             logger.info(f"      抓取间隔: {source.update_frequency}秒 | 最大文章数: {source.max_articles_per_fetch}")
             logger.info("")
-        
+
         logger.info(f"总计: {len(sources)} 个新闻源")
-        
+
     except Exception as e:
         logger.error(f"列出新闻源失败: {e}")
 
@@ -236,11 +235,11 @@ async def main():
     else:
         # 初始化新闻源
         result = await init_news_sources()
-        
+
         if result:
             # 列出当前源
             await list_current_sources()
-            
+
             logger.info("\n🎉 新闻源初始化完成!")
             logger.info("💡 提示:")
             logger.info("  - RSS类型的源可以直接使用")
@@ -250,4 +249,4 @@ async def main():
             logger.error("❌ 新闻源初始化失败!")
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

@@ -5,44 +5,43 @@ from core.utils.utils import UtilsHelper
 from core.indicator.base_indicator import BaseIndicator
 
 class MACDIndicator(BaseIndicator):
-    difCount = 12
-    dayCount = 26
+    dif_count = 12
+    day_count = 26
     m = 9
     
-    def __init__(self,difCount,dayCount,m):
-        self.difCount = difCount
-        self.dayCount = dayCount
+    def __init__(self, dif_count, day_count, m):
+        self.dif_count = dif_count
+        self.day_count = day_count
         self.m = m
 
-    def getKey(self):
-        return 'MACD('+str(self.difCount)+','+str(self.dayCount)+')_indicator'
+    def get_key(self):
+        return 'MACD('+str(self.dif_count)+','+str(self.day_count)+')_indicator'
     
-    def getGroup(self):
+    def get_group(self):
         return IndicatorGroup.POWER
     
-    def calculate(self,klData: List[KLine]):
-        length = len(klData)
-        closeData = []
+    def calculate(self, kl_data: List[KLine]):
+        length = len(kl_data)
+        close_data = []
         dif = []
         macd = []
-        posData = []
-        for klItem in klData:
-            closeData.append(klItem.close)
+        pos_data = []
+        for kl_item in kl_data:
+            close_data.append(kl_item.close)
             
-        emaS = UtilsHelper().ema(closeData,self.difCount)
-        emaL = UtilsHelper().ema(closeData,self.dayCount)
+        ema_s = UtilsHelper().ema(close_data, self.dif_count)
+        ema_l = UtilsHelper().ema(close_data, self.day_count)
         
         for i in range(length):
-            dif.append(emaS[i] - emaL[i])
+            dif.append(ema_s[i] - ema_l[i])
         
-        emaDif =  UtilsHelper().ema(dif,self.m)
-
+        ema_dif = UtilsHelper().ema(dif, self.m)
 
         for i in range(length):
-            macd.append((dif[i] - emaDif[i])*2)
-            posData.append(1 if macd[i] > 0 else (-1 if macd[i] < 0 else 0))
+            macd.append((dif[i] - ema_dif[i])*2)
+            pos_data.append(1 if macd[i] > 0 else (-1 if macd[i] < 0 else 0))
 
         return {
-            'posData': posData,
+            'posData': pos_data,
             'score': macd[length-1]
         }

@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional
+
 
 @dataclass
 class XueqiuZhCompany:
     """
     沪深公司详情
     """
+
     org_id: Optional[str]
     org_name_cn: Optional[str]
     org_short_name_cn: Optional[str]
@@ -45,14 +47,17 @@ class XueqiuZhCompany:
     pe_after_issuing: Optional[str]
     online_success_rate_of_issue: Optional[str]
 
-def xueqiu_zh_company_from_dict(data: Dict) -> XueqiuZhCompany:
+
+def xueqiu_zh_company_from_dict(data: dict) -> XueqiuZhCompany:
     return XueqiuZhCompany(**data)
+
 
 @dataclass
 class XueqiuHkCompany:
     """
     港股公司详情
     """
+
     comunic: Optional[str]
     comcnname: Optional[str]
     comenname: Optional[str]
@@ -74,14 +79,17 @@ class XueqiuHkCompany:
     lsdateipo: Optional[str]
     mainholder: Optional[str]
 
-def xueqiu_hk_company_from_dict(data: Dict) -> XueqiuHkCompany:
+
+def xueqiu_hk_company_from_dict(data: dict) -> XueqiuHkCompany:
     return XueqiuHkCompany(**data)
+
 
 @dataclass
 class XueqiuUsCompany:
     """
     美股公司详情
     """
+
     org_id: Optional[str]
     org_name_cn: Optional[str]
     org_short_name_cn: Optional[str]
@@ -117,5 +125,6 @@ class XueqiuUsCompany:
     total_raise_capital: Optional[str]
     mainholder: Optional[str]
 
-def xueqiu_us_company_from_dict(data: Dict) -> XueqiuUsCompany:
+
+def xueqiu_us_company_from_dict(data: dict) -> XueqiuUsCompany:
     return XueqiuUsCompany(**data)

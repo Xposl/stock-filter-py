@@ -1,44 +1,47 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from core.enum.indicator_group import IndicatorGroup
+from core.indicator.base_indicator import BaseIndicator
 from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
-from core.indicator.base_indicator import BaseIndicator
+
 
 class BullBearPowerIndicator(BaseIndicator):
-    dayCount = 50
-    atrDay = 5
+    day_count = 50
+    atr_day = 5
 
-    def getKey(self) -> str:
-        return 'BUll_BEAR_POWER_indicator'
+    def get_key(self) -> str:
+        return "BUll_BEAR_POWER_indicator"
 
-    def getGroup(self) -> IndicatorGroup:
+    def get_group(self) -> IndicatorGroup:
         return IndicatorGroup.POWER
-    
-    def calculate(self,klData: List[KLine]) -> Dict[str, Any]:
+
+    def calculate(self, kl_data: list[KLine]):
         """
         计算指标
         """
-        length = len(klData)
-        closeData = []
-        highData = []
-        lowData = []
-        posData = []
-        for klItem in klData:
-            highData.append(klItem.high)
-            lowData.append(klItem.low)
-            closeData.append(klItem.close)
-        
-        atrData = UtilsHelper().ratr(klData,self.atrDay)
-        lowestData = UtilsHelper().lowest(lowData,self.dayCount)
-        highestData = UtilsHelper().highest(highData,self.dayCount)
-        
+        length = len(kl_data)
+        close_data = []
+        high_data = []
+        low_data = []
+        pos_data = []
+        for kl_item in kl_data:
+            high_data.append(kl_item.high)
+            low_data.append(kl_item.low)
+            close_data.append(kl_item.close)
+
+        atr_data = UtilsHelper().ratr(kl_data, self.atr_day)
+        lowest_data = UtilsHelper().lowest(low_data, self.day_count)
+        highest_data = UtilsHelper().highest(high_data, self.day_count)
+
         score = 0
         for i in range(length):
-            bullTrend = (closeData[i] - lowestData[i])/atrData[i] if atrData[i] > 0 else 0
-            bearTrend = (highestData[i] - closeData[i])/atrData[i] if atrData[i] > 0 else 0
-            score = bullTrend - bearTrend
-            posData.append(1 if score > 0 else (-1 if score < 0 else 0))
-        return {
-            'posData': posData,
-            'score': score
-        }
+            bull_trend = (
+                (close_data[i] - lowest_data[i]) / atr_data[i] if atr_data[i] > 0 else 0
+            )
+            bear_trend = (
+                (highest_data[i] - close_data[i]) / atr_data[i] if atr_data[i] > 0 else 0
+            )
+            score = bull_trend - bear_trend
+            pos_data.append(1 if score > 0 else (-1 if score < 0 else 0))
+        return {"posData": pos_data, "score": score}

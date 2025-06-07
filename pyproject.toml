@@ -1,0 +1,145 @@
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | __pycache__
+  | htmlcov
+  | logs
+  | memory-bank
+  | proto
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["core", "api"]
+known_third_party = ["fastapi", "pandas", "numpy", "matplotlib", "sqlalchemy"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+
+# 排除一些目录
+exclude = [
+    "^htmlcov/",
+    "^logs/",
+    "^memory-bank/",
+    "^proto/",
+    "^__pycache__/",
+    "^tests/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["core", "api"]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/logs/*",
+    "*/htmlcov/*",
+    "*/memory-bank/*",
+    "*/proto/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "N",  # pep8-naming
+    "S",  # bandit
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "S101",  # use of assert
+    "S104",  # hardcoded bind all interfaces
+    "S105",  # hardcoded password string
+    "S106",  # hardcoded password function argument
+    "S107",  # hardcoded password default argument
+    "S110",  # try-except-pass - acceptable for graceful error handling
+    "S112",  # try-except-continue - acceptable for processing loops
+    "S310",  # URL open - acceptable for legitimate web requests
+    "S311",  # standard pseudo-random generators - acceptable for non-crypto use
+    "S323",  # unverified SSL context - acceptable for specific use cases
+    "S324",  # MD5 hash - acceptable for non-cryptographic use (URL hashing)
+    "S603",  # subprocess - acceptable for controlled subprocess calls
+    "S608",  # SQL injection - using parameterized queries properly
+    "N999",  # invalid module name - project directory contains hyphen
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["S101", "S105", "S106"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "htmlcov", "logs", "memory-bank", "proto"]
+skips = ["B101", "B601"]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"

@@ -21,7 +21,7 @@ def get_python_executable():
     venv_path = os.path.join(PROJECT_ROOT, ".venv", "bin", "python")
     if os.path.exists(venv_path):
         return venv_path
-    
+
     # 如果没有虚拟环境，使用当前的 Python
     return sys.executable
 
@@ -57,12 +57,12 @@ def generate_grpc_code():
         if not install_grpc_tools():
             print("错误: 无法安装必要的 grpc_tools 依赖")
             return False
-    
+
     ensure_dir(GRPC_OUT_DIR)
-    
+
     python_exec = get_python_executable()
     print(f"使用 Python: {python_exec}")
-    
+
     # 遍历所有proto文件
     for root, _, files in os.walk(PROTO_DIR):
         for file in files:
@@ -82,10 +82,10 @@ def generate_grpc_code():
                 except subprocess.CalledProcessError as e:
                     print(f"生成 {proto_file} 失败: {e}")
                     return False
-    
+
     # 修正导入路径问题，将生成的代码中的导入路径调整为相对路径
     fix_grpc_imports()
-    
+
     print("gRPC代码生成完成!")
     return True
 
@@ -97,14 +97,14 @@ def fix_grpc_imports():
                 file_path = os.path.join(root, file)
                 try:
                     # 读取文件内容
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, encoding='utf-8') as f:
                         content = f.read()
-                    
+
                     # 替换导入路径
                     # 例如: from auth import CurrentUser_pb2 -> from core.grpc.auth import CurrentUser_pb2
                     if 'from auth import' in content:
                         content = content.replace('from auth import', 'from core.grpc.auth import')
-                    
+
                     # 写回文件
                     with open(file_path, 'w', encoding='utf-8') as f:
                         f.write(content)

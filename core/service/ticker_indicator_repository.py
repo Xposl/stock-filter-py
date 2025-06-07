@@ -1,38 +1,41 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import logging
 import os
-from typing import List, Dict, Any, Optional
+from typing import Any, Optional
 
 from core.database.db_adapter import DbAdapter
 from core.indicator import Indicator
+from core.models.ticker_indicator import TickerIndicator as TickerIndicatorModel
 from core.models.ticker_indicator import (
-    TickerIndicator as TickerIndicatorModel,
     TickerIndicatorCreate,
     TickerIndicatorUpdate,
+    dict_to_ticker_indicator,
     ticker_indicator_to_dict,
-    dict_to_ticker_indicator
 )
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # 获取占位符类型
-DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
-PLACEHOLDER = '?' if DB_TYPE == 'sqlite' else '%s'
+DB_TYPE = os.getenv("DB_TYPE", "sqlite").lower()
+PLACEHOLDER = "?" if DB_TYPE == "sqlite" else "%s"
+
 
 class TickerIndicatorRepository:
     """
     使用Pydantic模型的TickerIndicator仓库类
     """
-    table = 'ticker_indicator'
+
+    table = "ticker_indicator"
 
     def __init__(self, db_connection: Optional[Any] = None):
         """
         初始化TickerIndicator仓库
-        
+
         Args:
             db_connection: 可选的数据库连接，如果未提供将使用DbAdapter创建新连接
         """
@@ -40,11 +43,13 @@ class TickerIndicatorRepository:
             self.db = db_connection
         else:
             self.db = DbAdapter()
-        
+
         # 指标工具类
         self.indicator_helper = Indicator()
 
-    def get_items_by_ticker_id(self, ticker_id: int, kl_type: str) -> List[TickerIndicatorModel]:
+    def get_items_by_ticker_id(
+        self, ticker_id: int, kl_type: str
+    ) -> list[TickerIndicatorModel]:
         """根据股票ID和K线类型获取所有指标记录
 
         Args:
@@ -56,14 +61,17 @@ class TickerIndicatorRepository:
         """
         try:
             # 使用指标键名，不再需要联表查询
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} and kl_type = {PLACEHOLDER}"
+            sql = f"SELECT * FROM {
+                self.table} WHERE ticker_id = {PLACEHOLDER} and kl_type = {PLACEHOLDER}"
             results = self.db.query(sql, (ticker_id, kl_type))
             return [dict_to_ticker_indicator(item) for item in results]
         except Exception as e:
             logger.error(f"获取指标记录列表错误: {e}")
             return []
-    
-    def get_update_time_by_ticker_id(self, ticker_id: int, kl_type: str) -> Optional[str]:
+
+    def get_update_time_by_ticker_id(
+        self, ticker_id: int, kl_type: str
+    ) -> Optional[str]:
         """获取股票指标最早更新时间
 
         Args:
@@ -74,14 +82,17 @@ class TickerIndicatorRepository:
             时间字符串
         """
         try:
-            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
+            sql = f"SELECT min(time_key) as time FROM {
+                self.table} WHERE ticker_id = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, kl_type))
-            return result['time'] if result and 'time' in result else None
+            return result["time"] if result and "time" in result else None
         except Exception as e:
             logger.error(f"获取更新时间错误: {e}")
             return None
 
-    def get_item_by_ticker_id_and_indicator_key(self, ticker_id: int, indicator_key: str, kl_type: str) -> Optional[TickerIndicatorModel]:
+    def get_item_by_ticker_id_and_indicator_key(
+        self, ticker_id: int, indicator_key: str, kl_type: str
+    ) -> Optional[TickerIndicatorModel]:
         """根据股票ID, 指标键和K线类型获取指标记录
 
         Args:
@@ -93,14 +104,22 @@ class TickerIndicatorRepository:
             指标记录或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
+            sql = f"SELECT * FROM {
+                self.table} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, indicator_key, kl_type))
             return dict_to_ticker_indicator(result) if result else None
         except Exception as e:
             logger.error(f"获取指标记录错误: {e}")
             return None
 
-    def update_item(self, ticker_id: int, indicator_key: str, kl_type: str, time_key: str, entity: Dict[str, Any]) -> None:
+    def update_item(
+        self,
+        ticker_id: int,
+        indicator_key: str,
+        kl_type: str,
+        time_key: str,
+        entity: dict[str, Any],
+    ) -> None:
         """更新或创建指标记录
 
         Args:
@@ -115,86 +134,108 @@ class TickerIndicatorRepository:
         """
         try:
             # 检查是否存在该记录
-            existing_item = self.get_item_by_ticker_id_and_indicator_key(ticker_id, indicator_key, kl_type)
-            
+            existing_item = self.get_item_by_ticker_id_and_indicator_key(
+                ticker_id, indicator_key, kl_type
+            )
+
             # 准备数据
-            history_data = entity.get('history')
-            
+            history_data = entity.get("history")
+
             # 直接存储为序列化数据，Pydantic模型会处理JSON序列化
             entity_data = {
-                'ticker_id': ticker_id,
-                'indicator_key': indicator_key,
-                'kl_type': kl_type,
-                'time_key': time_key,
-                'history': history_data,
-                'status': entity.get('status', 1)
+                "ticker_id": ticker_id,
+                "indicator_key": indicator_key,
+                "kl_type": kl_type,
+                "time_key": time_key,
+                "history": history_data,
+                "status": entity.get("status", 1),
             }
 
             if existing_item is None:
                 # 创建新记录
                 ticker_indicator = TickerIndicatorCreate(**entity_data)
                 db_data = ticker_indicator_to_dict(ticker_indicator)
-                
+
                 # 构建SQL参数和占位符
                 fields = []
                 placeholders = []
                 values = []
-                
+
                 for key, value in db_data.items():
                     fields.append(key)
                     placeholders.append(PLACEHOLDER)
                     values.append(value)
-                
+
                 # 构建SQL
-                sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
-                
+                sql = f"INSERT INTO {
+                    self.table} ({
+                    ', '.join(fields)}) VALUES ({
+                    ', '.join(placeholders)})"
+
                 # 执行SQL
                 self.db.execute(sql, tuple(values))
                 self.db.commit()
             else:
                 # 更新现有记录
-                ticker_indicator = TickerIndicatorUpdate(**{
-                    'time_key': time_key,
-                    'history': entity.get('history'),
-                    'status': entity.get('status')
-                })
+                ticker_indicator = TickerIndicatorUpdate(
+                    **{
+                        "time_key": time_key,
+                        "history": entity.get("history"),
+                        "status": entity.get("status"),
+                    }
+                )
                 db_data = ticker_indicator_to_dict(ticker_indicator)
-                
+
                 # 排除不更新的字段
-                exclude_keys = ['id', 'code', 'version', 'create_time', 'creator', 'mender']
+                exclude_keys = [
+                    "id",
+                    "code",
+                    "version",
+                    "create_time",
+                    "creator",
+                    "mender",
+                ]
                 for key in exclude_keys:
                     if key in db_data:
                         del db_data[key]
-                
+
                 # 过滤None值
                 filtered_data = {k: v for k, v in db_data.items() if v is not None}
-                
+
                 if not filtered_data:
                     return
-                
+
                 # 构建SQL参数和SET子句
                 set_clauses = []
                 values = []
-                
+
                 for key, value in filtered_data.items():
                     set_clauses.append(f"{key} = {PLACEHOLDER}")
                     values.append(value)
-                
+
                 # 添加条件参数
                 values.extend([ticker_id, indicator_key, kl_type])
-                
+
                 # 构建SQL
-                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
-                
+                sql = f"UPDATE {
+                    self.table} SET {
+                    ', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
+
                 # 执行SQL
                 self.db.execute(sql, tuple(values))
                 self.db.commit()
-                
+
         except Exception as e:
             logger.error(f"更新指标记录错误: {e}")
             self.db.rollback()
 
-    def update_items(self, ticker_id: int, indicators: Dict[str, Dict[str, Any]], kl_type: str, time_key: str) -> None:
+    def update_items(
+        self,
+        ticker_id: int,
+        indicators: dict[str, dict[str, Any]],
+        kl_type: str,
+        time_key: str,
+    ) -> None:
         """批量更新或创建指标记录
 
         Args:

@@ -1,6 +1,6 @@
-
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Optional
+
 
 @dataclass
 class XueqiuStockQuoteMarket:
@@ -10,6 +10,7 @@ class XueqiuStockQuoteMarket:
     time_zone: Optional[str] = None
     time_zone_desc: Optional[str] = None
     delay_tag: Optional[int] = None
+
 
 @dataclass
 class XueqiuStockQuoteQuote:
@@ -73,30 +74,44 @@ class XueqiuStockQuoteQuote:
     time: Optional[int] = None
     open: Optional[float] = None
 
+
 @dataclass
 class XueqiuStockQuoteOthers:
     pankou_ratio: Optional[float] = None
     cyb_switch: Optional[bool] = None
+
 
 @dataclass
 class XueqiuStockQuoteTags:
     description: Optional[str] = None
     value: Optional[int] = None
 
+
 @dataclass
 class XueqiuStockQuote:
     market: Optional[XueqiuStockQuoteMarket] = None
     quote: Optional[XueqiuStockQuoteQuote] = None
     others: Optional[XueqiuStockQuoteOthers] = None
-    tags: Optional[List[XueqiuStockQuoteTags]] = None
+    tags: Optional[list[XueqiuStockQuoteTags]] = None
+
 
 def filter_dict_by_dataclass(cls, d):
     return {k: v for k, v in d.items() if k in cls.__annotations__}
 
-def xueqiu_stock_quote_from_dict(data: Dict) -> XueqiuStockQuote:
+
+def xueqiu_stock_quote_from_dict(data: dict) -> XueqiuStockQuote:
     return XueqiuStockQuote(
-        market=XueqiuStockQuoteMarket(**filter_dict_by_dataclass(XueqiuStockQuoteMarket, data['market'])),
-        quote=XueqiuStockQuoteQuote(**filter_dict_by_dataclass(XueqiuStockQuoteQuote, data['quote'])),
-        others=XueqiuStockQuoteOthers(**filter_dict_by_dataclass(XueqiuStockQuoteOthers, data['others'])),
-        tags=[XueqiuStockQuoteTags(**filter_dict_by_dataclass(XueqiuStockQuoteTags, tag)) for tag in data['tags']]
+        market=XueqiuStockQuoteMarket(
+            **filter_dict_by_dataclass(XueqiuStockQuoteMarket, data["market"])
+        ),
+        quote=XueqiuStockQuoteQuote(
+            **filter_dict_by_dataclass(XueqiuStockQuoteQuote, data["quote"])
+        ),
+        others=XueqiuStockQuoteOthers(
+            **filter_dict_by_dataclass(XueqiuStockQuoteOthers, data["others"])
+        ),
+        tags=[
+            XueqiuStockQuoteTags(**filter_dict_by_dataclass(XueqiuStockQuoteTags, tag))
+            for tag in data["tags"]
+        ],
     )
