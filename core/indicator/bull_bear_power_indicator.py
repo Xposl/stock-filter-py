@@ -40,7 +40,9 @@ class BullBearPowerIndicator(BaseIndicator):
                 (close_data[i] - lowest_data[i]) / atr_data[i] if atr_data[i] > 0 else 0
             )
             bear_trend = (
-                (highest_data[i] - close_data[i]) / atr_data[i] if atr_data[i] > 0 else 0
+                (highest_data[i] - close_data[i]) / atr_data[i]
+                if atr_data[i] > 0
+                else 0
             )
             score = bull_trend - bear_trend
             pos_data.append(1 if score > 0 else (-1 if score < 0 else 0))

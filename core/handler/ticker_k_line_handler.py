@@ -72,7 +72,8 @@ class TickerKLineHandler:
             cache_entry = self._kl_cache.get(cache_key)
             if cache_entry:
                 print(
-                    f"缓存命中 code:{code} source:{source} start_date:{start_date} end_date:{end_date}")
+                    f"缓存命中 code:{code} source:{source} start_date:{start_date} end_date:{end_date}"
+                )
                 data, used_source, ts = cache_entry
                 if now - ts < 300:  # 5分钟=300秒
                     return data, used_source

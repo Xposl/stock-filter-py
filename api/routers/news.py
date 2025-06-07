@@ -250,7 +250,8 @@ async def fetch_news_background_task(
         error_sources = len([r for r in results if r.get("status") == "error"])
 
         print(
-            f"新闻抓取任务完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章")
+            f"新闻抓取任务完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章"
+        )
 
         return {
             "success_sources": success_sources,

@@ -410,15 +410,16 @@ class DataSourceHelper:
             )
             k_score = TickerScoreRepository().get_items_by_ticker_id(ticker.id)
 
-            if k_score is not None and len(
-                    k_score) > 0 and k_score[0].time_key == end_date:
+            if (
+                k_score is not None
+                and len(k_score) > 0
+                and k_score[0].time_key == end_date
+            ):
                 continue
             try:
                 self._update_ticker(ticker, days, i % 2 + 1)
             except Exception as e:
-                print(
-                    f"更新数据失败[{ticker.id}]{ticker.code} {str(e)}"
-                )
+                print(f"更新数据失败[{ticker.id}]{ticker.code} {str(e)}")
             time.sleep(1)
 
     def get_ticker_code(self, market: str, ticker_code: str) -> str:

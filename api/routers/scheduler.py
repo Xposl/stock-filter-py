@@ -88,7 +88,7 @@ async def cron_update_ticker_score(
     def batch_update():
         ds = DataSourceHelper()
         for i in range(batch_count):
-            batch = tickers[i * batch_size: (i + 1) * batch_size]
+            batch = tickers[i * batch_size : (i + 1) * batch_size]
             if not batch:
                 continue
             ds._update_tickers(batch)

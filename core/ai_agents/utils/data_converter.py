@@ -35,7 +35,7 @@ class StandardNewsArticle:
     published_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     category: Optional[str] = None
-    tags: list[str] = None
+    tags: Optional[list[str]] = None
 
     def __post_init__(self):
         if self.tags is None:
@@ -71,6 +71,29 @@ class NewsDataConverter:
 
     def __init__(self):
         # 源字段映射
+        self.field_mappings = {
+            "rss": {
+                "title": ["title", "headline"],
+                "content": ["description", "content", "summary"],
+                "url": ["link", "url"],
+                "published": ["pubDate", "published", "date"],
+                "author": ["author", "creator"],
+            },
+            "xueqiu": {
+                "title": ["title", "text"],
+                "content": ["text", "description"],
+                "url": ["target", "url"],
+                "published": ["created_at", "timestamp"],
+                "author": ["user_name", "screen_name"],
+            },
+            "api": {
+                "title": ["title", "headline", "subject"],
+                "content": ["content", "body", "text"],
+                "url": ["url", "link", "source_url"],
+                "published": ["published_at", "created_at", "timestamp"],
+                "author": ["author", "writer", "creator"],
+            },
+        }
         self.field_mappings = {
             # RSS源映射
             "rss": {
@@ -593,7 +616,9 @@ def convert_analysis_to_api(
         return converter.convert_analysis_response(analysis_result)
 
 
-def convert_to_json(obj: Any, ensure_ascii: bool = False, indent: int = None) -> str:
+def convert_to_json(
+    obj: Any, ensure_ascii: bool = False, indent: Optional[int] = None
+) -> str:
     """便捷的JSON转换函数"""
     converter = DatabaseModelConverter()
 

@@ -37,8 +37,13 @@ async def root():
 @app.get("/health")
 async def health_check():
     from datetime import datetime
+
     """健康检查端点，用于Docker健康检查和负载均衡器检查"""
-    return {"status": "healthy", "service": "InvestNote API", "timestamp": str(datetime.now())}
+    return {
+        "status": "healthy",
+        "service": "InvestNote API",
+        "timestamp": str(datetime.now()),
+    }
 
 
 @app.get("/me")

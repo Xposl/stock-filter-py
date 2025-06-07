@@ -446,12 +446,7 @@ class APIAggregator:
                     break
 
             if not url:
-                url = f"{
-                    news_source.url}#{
-                    item.get(
-                        'id', hashlib.md5(
-                            title.encode()).hexdigest()[
-                            :8])}"
+                url = f"news_source.url}#{item.get('id', hashlib.md5(title.encode()).hexdigest()[:8])}"
 
             # 生成URL哈希
             url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()

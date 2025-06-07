@@ -6,10 +6,10 @@ LLM客户端模块
 基于OpenAI设计模式实现
 """
 
+from .qwen_client import QwenLLMClient  # 向后兼容别名
 from .qwen_client import (  # 客户端类; 响应和消息类; 全局客户端获取函数; 便捷函数
     AsyncQwenClient,
     QwenClient,
-    QwenLLMClient,  # 向后兼容别名
     QwenMessage,
     QwenResponse,
     QwenStreamResponse,

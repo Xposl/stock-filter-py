@@ -29,7 +29,6 @@ def print_main_menu():
     print("3. 分时分析股票")
     print("4. 批量更新股票数据")
     print("5. 策略分析")
-    print("6. 查看高评分股票")
     print("0. 退出程序")
     print("-" * 50)
 
@@ -241,37 +240,6 @@ def run_interactive_mode():
             else:
                 print("无效的股票代码")
 
-        elif choice == "6":
-            from tools.high_score_tickers import print_high_score_tickers
-            score_threshold = input("\n请输入评分阈值 (默认75): ")
-            try:
-                score_threshold = float(score_threshold) if score_threshold.strip() else 75.0
-            except ValueError:
-                score_threshold = 75.0
-
-            # 询问是否导出到JSON文件
-            export_choice = input("\n是否导出到JSON文件? (y/n, 默认n): ").strip().lower()
-            export_json = export_choice in ('y', 'yes', '1')
-
-            file_path = None
-            if export_json:
-                # 询问是否使用自定义文件名
-                custom_filename = input("\n使用自定义文件名? (y/n, 默认n): ").strip().lower()
-                if custom_filename in ('y', 'yes', '1'):
-                    filename = input("请输入文件名 (不含路径): ").strip()
-                    if filename:
-                        # 确保output目录存在
-                        os.makedirs("output", exist_ok=True)
-                        file_path = f"output/{filename}"
-                        if not file_path.endswith('.json'):
-                            file_path += '.json'
-
-            print(f"\n获取评分 >= {score_threshold} 的股票列表...")
-            json_path = print_high_score_tickers(score_threshold, export_json, file_path)
-
-            if json_path:
-                print(f"数据已导出到: {json_path}")
-
         else:
             print("无效选择，请重新输入")
 
@@ -281,82 +249,7 @@ def run_command_line_mode():
     """运行命令行模式（保持原有功能）"""
     dataSource = DataSourceHelper()
 
-    if sys.argv[1] == '-export-hs' or sys.argv[1] == '--export-high-score':
-        # 导入高评分股票模块
-        from tools.high_score_tickers import export_high_score_tickers_to_json
-
-        # 获取评分阈值参数（如果有）
-        threshold = 75.0
-        output_path = None
-
-        # 解析命令行参数
-        if len(sys.argv) > 2 and not sys.argv[2].startswith('-'):
-            try:
-                threshold = float(sys.argv[2])
-            except ValueError:
-                print(f"警告：无效的评分阈值 '{sys.argv[2]}'，使用默认值 75.0")
-
-        # 检查是否指定了输出文件路径
-        for i in range(2, len(sys.argv)):
-            if sys.argv[i] in ('-o', '--output') and i + 1 < len(sys.argv):
-                output_path = sys.argv[i + 1]
-                break
-
-        print(f"获取评分 >= {threshold} 的股票并导出到JSON...")
-
-        # 执行导出
-        json_path = export_high_score_tickers_to_json(threshold, output_path)
-
-        print(f"数据已导出到: {json_path}")
-        print(f"文件大小: {os.path.getsize(json_path) / 1024:.2f} KB")
-
-    elif sys.argv[1] == '-hs' or sys.argv[1] == '--high-score':
-        # 导入高评分股票模块
-        from tools.high_score_tickers import print_high_score_tickers
-
-        # 获取评分阈值参数（如果有）
-        threshold = 75.0
-        export_json = False
-        file_path = None
-
-        # 解析命令行参数
-        i = 2
-        while i < len(sys.argv):
-            arg = sys.argv[i]
-
-            # 解析评分阈值
-            if not arg.startswith('-') and i == 2:
-                try:
-                    threshold = float(arg)
-                except ValueError:
-                    print(f"警告：无效的评分阈值 '{arg}'，使用默认值 75.0")
-                i += 1
-                continue
-
-            # 解析导出选项
-            if arg in ('-e', '--export'):
-                export_json = True
-                i += 1
-                continue
-
-            # 解析输出文件路径
-            if arg in ('-o', '--output') and i + 1 < len(sys.argv):
-                file_path = sys.argv[i + 1]
-                # 确保output目录存在
-                os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else "output", exist_ok=True)
-                i += 2
-                continue
-
-            # 如果参数不匹配任何选项，跳过
-            i += 1
-
-        print(f"获取评分 >= {threshold} 的股票列表...")
-        json_path = print_high_score_tickers(threshold, export_json, file_path)
-
-        if json_path:
-            print(f"数据已导出到: {json_path}")
-
-    elif sys.argv[1] == '-ticker':
+    if sys.argv[1] == '-ticker':
         dataSource.update_ticker_list()
 
     elif sys.argv[1] == '-a':

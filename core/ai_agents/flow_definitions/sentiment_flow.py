@@ -283,7 +283,7 @@ class KeywordSentimentNode(AsyncNode):
             return False
 
         # 检查前5个字符内是否有否定词
-        prefix = text[max(0, word_index - 5): word_index]
+        prefix = text[max(0, word_index - 5) : word_index]
         return any(neg_word in prefix for neg_word in self.negation_words)
 
     def _extract_sentiment_phrases(self, text: str, matches: dict) -> list[str]:

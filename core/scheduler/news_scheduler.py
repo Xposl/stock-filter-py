@@ -106,7 +106,8 @@ class NewsScheduler:
             error_sources = len([r for r in results if r.get("status") == "error"])
 
             logger.info(
-                f"定时新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章")
+                f"定时新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章"
+            )
 
             return {
                 "task_type": "regular_fetch",
@@ -135,7 +136,8 @@ class NewsScheduler:
             error_sources = len([r for r in results if r.get("status") == "error"])
 
             logger.info(
-                f"晨间新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章")
+                f"晨间新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章"
+            )
 
             return {
                 "task_type": "morning_fetch",
@@ -162,7 +164,8 @@ class NewsScheduler:
             error_sources = len([r for r in results if r.get("status") == "error"])
 
             logger.info(
-                f"收盘新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章")
+                f"收盘新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章"
+            )
 
             return {
                 "task_type": "evening_fetch",
@@ -262,7 +265,8 @@ class NewsScheduler:
             error_sources = len([r for r in results if r.get("status") == "error"])
 
             logger.info(
-                f"手动新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章")
+                f"手动新闻抓取完成: {success_sources}个源成功, {error_sources}个源失败, 共获取{total_articles}篇文章"
+            )
 
             return {
                 "task_type": "manual_fetch",

@@ -9,11 +9,7 @@ from typing import Optional
 import pandas as pd
 
 from .xueqiu_client_factory import create_stock_client
-from .xueqiu_company import (
-    XueqiuHkCompany,
-    XueqiuUsCompany,
-    XueqiuZhCompany,
-)
+from .xueqiu_company import XueqiuHkCompany, XueqiuUsCompany, XueqiuZhCompany
 from .xueqiu_stock_quote import XueqiuStockQuote
 
 logger = logging.getLogger(__name__)

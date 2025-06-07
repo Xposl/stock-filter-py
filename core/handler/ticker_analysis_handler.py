@@ -44,9 +44,7 @@ class TickerAnalysisHandler:
         scoreData: Optional[list] = None,
     ):
         if ticker is None or ticker.is_deleted == 1 or ticker.status == 0:
-            raise Exception(
-                f"项目已经删除或不生效[{ticker.id}]{ticker.code}"
-            )
+            raise Exception(f"项目已经删除或不生效[{ticker.id}]{ticker.code}")
 
         if kLineData is None or scoreData is None:
             raise ValueError("kLineData and scoreData cannot be None")

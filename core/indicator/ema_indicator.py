@@ -1,4 +1,3 @@
-
 from core.enum.indicator_group import IndicatorGroup
 from core.indicator.base_indicator import BaseIndicator
 from core.schema.k_line import KLine

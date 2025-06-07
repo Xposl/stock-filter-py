@@ -166,7 +166,7 @@ class UtilsHelper:
             calcu_day = day_count
             if i < day_count - 1:
                 calcu_day = i + 1
-            sub_arr = data[i - calcu_day + 1: i + 1]
+            sub_arr = data[i - calcu_day + 1 : i + 1]
             result.append(max(sub_arr))
         return result
 
@@ -180,7 +180,7 @@ class UtilsHelper:
             calcu_day = day_count
             if i < day_count - 1:
                 calcu_day = i + 1
-            sub_arr = data[i - calcu_day + 1: i + 1]
+            sub_arr = data[i - calcu_day + 1 : i + 1]
             result.append(min(sub_arr))
         return result
 

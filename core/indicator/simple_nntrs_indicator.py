@@ -140,14 +140,14 @@ class SimpleNNTRSIIndicator(BaseIndicator):
         for i in range(length):
             if i < self.sd_lookback:
                 # 使用可用数据计算中值
-                window = data[max(0, i - self.sd_lookback + 1): i + 1]
+                window = data[max(0, i - self.sd_lookback + 1) : i + 1]
                 if window:
                     result.append(statistics.median(window))
                 else:
                     result.append(50)  # 默认值
             else:
                 # 使用完整窗口
-                window = data[i - self.sd_lookback + 1: i + 1]
+                window = data[i - self.sd_lookback + 1 : i + 1]
                 result.append(statistics.median(window))
 
         return result
