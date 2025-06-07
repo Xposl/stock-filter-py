@@ -54,3 +54,4 @@ htmlcov/
 
 test_fix_report_**
 logs/
+data/
