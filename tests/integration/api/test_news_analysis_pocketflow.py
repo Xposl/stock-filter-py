@@ -76,7 +76,7 @@ class TestNewsClassifierNode:
         assert result == mock_article
         assert result.title == "沪上阿姨(02589)：悉数行使超额配股权、稳定价格行动及稳定价格期结束"
     
-    @patch('core.ai_agents.llm_clients.qwen_client.QwenLLMClient')
+    @patch('core.ai_agents.news_analysis_flow.nodes.QwenLLMClient')
     def test_news_classifier_node_exec_stock_specific(self, mock_llm_client, mock_article):
         """测试 NewsClassifierNode 的 exec 方法 - 股票特定新闻"""
         # 模拟LLM响应
@@ -89,7 +89,8 @@ class TestNewsClassifierNode:
     "mentioned_stocks": [
         {"name": "沪上阿姨", "code": "02589"}
     ],
-    "mentioned_industries": ["餐饮", "消费"]
+    "mentioned_industries": ["餐饮", "消费"],
+    "markets": ["hk"]
 }
 ```'''
         
@@ -114,7 +115,7 @@ class TestNewsClassifierNode:
         assert 'temperature' in call_args[1]
         assert 'max_tokens' in call_args[1]
     
-    @patch('core.ai_agents.llm_clients.qwen_client.QwenLLMClient')
+    @patch('core.ai_agents.news_analysis_flow.nodes.QwenLLMClient')
     def test_news_classifier_node_exec_industry_focused(self, mock_llm_client, mock_article):
         """测试 NewsClassifierNode 的 exec 方法 - 行业导向新闻"""
         # 修改测试文章为行业导向
@@ -129,7 +130,8 @@ class TestNewsClassifierNode:
     "confidence": 0.8,
     "reason": "新闻主要讨论行业发展趋势",
     "mentioned_stocks": [],
-    "mentioned_industries": ["人工智能", "科技", "软件开发"]
+    "mentioned_industries": ["人工智能", "科技", "软件开发"],
+    "markets": ["zh"]
 }
 ```'''
         
@@ -157,9 +159,9 @@ class TestNewsClassifierNode:
         assert result['analysis_type'] == 'unknown'
         assert result['confidence'] == 0
         assert result['mentioned_stocks'] == []
-        assert result['mentioned_industries'] == []
+        assert result['mentioned_industries'] == {"hk": [], "us": [], "zh": []}
     
-    @patch('core.ai_agents.llm_clients.qwen_client.QwenLLMClient')
+    @patch('core.ai_agents.news_analysis_flow.nodes.QwenLLMClient')
     def test_news_classifier_node_exec_llm_error(self, mock_llm_client, mock_article):
         """测试 NewsClassifierNode 处理LLM错误的情况"""
         # 模拟LLM调用异常
@@ -175,7 +177,7 @@ class TestNewsClassifierNode:
         assert result['analysis_type'] == 'unknown'
         assert result['confidence'] == 0
         assert result['mentioned_stocks'] == []
-        assert result['mentioned_industries'] == []
+        assert result['mentioned_industries'] == {'hk': [], 'us': [], 'zh': []}
     
     def test_news_classifier_node_post_stock_specific(self, shared_store):
         """测试 NewsClassifierNode 的 post 方法 - 股票特定"""
@@ -186,7 +188,8 @@ class TestNewsClassifierNode:
             'analysis_type': 'stock_specific',
             'content': '测试内容',
             'mentioned_stocks': [{'name': '沪上阿姨', 'code': '02589'}],
-            'mentioned_industries': ['餐饮']
+            'mentioned_industries': ['餐饮'],
+            'markets': ['hk']
         }
         
         result = node.post(shared_store, prep_res, exec_res)
@@ -209,7 +212,8 @@ class TestNewsClassifierNode:
             'analysis_type': 'industry_focused',
             'content': '行业内容',
             'mentioned_stocks': [],
-            'mentioned_industries': ['AI', '科技']
+            'mentioned_industries': ['AI', '科技'],
+            'markets': ['zh']
         }
         
         result = node.post(shared_store, prep_res, exec_res)
@@ -229,7 +233,8 @@ class TestNewsClassifierNode:
             'analysis_type': 'unknown',
             'content': '内容',
             'mentioned_stocks': [],
-            'mentioned_industries': []
+            'mentioned_industries': [],
+            'markets': []
         }
         
         result = node.post(shared_store, prep_res, exec_res)
@@ -246,14 +251,14 @@ class TestOtherNodes:
     def test_ticker_industry_finder_node(self):
         """测试 TickerIndustryFinderNode"""
         node = TickerIndustryFinderNode()
-        shared_store = {'mentioned_industries': ['AI', '科技']}
+        shared_store = {'mentioned_industries': {'hk': [], 'us': [], 'zh': ['AI', '科技']}}
         
         # 测试 prep
         prep_result = node.prep(shared_store)
-        assert prep_result == ['AI', '科技']
+        assert prep_result == {'mentioned_industries': {'hk': [], 'us': [], 'zh': ['AI', '科技']}, 'markets': ['zh']}
         
-        # 测试 exec (当前只是打印，无返回值验证)
-        exec_result = node.exec(['AI', '科技'])
+        # 测试 exec
+        exec_result = node.exec({'mentioned_industries': {'hk': [], 'us': [], 'zh': ['AI', '科技']}, 'markets': ['zh']})
         
         # 测试 post
         post_result = node.post(shared_store, prep_result, exec_result)
@@ -322,7 +327,7 @@ class TestNewsAnalysisFlow:
         # 验证起始节点是 NewsClassifierNode
         assert flow.start_node.__class__.__name__ == 'NewsClassifierNode'
     
-    @patch('core.ai_agents.llm_clients.qwen_client.QwenLLMClient')
+    @patch('core.ai_agents.news_analysis_flow.nodes.QwenLLMClient')
     def test_flow_execution_stock_specific_path(self, mock_llm_client, mock_article):
         """测试流程执行 - 股票特定路径"""
         # 模拟LLM响应
@@ -371,7 +376,7 @@ class TestNewsAnalysisFlow:
             # 不直接断言失败，因为某些节点可能还在开发中
             pytest.skip(f"流程执行暂时跳过: {e}")
     
-    @patch('core.ai_agents.llm_clients.qwen_client.QwenLLMClient')
+    @patch('core.ai_agents.news_analysis_flow.nodes.QwenLLMClient')
     def test_flow_execution_industry_focused_path(self, mock_llm_client):
         """测试流程执行 - 行业导向路径"""
         # 创建行业导向的测试文章

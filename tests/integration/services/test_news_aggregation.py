@@ -180,7 +180,7 @@ class TestNewsAggregatorManagerIntegration:
     @pytest.fixture
     def manager(self, mock_session_factory):
         """创建新闻聚合管理器"""
-        return NewsAggregatorManager(mock_session_factory)
+        return NewsAggregatorManager()  # 不传递参数
     
     @pytest.fixture
     def sample_news_sources(self):

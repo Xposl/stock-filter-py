@@ -12,8 +12,7 @@ from typing import Optional, List, Dict, Any
 from core.auth.auth_middleware import auth_required
 import os
 from datetime import datetime, timedelta
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from core.models.news_article import NewsArticle, ArticleStatus
 from core.models.news_source import NewsSource, NewsSourceStatus
 from core.news_aggregator.news_aggregator_manager import NewsAggregatorManager
@@ -39,7 +38,7 @@ def get_async_session_factory():
     if _async_session_factory is None:
         database_url = get_database_url()
         _async_engine = create_async_engine(database_url, echo=False)
-        _async_session_factory = sessionmaker(
+        _async_session_factory = async_sessionmaker(
             _async_engine, 
             class_=AsyncSession,
             expire_on_commit=False

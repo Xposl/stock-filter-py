@@ -10,8 +10,7 @@ from typing import Dict, Any, Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from ..news_aggregator.news_aggregator_manager import NewsAggregatorManager
 from ..database.database import get_database_url
@@ -31,7 +30,7 @@ class NewsScheduler:
         # 初始化数据库连接
         database_url = get_database_url()
         engine = create_async_engine(database_url, echo=False)
-        self._session_factory = sessionmaker(
+        self._session_factory = async_sessionmaker(
             engine, 
             class_=AsyncSession,
             expire_on_commit=False
@@ -109,7 +108,7 @@ class NewsScheduler:
         try:
             logger.info("开始执行定时新闻抓取任务")
             
-            manager = NewsAggregatorManager(self._session_factory)
+            manager = NewsAggregatorManager()
             results = await manager.fetch_all_active_sources()
             
             # 统计结果
@@ -136,7 +135,7 @@ class NewsScheduler:
         try:
             logger.info("开始执行晨间新闻抓取任务")
             
-            manager = NewsAggregatorManager(self._session_factory)
+            manager = NewsAggregatorManager()
             
             # 晨间新闻抓取更全面，包括暂停的源也尝试抓取
             results = await manager.fetch_all_active_sources()
@@ -164,7 +163,7 @@ class NewsScheduler:
         try:
             logger.info("开始执行收盘新闻抓取任务")
             
-            manager = NewsAggregatorManager(self._session_factory)
+            manager = NewsAggregatorManager()
             results = await manager.fetch_all_active_sources()
             
             total_articles = sum(r.get('articles_count', 0) for r in results)
@@ -262,7 +261,7 @@ class NewsScheduler:
         try:
             logger.info("手动触发新闻抓取")
             
-            manager = NewsAggregatorManager(self._session_factory)
+            manager = NewsAggregatorManager()
             
             if source_ids:
                 results = await manager.fetch_specific_sources(source_ids)

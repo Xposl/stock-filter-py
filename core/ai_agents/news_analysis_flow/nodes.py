@@ -383,7 +383,7 @@ class TickerScoreUpdate(Node):
 
     def exec(self, mentioned_stocks):
         """
-        使用DataSourceHelper更新股票的评分和分析数据
+        使用DataSourceHelper智能获取股票评分，避免不必要的API调用
         
         Args:
             mentioned_stocks: 股票列表
@@ -405,6 +405,7 @@ class TickerScoreUpdate(Node):
         for i, stock in enumerate(mentioned_stocks, 1):
             stock_code = stock.get('code') if isinstance(stock, dict) else None
             stock_name = stock.get('name') if isinstance(stock, dict) else None
+            stock_market = stock.get('market', 'zh') if isinstance(stock, dict) else 'zh'
             
             if not stock_code:
                 logger.warning(f"  ⚠️ 第{i}只股票缺少代码信息，跳过")
@@ -413,11 +414,12 @@ class TickerScoreUpdate(Node):
             logger.info(f"  📈 [{i}/{len(mentioned_stocks)}] 更新股票: {stock_name} ({stock_code})")
             
             try:
-                # 使用DataSourceHelper获取股票数据和评分
-                ticker_data, kl_data, score_data = data_helper.get_ticker_data(
-                    code= data_helper.get_ticker_code(stock['market'], stock_code),
-                    days=600  # 获取600天的历史数据用于分析
-                )
+                # 🔥 使用智能get_ticker_score函数，避免重复API调用
+                standard_code = data_helper.get_ticker_code(stock_market, stock_code)
+                score_data = data_helper.get_ticker_score(standard_code, days=600)
+                
+                # 获取股票基础信息
+                ticker_data = data_helper.ticker_repo.get_by_code(standard_code)
                 
                 # 检查ticker_data是否为None（股票不存在于数据库中）
                 if ticker_data is None:
@@ -425,7 +427,8 @@ class TickerScoreUpdate(Node):
                     # 保留原始股票信息，标记为未更新
                     original_stock = stock.copy() if isinstance(stock, dict) else {
                         'code': stock_code,
-                        'name': stock_name
+                        'name': stock_name,
+                        'market': stock_market
                     }
                     original_stock.update({
                         'data_updated': False,
@@ -435,14 +438,15 @@ class TickerScoreUpdate(Node):
                     continue
                 
                 # 检查是否有有效的评分数据
-                if score_data:
+                if score_data and len(score_data) > 0:
                     # 获取最新评分
-                    latest_score = score_data[0] if score_data else None
+                    latest_score = score_data[-1] if score_data else None
                     
                     # 更新股票信息
                     updated_stock = stock.copy() if isinstance(stock, dict) else {
                         'code': stock_code,
-                        'name': stock_name
+                        'name': stock_name,
+                        'market': stock_market
                     }
                     
                     # 添加评分和分析数据
@@ -454,28 +458,31 @@ class TickerScoreUpdate(Node):
                         'score': latest_score.score if latest_score else None,
                         'score_time': latest_score.time_key if latest_score else None,
                         'score_id': latest_score.id if latest_score else None,
-                        'kline_days': len(kl_data) if kl_data else 0,
+                        'score_count': len(score_data),
                         'data_updated': True,
-                        'update_timestamp': '2024-01-27'  # 简单的时间戳
+                        'update_timestamp': latest_score.time_key if latest_score else None,
+                        'standard_code': standard_code  # 保存标准化后的代码
                     })
                     
                     updated_stocks.append(updated_stock)
                     
                     logger.info(f"    ✅ 更新成功 - 评分: {latest_score.score if latest_score else 'N/A'}, "
-                              f"K线数据: {len(kl_data) if kl_data else 0} 天")
+                              f"评分数据: {len(score_data)} 条, 时间: {latest_score.time_key if latest_score else 'N/A'}")
                     
                 else:
                     logger.warning(f"    ⚠️ 未获取到评分数据，保留原始信息")
                     # 保留原始股票信息，标记为未更新
                     original_stock = stock.copy() if isinstance(stock, dict) else {
                         'code': stock_code,
-                        'name': stock_name
+                        'name': stock_name,
+                        'market': stock_market
                     }
                     original_stock.update({
                         'ticker_id': ticker_data.id if ticker_data else None,
                         'ticker_name': ticker_data.name if ticker_data else stock_name,
                         'data_updated': False,
-                        'error_reason': '未获取到评分数据'
+                        'error_reason': '未获取到评分数据',
+                        'standard_code': standard_code
                     })
                     updated_stocks.append(original_stock)
                     
@@ -484,7 +491,8 @@ class TickerScoreUpdate(Node):
                 # 保留原始股票信息，记录错误
                 error_stock = stock.copy() if isinstance(stock, dict) else {
                     'code': stock_code,
-                    'name': stock_name
+                    'name': stock_name,
+                    'market': stock_market
                 }
                 error_stock.update({
                     'data_updated': False,

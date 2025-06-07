@@ -56,7 +56,7 @@ async def get_ticker_pages(
             FROM ticker t
             WHERE t.is_deleted = 0 AND t.status = 1 {search_condition}
         """
-        count_result = repo.db.query_one(count_sql, tuple(params) if params else None)
+        count_result = repo.db.query_one(count_sql, tuple(params) if params else ())
         total = count_result.get('total', 0) if count_result else 0
         
         # 处理排序
@@ -160,6 +160,13 @@ async def get_ticker_data(
     try:
         code = dataSource.get_ticker_code(market,ticker_code)
         ticker,kl_data,scoreData = dataSource.get_ticker_data(code,days)
+        
+        # 检查股票是否存在
+        if ticker is None:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Stock not found: {market}.{ticker_code} (code: {code})"
+            )
        
         return {
             "status": "success", 
@@ -174,11 +181,14 @@ async def get_ticker_data(
                 "low": float(kl.low),
                 "close": float(kl.close),
                 "volume": float(kl.volume)
-            } for kl in kl_data],
+            } for kl in kl_data] if kl_data else [],
             "scores": [{
-                "time_key": scores['time_key'],
-                "score": scores['score'],
-            } for scores in scoreData]
+                "time_key": scores.time_key,
+                "score": scores.score,
+            } for scores in scoreData] if scoreData else []
         }
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

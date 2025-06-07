@@ -10,6 +10,23 @@ DROP TABLE IF EXISTS ticker_valuation;
 DROP TABLE IF EXISTS ticker;
 DROP TABLE IF EXISTS valuation;
 DROP TABLE IF EXISTS api_log;
+DROP TABLE IF EXISTS market;
+
+-- 创建 market 表（市场信息表）
+CREATE TABLE IF NOT EXISTS market (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  region TEXT NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  timezone TEXT NOT NULL,
+  open_time TEXT NOT NULL,
+  close_time TEXT NOT NULL,
+  trading_days TEXT DEFAULT 'Mon,Tue,Wed,Thu,Fri',
+  status INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
 -- 创建 ticker 表（股票信息主表）
 CREATE TABLE IF NOT EXISTS ticker (
@@ -27,14 +44,6 @@ CREATE TABLE IF NOT EXISTS ticker (
   pb REAL DEFAULT NULL,
   total_share REAL DEFAULT NULL,
   lot_size INTEGER DEFAULT 100,
-  time_key TEXT DEFAULT NULL,
-  open REAL DEFAULT NULL,
-  close REAL DEFAULT NULL,
-  high REAL DEFAULT NULL,
-  low REAL DEFAULT NULL,
-  volume REAL DEFAULT NULL,
-  turnover REAL DEFAULT NULL,
-  turnover_rate REAL DEFAULT NULL,
   update_date TEXT DEFAULT NULL,
   listed_date TEXT DEFAULT NULL,
   create_time TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -143,7 +152,7 @@ CREATE TABLE IF NOT EXISTS api_log (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- 创建新闻源表
+-- 创建新闻源表（无外键约束）
 CREATE TABLE IF NOT EXISTS news_sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -165,7 +174,7 @@ CREATE TABLE IF NOT EXISTS news_sources (
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
--- 创建新闻文章表
+-- 创建新闻文章表（无外键约束）
 CREATE TABLE IF NOT EXISTS news_articles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -193,9 +202,12 @@ CREATE TABLE IF NOT EXISTS news_articles (
     word_count INTEGER DEFAULT 0,
     read_time_minutes INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (source_id) REFERENCES news_sources(id)
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 创建市场表索引
+CREATE INDEX IF NOT EXISTS idx_market_code ON market(code);
+CREATE INDEX IF NOT EXISTS idx_market_status ON market(status);
 
 -- 创建新闻相关索引
 CREATE INDEX IF NOT EXISTS idx_news_sources_name ON news_sources(name);
@@ -209,3 +221,9 @@ CREATE INDEX IF NOT EXISTS idx_news_articles_source_id ON news_articles(source_i
 CREATE INDEX IF NOT EXISTS idx_news_articles_status ON news_articles(status);
 CREATE INDEX IF NOT EXISTS idx_news_articles_published_at ON news_articles(published_at);
 CREATE INDEX IF NOT EXISTS idx_news_articles_crawled_at ON news_articles(crawled_at);
+
+-- 插入默认市场数据
+INSERT OR REPLACE INTO market (id, code, name, region, currency, timezone, open_time, close_time, trading_days, status) VALUES
+(1, 'HK', '香港交易所', 'Hong Kong', 'HKD', 'Asia/Hong_Kong', '09:30', '16:00', 'Mon,Tue,Wed,Thu,Fri', 1),
+(2, 'ZH', 'A股市场', 'China', 'CNY', 'Asia/Shanghai', '09:30', '15:00', 'Mon,Tue,Wed,Thu,Fri', 1),
+(3, 'US', '美国股市', 'United States', 'USD', 'America/New_York', '09:30', '16:00', 'Mon,Tue,Wed,Thu,Fri', 1);

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Optional, List, Dict, Union, Tuple
+from typing import Optional, List, Dict, Union, Tuple, Any
 from dotenv import load_dotenv
 import pymysql
+from pymysql.cursors import DictCursor
 from sqlalchemy import create_engine
 
 load_dotenv()
@@ -14,13 +15,12 @@ class MysqlHelper:
     MySQL数据库助手类
     支持:name格式参数和标准参数格式
     """
-    
     def __init__(self):
-        self.host = os.getenv('DB_HOST')
+        self.host = os.getenv('DB_HOST') or 'localhost'
         self.port = int(os.getenv('DB_PORT', 3306))
-        self.user = os.getenv('DB_USER')
-        self.password = os.getenv('DB_PASSWORD')
-        self.database = os.getenv('DB_NAME')
+        self.user = os.getenv('DB_USER') or ''
+        self.password = os.getenv('DB_PASSWORD') or ''
+        self.database = os.getenv('DB_NAME') or ''
         self.conn = pymysql.connect(
             host=self.host,
             port=self.port,
@@ -28,11 +28,11 @@ class MysqlHelper:
             password=self.password,
             database=self.database,
             charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=DictCursor
         )
         self.cursor = self.conn.cursor()
 
-    def _convert_params(self, sql: str, params: Union[Dict, Tuple]) -> tuple:
+    def _convert_params(self, sql: str, params: Optional[Union[Dict, Tuple]]) -> tuple:
         """
         转换:name格式参数为MySQL格式
         
@@ -58,7 +58,7 @@ class MysqlHelper:
             # 元组参数：保持原样
             return sql, params
 
-    def execute(self, sql: str, params: Union[Dict, Tuple] = None) -> None:
+    def execute(self, sql: str, params: Optional[Union[Dict, Tuple]] = None) -> None:
         """
         执行SQL语句
         
@@ -68,18 +68,22 @@ class MysqlHelper:
         """
         try:
             converted_sql, converted_params = self._convert_params(sql, params)
-            self.cursor.execute(converted_sql, converted_params)
+            if self.cursor:
+                self.cursor.execute(converted_sql, converted_params)
         except Exception as e:
-            self.conn.rollback()
+            if self.conn:
+                self.conn.rollback()
             raise e
 
     def commit(self) -> None:
         """提交事务"""
-        self.conn.commit()
+        if self.conn:
+            self.conn.commit()
 
     def rollback(self) -> None:
         """回滚事务"""
-        self.conn.rollback()
+        if self.conn:
+            self.conn.rollback()
 
     def get_sqlalchemy_engine(self):
         """获取SQLAlchemy引擎"""
@@ -87,7 +91,7 @@ class MysqlHelper:
             f'mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}?charset=utf8mb4'
         )
 
-    def query(self, sql: str, params: Union[Dict, Tuple] = None) -> List[Dict]:
+    def query(self, sql: str, params: Optional[Union[Dict, Tuple]] = None) -> List[Dict[str, Any]]:
         """
         查询数据
         
@@ -99,10 +103,13 @@ class MysqlHelper:
             查询结果列表
         """
         converted_sql, converted_params = self._convert_params(sql, params)
-        self.cursor.execute(converted_sql, converted_params)
-        return self.cursor.fetchall()
+        if self.cursor:
+            self.cursor.execute(converted_sql, converted_params)
+            result = self.cursor.fetchall()
+            return list(result) if result else []
+        return []
 
-    def query_one(self, sql: str, params: Union[Dict, Tuple] = None) -> Optional[Dict]:
+    def query_one(self, sql: str, params: Optional[Union[Dict, Tuple]] = None) -> Optional[Dict[str, Any]]:
         """
         查询单条数据
         
@@ -114,8 +121,10 @@ class MysqlHelper:
             单条查询结果
         """
         converted_sql, converted_params = self._convert_params(sql, params)
-        self.cursor.execute(converted_sql, converted_params)
-        return self.cursor.fetchone()
+        if self.cursor:
+            self.cursor.execute(converted_sql, converted_params)
+            return self.cursor.fetchone()
+        return None
 
     def close(self):
         """安全关闭数据库连接"""
@@ -127,8 +136,11 @@ class MysqlHelper:
         except Exception:
             pass
         finally:
-            self.cursor = None
-            self.conn = None
+            # 使用类型注释友好的方式设置为None
+            if hasattr(self, 'cursor'):
+                self.cursor = None  # type: ignore
+            if hasattr(self, 'conn'):
+                self.conn = None  # type: ignore
 
     def __del__(self):
-        self.close() 
+        self.close()

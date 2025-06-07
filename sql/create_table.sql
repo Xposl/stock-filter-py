@@ -10,6 +10,24 @@ DROP TABLE IF EXISTS ticker_valuation;
 DROP TABLE IF EXISTS ticker;
 DROP TABLE IF EXISTS valuation;
 DROP TABLE IF EXISTS api_log;
+DROP TABLE IF EXISTS market;
+
+-- 创建 market 表（市场信息表）
+CREATE TABLE IF NOT EXISTS market (
+  id INT NOT NULL AUTO_INCREMENT,
+  code VARCHAR(10) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  region VARCHAR(50) NOT NULL,
+  currency VARCHAR(10) DEFAULT 'USD',
+  timezone VARCHAR(50) NOT NULL,
+  open_time TIME NOT NULL,
+  close_time TIME NOT NULL,
+  trading_days VARCHAR(100) DEFAULT 'Mon,Tue,Wed,Thu,Fri',
+  status INT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 创建 ticker 表（股票信息主表）
 CREATE TABLE IF NOT EXISTS ticker (
@@ -27,14 +45,6 @@ CREATE TABLE IF NOT EXISTS ticker (
   pb DOUBLE DEFAULT NULL,
   total_share DOUBLE DEFAULT NULL,
   lot_size INT DEFAULT 100,
-  time_key VARCHAR(20) DEFAULT NULL,
-  open DOUBLE DEFAULT NULL,
-  close DOUBLE DEFAULT NULL,
-  high DOUBLE DEFAULT NULL,
-  low DOUBLE DEFAULT NULL,
-  volume DOUBLE DEFAULT NULL,
-  turnover DOUBLE DEFAULT NULL,
-  turnover_rate DOUBLE DEFAULT NULL,
   update_date DATETIME DEFAULT NULL,
   listed_date DATETIME DEFAULT NULL,
   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -149,7 +159,7 @@ CREATE TABLE IF NOT EXISTS api_log (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
--- 创建新闻源表
+-- 创建新闻源表（无外键约束）
 CREATE TABLE IF NOT EXISTS news_sources (
     id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -172,7 +182,7 @@ CREATE TABLE IF NOT EXISTS news_sources (
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 创建新闻文章表
+-- 创建新闻文章表（无外键约束）
 CREATE TABLE IF NOT EXISTS news_articles (
     id INT NOT NULL AUTO_INCREMENT,
     title VARCHAR(1024) NOT NULL,
@@ -201,9 +211,12 @@ CREATE TABLE IF NOT EXISTS news_articles (
     read_time_minutes INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    FOREIGN KEY (source_id) REFERENCES news_sources(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 创建市场表索引
+CREATE INDEX idx_market_code ON market(code);
+CREATE INDEX idx_market_status ON market(status);
 
 -- 创建新闻相关索引
 CREATE INDEX idx_news_sources_name ON news_sources(name);
@@ -217,3 +230,18 @@ CREATE INDEX idx_news_articles_source_id ON news_articles(source_id);
 CREATE INDEX idx_news_articles_status ON news_articles(status);
 CREATE INDEX idx_news_articles_published_at ON news_articles(published_at);
 CREATE INDEX idx_news_articles_crawled_at ON news_articles(crawled_at);
+
+-- 插入默认市场数据
+INSERT INTO market (id, code, name, region, currency, timezone, open_time, close_time, trading_days, status) VALUES
+(1, 'HK', '香港交易所', 'Hong Kong', 'HKD', 'Asia/Hong_Kong', '09:30:00', '16:00:00', 'Mon,Tue,Wed,Thu,Fri', 1),
+(2, 'ZH', 'A股市场', 'China', 'CNY', 'Asia/Shanghai', '09:30:00', '15:00:00', 'Mon,Tue,Wed,Thu,Fri', 1),
+(3, 'US', '美国股市', 'United States', 'USD', 'America/New_York', '09:30:00', '16:00:00', 'Mon,Tue,Wed,Thu,Fri', 1)
+ON DUPLICATE KEY UPDATE 
+name=VALUES(name), 
+region=VALUES(region), 
+currency=VALUES(currency), 
+timezone=VALUES(timezone), 
+open_time=VALUES(open_time), 
+close_time=VALUES(close_time), 
+trading_days=VALUES(trading_days), 
+status=VALUES(status);

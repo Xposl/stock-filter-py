@@ -14,8 +14,7 @@ import os
 import time
 import math
 from datetime import datetime, timedelta
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from core.news_aggregator.news_aggregator_manager import NewsAggregatorManager
 from core.database.database import get_database_url
 from core.scheduler.news_scheduler import get_news_scheduler, start_news_scheduler, stop_news_scheduler
@@ -38,7 +37,7 @@ def get_async_session_factory():
     if _async_session_factory is None:
         database_url = get_database_url()
         _async_engine = create_async_engine(database_url, echo=False)
-        _async_session_factory = sessionmaker(
+        _async_session_factory = async_sessionmaker(
             _async_engine, 
             class_=AsyncSession,
             expire_on_commit=False
@@ -110,7 +109,7 @@ async def cron_fetch_news(
         background_tasks.add_task(
             fetch_news_background_task, 
             request.source_ids, 
-            request.limit
+            request.limit or 50  # 处理 None 值
         )
         
         return {
@@ -132,8 +131,7 @@ async def cron_fetch_news(
 async def get_news_fetch_status():
     """获取新闻抓取状态和统计信息"""
     try:
-        session_factory = get_async_session_factory()
-        manager = NewsAggregatorManager(session_factory)
+        manager = NewsAggregatorManager()
         
         # 获取聚合统计信息
         stats = await manager.get_aggregation_stats()

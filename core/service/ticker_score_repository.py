@@ -84,8 +84,17 @@ class TickerScoreRepository:
             插入记录的ID或None
         """
         try:
+            # 🔥 修复history字段的JSON反序列化问题
+            item_data = item.copy()
+            if 'history' in item_data and isinstance(item_data['history'], str):
+                try:
+                    import json
+                    item_data['history'] = json.loads(item_data['history'])
+                except (ValueError, json.JSONDecodeError):
+                    item_data['history'] = None
+            
             # 创建模型实例
-            score = TickerScoreCreate(**item)
+            score = TickerScoreCreate(**item_data)
             db_data = ticker_score_to_dict(score)
             
             # 构建SQL参数和占位符
@@ -141,6 +150,14 @@ class TickerScoreRepository:
                 item_data['id'] = id
                 item_data['ticker_id'] = ticker_id
                 
+                # 🔥 修复history字段的JSON反序列化问题
+                if 'history' in item_data and isinstance(item_data['history'], str):
+                    try:
+                        import json
+                        item_data['history'] = json.loads(item_data['history'])
+                    except (ValueError, json.JSONDecodeError):
+                        item_data['history'] = None
+                
                 insert_items.append(item_data)
             
             if not insert_items:
@@ -160,6 +177,14 @@ class TickerScoreRepository:
             all_values = []
             
             for item_data in insert_items:
+                # 🔥 再次确保history字段正确处理
+                if 'history' in item_data and isinstance(item_data['history'], str):
+                    try:
+                        import json
+                        item_data['history'] = json.loads(item_data['history'])
+                    except (ValueError, json.JSONDecodeError):
+                        item_data['history'] = None
+                
                 score = TickerScoreCreate(**item_data)
                 data_dict = ticker_score_to_dict(score)
                 
