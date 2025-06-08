@@ -40,9 +40,9 @@ class NewsArticleRepository:
             url: 文章URL
 
         Returns:
-            URL的MD5哈希值
+            URL的SHA256哈希值
         """
-        return hashlib.md5(url.encode("utf-8")).hexdigest()
+        return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
     async def create_news_article(
         self, article: NewsArticleCreate

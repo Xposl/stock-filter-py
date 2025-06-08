@@ -32,33 +32,33 @@ class KLineDict(TypedDict):
 
 
 # 用于序列化和反序列化的辅助函数
-def K_line_to_dict(kLine: KLine) -> KLineDict:
+def k_line_to_dict(k_line: KLine) -> KLineDict:
     """
     将KLine模型转换为字典，用于数据库操作
 
     Args:
-        score: KLine、KLineCreate或KLineUpdate模型
+        k_line: KLine、KLineCreate或KLineUpdate模型
 
     Returns:
         字典表示
     """
     result = {}
-    if isinstance(kLine, KLine):
+    if isinstance(k_line, KLine):
         result = {
-            "time_key": kLine.time_key,
-            "high": kLine.high,
-            "low": kLine.low,
-            "open": kLine.open,
-            "close": kLine.close,
-            "volume": kLine.volume,
-            "turnover": kLine.turnover,
-            "turnover_rate": kLine.turnover_rate,
+            "time_key": k_line.time_key,
+            "high": k_line.high,
+            "low": k_line.low,
+            "open": k_line.open,
+            "close": k_line.close,
+            "volume": k_line.volume,
+            "turnover": k_line.turnover,
+            "turnover_rate": k_line.turnover_rate,
         }
 
     return result
 
 
-def K_line_from_dict(data: KLineDict) -> KLine:
+def k_line_from_dict(data: KLineDict) -> KLine:
     """
     将字典转换为KLine模型
     """

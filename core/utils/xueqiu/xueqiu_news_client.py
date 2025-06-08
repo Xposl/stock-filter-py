@@ -114,7 +114,7 @@ class XueqiuNewsClient(XueqiuBaseClient):
 
             # 生成URL哈希
             content_for_hash = f"{title}_{text}_{status_id}"
-            url_hash = hashlib.md5(content_for_hash.encode("utf-8")).hexdigest()
+            url_hash = hashlib.sha256(content_for_hash.encode("utf-8")).hexdigest()
 
             # 时间处理
             published_at = self._parse_created_time(item)

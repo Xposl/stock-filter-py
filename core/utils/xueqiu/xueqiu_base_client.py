@@ -136,8 +136,11 @@ class XueqiuBaseClient(ABC):
     def _get_token_with_urllib(self) -> Optional[str]:
         """使用urllib获取雪球token（备用方法）"""
         try:
-            # 创建一个不验证证书的SSL上下文
-            context = ssl._create_unverified_context()
+            # 创建安全的SSL上下文，但允许自签名证书（在必要时）
+            context = ssl.create_default_context()
+            # 仅在必要时才禁用证书验证
+            # context.check_hostname = False
+            # context.verify_mode = ssl.CERT_NONE
 
             cookie = CookieJar()
             handler = urllib.request.HTTPCookieProcessor(cookie)
@@ -254,8 +257,15 @@ class XueqiuBaseClient(ABC):
         }
 
         try:
-            # 创建一个不验证证书的SSL上下文
-            context = ssl._create_unverified_context()
+            # 创建安全的SSL上下文
+            # URL安全验证
+            if not self._is_safe_url(url):
+                raise ValueError(f"不安全的URL方案: {url}")
+                
+            context = ssl.create_default_context()
+            # 仅在必要时才禁用证书验证
+            # context.check_hostname = False
+            # context.verify_mode = ssl.CERT_NONE
             r = urllib.request.Request(url, headers=headers)
             response = urllib.request.urlopen(r, context=context)
 
@@ -286,6 +296,49 @@ class XueqiuBaseClient(ABC):
         if code.startswith("SZ") or code.startswith("SH"):
             return f"{code[:2]}{code[3:]}"
         return code[3:]
+
+    def _is_safe_url(self, url: str) -> bool:
+        """
+        验证URL是否安全
+        
+        Args:
+            url: 要验证的URL
+            
+        Returns:
+            是否为安全的URL
+        """
+        # 允许的URL方案白名单
+        safe_schemes = ["http", "https"]
+        
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            
+            # 检查方案是否在白名单中
+            if parsed.scheme.lower() not in safe_schemes:
+                return False
+                
+            # 检查是否为雪球域名
+            allowed_hosts = [
+                "xueqiu.com",
+                "stock.xueqiu.com", 
+                "api.xueqiu.com",
+                "api-dev.xueqiu.com"
+            ]
+            
+            hostname = parsed.hostname
+            if hostname:
+                hostname = hostname.lower()
+                # 检查是否为允许的主机或其子域名
+                for allowed_host in allowed_hosts:
+                    if hostname == allowed_host or hostname.endswith('.' + allowed_host):
+                        return True
+            
+            return False
+            
+        except Exception:
+            # URL解析失败，认为不安全
+            return False
 
     # 抽象方法，子类必须实现
     @abstractmethod

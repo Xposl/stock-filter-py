@@ -1,5 +1,3 @@
-from typing import List
-
 from core.enum.indicator_group import IndicatorGroup
 from core.indicator.base_indicator import BaseIndicator
 from core.schema.k_line import KLine
@@ -22,7 +20,7 @@ class MACDIndicator(BaseIndicator):
     def get_group(self):
         return IndicatorGroup.POWER
 
-    def calculate(self, kl_data: List[KLine]):
+    def calculate(self, kl_data: list[KLine]):
         length = len(kl_data)
         close_data = []
         dif = []

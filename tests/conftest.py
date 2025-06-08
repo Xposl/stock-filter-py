@@ -107,6 +107,21 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "database: 标记数据库测试"
     )
+    config.addinivalue_line(
+        "markers", "debug: 标记调试测试"
+    )
+    config.addinivalue_line(
+        "markers", "pocketflow: 标记PocketFlow AI测试"
+    )
+    config.addinivalue_line(
+        "markers", "akshare: 标记AKShare数据源测试"
+    )
+    config.addinivalue_line(
+        "markers", "xueqiu: 标记雪球数据源测试"
+    )
+    config.addinivalue_line(
+        "markers", "news: 标记新闻聚合测试"
+    )
 
 
 # pytest命令行选项

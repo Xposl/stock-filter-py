@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from typing import Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import psycopg
 from dotenv import load_dotenv
@@ -30,11 +30,11 @@ class PostgresqlHelper:
             dbname=self.database,
             user=self.user,
             password=self.password,
-            row_factory=dict_row,
+            row_factory=dict_row,  # type: ignore
         )
         self.cursor = self.conn.cursor()
 
-    def _convert_params(self, sql: str, params: Union[dict, tuple]) -> tuple:
+    def _convert_params(self, sql: str, params: Optional[Union[dict, tuple]]) -> tuple:
         """
         转换:name格式参数为psycopg3格式
 
@@ -60,7 +60,7 @@ class PostgresqlHelper:
             # 元组参数：保持原样
             return sql, params
 
-    def execute(self, sql: str, params: Union[dict, tuple] = None) -> None:
+    def execute(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> None:
         """
         执行SQL语句
 
@@ -68,6 +68,9 @@ class PostgresqlHelper:
             sql: SQL语句
             params: SQL参数
         """
+        if not self.cursor or not self.conn:
+            raise RuntimeError("数据库连接未建立")
+            
         try:
             converted_sql, converted_params = self._convert_params(sql, params)
             self.cursor.execute(converted_sql, converted_params)
@@ -77,11 +80,13 @@ class PostgresqlHelper:
 
     def commit(self) -> None:
         """提交事务"""
-        self.conn.commit()
+        if self.conn:
+            self.conn.commit()
 
     def rollback(self) -> None:
         """回滚事务"""
-        self.conn.rollback()
+        if self.conn:
+            self.conn.rollback()
 
     def get_sqlalchemy_engine(self):
         """获取SQLAlchemy引擎"""
@@ -89,7 +94,7 @@ class PostgresqlHelper:
             f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
         )
 
-    def query(self, sql: str, params: Union[dict, tuple] = None) -> list[dict]:
+    def query(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> list[dict]:
         """
         查询数据
 
@@ -100,13 +105,16 @@ class PostgresqlHelper:
         Returns:
             查询结果列表
         """
+        if not self.cursor:
+            raise RuntimeError("数据库连接未建立")
+            
         converted_sql, converted_params = self._convert_params(sql, params)
         self.cursor.execute(converted_sql, converted_params)
         rows = self.cursor.fetchall()
         # psycopg3 with dict_row already returns dict objects
-        return rows
+        return cast(List[Dict[str, Any]], rows)
 
-    def query_one(self, sql: str, params: Union[dict, tuple] = None) -> Optional[dict]:
+    def query_one(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> Optional[dict]:
         """
         查询单条数据
 
@@ -117,11 +125,14 @@ class PostgresqlHelper:
         Returns:
             单条查询结果
         """
+        if not self.cursor:
+            raise RuntimeError("数据库连接未建立")
+            
         converted_sql, converted_params = self._convert_params(sql, params)
         self.cursor.execute(converted_sql, converted_params)
         row = self.cursor.fetchone()
         # psycopg3 with dict_row already returns dict objects
-        return row
+        return cast(Optional[Dict[str, Any]], row)
 
     def close(self):
         """安全关闭数据库连接"""

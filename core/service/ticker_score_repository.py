@@ -52,8 +52,7 @@ class TickerScoreRepository:
             评分记录列表
         """
         try:
-            sql = f"SELECT * FROM {
-                self.table} WHERE ticker_id = {PLACEHOLDER} ORDER BY time_key DESC"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} ORDER BY time_key DESC"
             results = self.db.query(sql, (ticker_id,))
             return [dict_to_ticker_score(item) for item in results]
         except Exception as e:
@@ -112,10 +111,7 @@ class TickerScoreRepository:
                 values.append(value)
 
             # 构建SQL
-            sql = f"INSERT INTO {
-                self.table} ({
-                ', '.join(fields)}) VALUES ({
-                ', '.join(placeholders)})"
+            sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
 
             # 执行SQL
             self.db.execute(sql, tuple(values))
@@ -206,9 +202,7 @@ class TickerScoreRepository:
                 values_list.append(f"({placeholders})")
 
             # 构建最终SQL
-            sql = f"INSERT INTO {
-                self.table} ({field_str}) VALUES {
-                ', '.join(values_list)}"
+            sql = f"INSERT INTO {self.table} ({field_str}) VALUES {', '.join(values_list)}"
 
             # 执行SQL
             self.db.execute(sql, tuple(all_values))

@@ -1,9 +1,5 @@
-from abc import ABC, abstractmethod
-from typing import List
-
 from core.enum.indicator_group import IndicatorGroup
 from core.indicator.base_indicator import BaseIndicator
-from core.schema.k_line import KLine
 from core.utils.utils import UtilsHelper
 
 
@@ -31,12 +27,7 @@ class VolumeSuperTrendAIIndicator(BaseIndicator):
         self.KNN_STLen = KNN_STLen
 
     def get_key(self):
-        return f"Volumesuper_trendAI({
-            self.len},{
-            self.factor},{
-            self.maSrc},{
-                self.k},{
-                    self.n})_indicator"
+        return f"Volumesuper_trendAI({self.len},{self.factor},{self.maSrc},{self.k},{self.n})_indicator"
 
     def get_group(self):
         return IndicatorGroup.POWER
@@ -69,7 +60,7 @@ class VolumeSuperTrendAIIndicator(BaseIndicator):
         st = self._calculate_wma(super_trend, self.KNN_STLen)
 
         # 收集数据点及其对应标签
-        data = super_trend[-self.n:]
+        data = super_trend[-self.n :]
         labels = []
         for i in range(self.n):
             idx = length - self.n + i

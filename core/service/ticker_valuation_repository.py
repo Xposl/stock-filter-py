@@ -70,8 +70,7 @@ class TickerValuationRepository:
             时间字符串
         """
         try:
-            sql = f"SELECT min(time_key) as time FROM {
-                self.table} WHERE ticker_id = {PLACEHOLDER}"
+            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id,))
             return result["time"] if result and "time" in result else None
         except Exception as e:
@@ -91,8 +90,7 @@ class TickerValuationRepository:
             估值记录或None
         """
         try:
-            sql = f"SELECT * FROM {
-                self.table} WHERE ticker_id = {PLACEHOLDER} AND valuation_key = {PLACEHOLDER}"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND valuation_key = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, valuation_key))
             return dict_to_ticker_valuation(result) if result else None
         except Exception as e:
@@ -145,10 +143,7 @@ class TickerValuationRepository:
                     values.append(value)
 
                 # 构建SQL
-                sql = f"INSERT INTO {
-                    self.table} ({
-                    ', '.join(fields)}) VALUES ({
-                    ', '.join(placeholders)})"
+                sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
 
                 # 执行SQL
                 self.db.execute(sql, tuple(values))
@@ -198,9 +193,7 @@ class TickerValuationRepository:
                 values.extend([ticker_id, valuation_key])
 
                 # 构建SQL
-                sql = f"UPDATE {
-                    self.table} SET {
-                    ', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND valuation_key = {PLACEHOLDER}"
+                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND valuation_key = {PLACEHOLDER}"
 
                 # 执行SQL
                 self.db.execute(sql, tuple(values))

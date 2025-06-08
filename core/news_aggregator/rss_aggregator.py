@@ -137,8 +137,8 @@ class RSSAggregator:
             if not title or not url:
                 return None
 
-            # 生成URL哈希用于去重
-            url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
+            # 生成URL哈希用于去重 (使用SHA256替代MD5)
+            url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()
 
             # 时间处理
             published_at = self._parse_publish_time(entry)
@@ -310,11 +310,7 @@ class RSSAggregator:
         """
         # 检查关键词过滤
         if news_source.filter_keywords:
-            title_and_summary = f"{
-                article_data.get(
-                    'title', '')} {
-                article_data.get(
-                    'summary', '')}".lower()
+            title_and_summary = f"{article_data.get('title', '')} {article_data.get('summary', '')}".lower()
 
             # 如果没有包含任何关键词，则过滤掉
             has_keyword = any(

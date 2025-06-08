@@ -61,8 +61,7 @@ class TickerIndicatorRepository:
         """
         try:
             # 使用指标键名，不再需要联表查询
-            sql = f"SELECT * FROM {
-                self.table} WHERE ticker_id = {PLACEHOLDER} and kl_type = {PLACEHOLDER}"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} and kl_type = {PLACEHOLDER}"
             results = self.db.query(sql, (ticker_id, kl_type))
             return [dict_to_ticker_indicator(item) for item in results]
         except Exception as e:
@@ -82,8 +81,7 @@ class TickerIndicatorRepository:
             时间字符串
         """
         try:
-            sql = f"SELECT min(time_key) as time FROM {
-                self.table} WHERE ticker_id = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
+            sql = f"SELECT min(time_key) as time FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, kl_type))
             return result["time"] if result and "time" in result else None
         except Exception as e:
@@ -104,8 +102,7 @@ class TickerIndicatorRepository:
             指标记录或None
         """
         try:
-            sql = f"SELECT * FROM {
-                self.table} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
+            sql = f"SELECT * FROM {self.table} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
             result = self.db.query_one(sql, (ticker_id, indicator_key, kl_type))
             return dict_to_ticker_indicator(result) if result else None
         except Exception as e:
@@ -167,10 +164,7 @@ class TickerIndicatorRepository:
                     values.append(value)
 
                 # 构建SQL
-                sql = f"INSERT INTO {
-                    self.table} ({
-                    ', '.join(fields)}) VALUES ({
-                    ', '.join(placeholders)})"
+                sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
 
                 # 执行SQL
                 self.db.execute(sql, tuple(values))
@@ -217,9 +211,7 @@ class TickerIndicatorRepository:
                 values.extend([ticker_id, indicator_key, kl_type])
 
                 # 构建SQL
-                sql = f"UPDATE {
-                    self.table} SET {
-                    ', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
+                sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE ticker_id = {PLACEHOLDER} AND indicator_key = {PLACEHOLDER} AND kl_type = {PLACEHOLDER}"
 
                 # 执行SQL
                 self.db.execute(sql, tuple(values))

@@ -103,6 +103,9 @@ class APIAggregator:
             解析后的文章列表
         """
         try:
+            if not self.session:
+                raise ValueError("Session not initialized. Use async context manager.")
+
             articles = []
 
             # 设置雪球特定的请求头
@@ -160,7 +163,7 @@ class APIAggregator:
             return articles
 
         except Exception as e:
-            logger.error(f"抓取雪球源失败: {e}")
+            logger.error(f"抓取雪球API源失败: {e}")
             raise
 
     async def _fetch_eastmoney_feed(
@@ -176,6 +179,9 @@ class APIAggregator:
             解析后的文章列表
         """
         try:
+            if not self.session:
+                raise ValueError("Session not initialized. Use async context manager.")
+
             articles = []
 
             # 根据不同的东方财富API构建请求
@@ -225,7 +231,7 @@ class APIAggregator:
             return articles
 
         except Exception as e:
-            logger.error(f"抓取东方财富源失败: {e}")
+            logger.error(f"抓取东方财富API源失败: {e}")
             raise
 
     async def _fetch_generic_api_feed(
@@ -241,6 +247,9 @@ class APIAggregator:
             解析后的文章列表
         """
         try:
+            if not self.session:
+                raise ValueError("Session not initialized. Use async context manager.")
+
             articles = []
 
             # 通用参数
@@ -295,8 +304,8 @@ class APIAggregator:
             else:
                 url = f"https://xueqiu.com/statuses/{status_id}"
 
-            # 生成URL哈希
-            url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
+            # 生成URL哈希 (使用SHA256替代MD5)
+            url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()
 
             # 提取内容
             content = item.get("text", item.get("description", ""))
@@ -366,8 +375,8 @@ class APIAggregator:
                 # 如果是相对URL，补充完整URL
                 url = f"http://finance.eastmoney.com{url}"
 
-            # 生成URL哈希
-            url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
+            # 生成URL哈希 (使用SHA256替代MD5)
+            url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()
 
             # 提取内容
             content = item.get("content", item.get("CONTENT", item.get("summary", "")))
@@ -446,10 +455,12 @@ class APIAggregator:
                     break
 
             if not url:
-                url = f"news_source.url}#{item.get('id', hashlib.md5(title.encode()).hexdigest()[:8])}"
+                # 构建默认URL (使用SHA256替代MD5)
+                item_id = item.get("id", hashlib.sha256(title.encode()).hexdigest()[:8])
+                url = f"{news_source.url}#{item_id}"
 
-            # 生成URL哈希
-            url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
+            # 生成URL哈希 (使用SHA256替代MD5)
+            url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()
 
             # 内容字段
             content_fields = ["content", "description", "summary", "text"]

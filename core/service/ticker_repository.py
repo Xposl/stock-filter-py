@@ -128,8 +128,7 @@ class TickerRepository:
         """
         try:
             if end_date is None:
-                sql = f"SELECT * FROM {
-                    self.table} WHERE is_deleted = 0 AND status = 1 ORDER BY group_id"
+                sql = f"SELECT * FROM {self.table} WHERE is_deleted = 0 AND status = 1 ORDER BY group_id"
                 results = self.db.query(sql)
             else:
                 sql = f"""
@@ -272,9 +271,7 @@ class TickerRepository:
 
             # 构建SQL
             placeholders = ",".join([PLACEHOLDER] * len(fields))
-            sql = f"INSERT INTO {
-                self.table} ({
-                ', '.join(fields)}) VALUES ({placeholders})"
+            sql = f"INSERT INTO {self.table} ({', '.join(fields)}) VALUES ({placeholders})"
 
             # 执行SQL
             self.db.execute(sql, tuple(values))
@@ -356,9 +353,7 @@ class TickerRepository:
             values.append(code)
 
             # 构建SQL
-            sql = f"UPDATE {
-                self.table} SET {
-                ', '.join(set_clauses)} WHERE code = {PLACEHOLDER}"
+            sql = f"UPDATE {self.table} SET {', '.join(set_clauses)} WHERE code = {PLACEHOLDER}"
 
             # 执行SQL并提交
             self.db.execute(sql, tuple(values))

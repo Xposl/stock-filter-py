@@ -173,9 +173,8 @@ class SiliconFlowClient:
             request_data = self._build_request_data(messages, **kwargs)
 
             logger.info(
-                f"硅基流动API请求: model={
-                    request_data['model']}, messages_count={
-                    len(messages)}")
+                f"硅基流动API请求: model={request_data['model']}, messages_count={len(messages)}"
+            )
 
             # 执行请求
             response_data = await self._make_request(request_data)

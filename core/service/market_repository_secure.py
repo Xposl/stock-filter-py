@@ -34,22 +34,23 @@ class MarketRepository(BaseRepository):
     
     # 定义允许的表名白名单
     ALLOWED_TABLES = ["market"]
-    
-    table = "market"
 
-    def __init__(self, db_connection: Optional[Any] = None):
+    def __init__(self, db_connection: Optional[DbAdapter] = None):
         """
         初始化Market仓库
 
         Args:
-            db_connection: 可选的数据库连接，如果未提供将使用DbAdapter创建新连接
+            db_connection: 可选的数据库连接
         """
         if db_connection:
-            self.db = db_connection
+            db = db_connection
         else:
-            self.db = DbAdapter()
+            db = DbAdapter()
+        
+        # 调用父类初始化，传入安全验证的表名
+        super().__init__(db, "market")
 
-    def get_by_id(self, market_id: int) -> Optional[Market]:
+    def get_by_id(self, market_id: Union[int, str]) -> Optional[Market]:
         """
         根据ID获取市场信息
 
@@ -60,8 +61,8 @@ class MarketRepository(BaseRepository):
             Market对象或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE id = :id"
-            result = self.db.query_one(sql, {"id": market_id})
+            sql_template = "SELECT * FROM TABLE_NAME WHERE id = :id"
+            result = self.safe_query_one(sql_template, {"id": market_id})
             if result:
                 return dict_to_market(result)
             return None
@@ -80,8 +81,8 @@ class MarketRepository(BaseRepository):
             Market对象或None
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE code = :code"
-            result = self.db.query_one(sql, {"code": code})
+            sql_template = "SELECT * FROM TABLE_NAME WHERE code = :code"
+            result = self.safe_query_one(sql_template, {"code": code})
             if result:
                 return dict_to_market(result)
             return None
@@ -89,12 +90,14 @@ class MarketRepository(BaseRepository):
             logger.error(f"获取市场信息错误: {e}")
             return None
 
-    def get_by_group_id(self, group_id: int) -> Optional[Market]:
+    def get_by_group_id(self, group_id: Union[int, str]) -> Optional[Market]:
         """
-        根据group_id获取市场信息（适配ticker.group_id字段）
+        根据group_id获取市场信息
+        
+        这是为了适配现有的ticker表group_id字段
 
         Args:
-            group_id: 组ID（对应market.id）
+            group_id: ticker表的group_id字段值
 
         Returns:
             Market对象或None
@@ -109,8 +112,8 @@ class MarketRepository(BaseRepository):
             Market对象列表
         """
         try:
-            sql = f"SELECT * FROM {self.table} ORDER BY id"
-            results = self.db.query_all(sql)
+            sql_template = "SELECT * FROM TABLE_NAME"
+            results = self.safe_query(sql_template)
             return [dict_to_market(result) for result in results]
         except Exception as e:
             logger.error(f"获取所有市场错误: {e}")
@@ -124,16 +127,14 @@ class MarketRepository(BaseRepository):
             活跃的Market对象列表
         """
         try:
-            sql = f"SELECT * FROM {self.table} WHERE status = :status ORDER BY id"
-            results = self.db.query_all(sql, {"status": 1})
+            sql_template = "SELECT * FROM TABLE_NAME WHERE status = :status"
+            results = self.safe_query(sql_template, {"status": 1})
             return [dict_to_market(result) for result in results]
         except Exception as e:
             logger.error(f"获取活跃市场错误: {e}")
             return []
 
-    def create(
-        self, market_data: Union[MarketCreate, dict[str, Any]]
-    ) -> Optional[Market]:
+    def create(self, market_data: Union[MarketCreate, dict]) -> Optional[Market]:
         """
         创建新市场
 
@@ -144,44 +145,32 @@ class MarketRepository(BaseRepository):
             创建的Market对象或None
         """
         try:
-            # 转换为字典
             if isinstance(market_data, MarketCreate):
                 data_dict = market_to_dict(market_data)
             else:
-                data_dict = market_data.copy()
+                data_dict = market_data
 
-            # 检查市场代码是否已存在
-            existing = self.get_by_code(data_dict.get("code", ""))
-            if existing:
-                logger.warning(f"市场代码已存在: {data_dict.get('code')}")
-                return None
-
-            # 构建插入SQL
+            # 设置创建时间
+            data_dict["create_time"] = datetime.now()
+            
+            # 构建安全的INSERT语句
             columns = list(data_dict.keys())
             placeholders = [f":{col}" for col in columns]
-
-            sql = f"""
-            INSERT INTO {self.table} ({', '.join(columns)})
-            VALUES ({', '.join(placeholders)})
-            """
-
-            # 执行插入
-            market_id = self.db.execute_and_fetch_id(sql, data_dict)
-
-            if market_id:
-                logger.info(f"成功创建市场: {data_dict.get('name')} (ID: {market_id})")
-                return self.get_by_id(market_id)
+            
+            sql_template = f"INSERT INTO TABLE_NAME ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+            self.safe_execute(sql_template, data_dict)
+            
+            # 返回创建的市场对象
+            if "code" in data_dict:
+                return self.get_by_code(data_dict["code"])
             return None
-
         except Exception as e:
-            logger.error(f"创建市场失败: {e}")
+            logger.error(f"创建市场错误: {e}")
             return None
 
-    def update(
-        self, market_id: int, update_data: Union[MarketUpdate, dict[str, Any]]
-    ) -> Optional[Market]:
+    def update(self, market_id: Union[int, str], update_data: Union[MarketUpdate, dict]) -> Optional[Market]:
         """
-        更新市场信息
+        更新市场
 
         Args:
             market_id: 市场ID
@@ -191,44 +180,28 @@ class MarketRepository(BaseRepository):
             更新后的Market对象或None
         """
         try:
-            # 转换为字典
             if isinstance(update_data, MarketUpdate):
                 data_dict = market_to_dict(update_data)
             else:
-                data_dict = update_data.copy()
+                data_dict = update_data
 
-            if not data_dict:
-                logger.warning("没有更新数据")
-                return self.get_by_id(market_id)
+            # 设置更新时间
+            data_dict["update_time"] = datetime.now()
+            data_dict["id"] = market_id
 
-            # 添加更新时间
-            data_dict["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            # 构建更新SQL
-            set_clauses = [f"{col} = :{col}" for col in data_dict.keys()]
-            data_dict["market_id"] = market_id
-
-            sql = f"""
-            UPDATE {self.table}
-            SET {', '.join(set_clauses)}
-            WHERE id = :market_id
-            """
-
-            # 执行更新
-            affected_rows = self.db.execute(sql, data_dict)
-
-            if affected_rows > 0:
-                logger.info(f"成功更新市场: ID {market_id}")
-                return self.get_by_id(market_id)
-            return None
-
+            # 构建安全的UPDATE语句
+            set_clauses = [f"{col} = :{col}" for col in data_dict.keys() if col != "id"]
+            sql_template = f"UPDATE TABLE_NAME SET {', '.join(set_clauses)} WHERE id = :id"
+            
+            self.safe_execute(sql_template, data_dict)
+            return self.get_by_id(market_id)
         except Exception as e:
-            logger.error(f"更新市场失败: {e}")
+            logger.error(f"更新市场错误: {e}")
             return None
 
-    def delete(self, market_id: int) -> bool:
+    def delete(self, market_id: Union[int, str]) -> bool:
         """
-        删除市场（软删除，设置status=0）
+        删除市场（软删除）
 
         Args:
             market_id: 市场ID
@@ -237,21 +210,17 @@ class MarketRepository(BaseRepository):
             是否删除成功
         """
         try:
-            sql = f"UPDATE {self.table} SET status = :status WHERE id = :id"
-            affected_rows = self.db.execute(sql, {"status": 0, "id": market_id})
-
-            if affected_rows > 0:
-                logger.info(f"成功删除市场: ID {market_id}")
-                return True
-            return False
-
+            sql_template = "UPDATE TABLE_NAME SET status = :status WHERE id = :id"
+            self.safe_execute(sql_template, {"status": 0, "id": market_id})
+            return True
         except Exception as e:
-            logger.error(f"删除市场失败: {e}")
+            logger.error(f"删除市场错误: {e}")
             return False
 
-    def get_market_by_ticker_group(self, group_id: int) -> Optional[Market]:
+    def get_market_by_group_id(self, group_id: Union[int, str]) -> Optional[Market]:
         """
-        根据ticker的group_id获取对应的市场信息
+        通过group_id获取市场信息（兼容方法）
+        
         这是为了适配现有的ticker表group_id字段
 
         Args:
@@ -273,14 +242,14 @@ class MarketRepository(BaseRepository):
             匹配的Market对象列表
         """
         try:
-            sql = f"""
-            SELECT * FROM {self.table}
+            sql_template = """
+            SELECT * FROM TABLE_NAME 
             WHERE (code LIKE :keyword OR name LIKE :keyword OR region LIKE :keyword)
             AND status = :status
-            ORDER BY id
+            ORDER BY code
             """
             keyword_pattern = f"%{keyword}%"
-            results = self.db.query_all(sql, {"keyword": keyword_pattern, "status": 1})
+            results = self.safe_query(sql_template, {"keyword": keyword_pattern, "status": 1})
             return [dict_to_market(result) for result in results]
         except Exception as e:
             logger.error(f"搜索市场错误: {e}")

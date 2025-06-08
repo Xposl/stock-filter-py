@@ -11,8 +11,8 @@ class Filter:
             self.rule = NormalFilter()
 
     def calculate(
-        self, ticker, kLineData, strategyData, indicatorData, KScoreData, valuationData
+        self, ticker, k_line_data, strategy_data, indicator_data, k_score_data, valuation_data
     ):
         return self.rule.calculate(
-            ticker, kLineData, strategyData, indicatorData, KScoreData, valuationData
+            ticker, k_line_data, strategy_data, indicator_data, k_score_data, valuation_data
         )

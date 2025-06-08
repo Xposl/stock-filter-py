@@ -39,7 +39,7 @@ class DbAdapter:
             db_path = os.getenv("SQLITE_DB_PATH", "investnote.db")
             self.db = SqliteHelper(db_path)
 
-    def execute(self, sql: str, params: Union[dict, tuple] = None) -> None:
+    def execute(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> None:
         """
         执行SQL语句
 
@@ -49,7 +49,7 @@ class DbAdapter:
         """
         self.db.execute(sql, params)
 
-    def query(self, sql: str, params: Union[dict, tuple] = None) -> list[dict]:
+    def query(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> list[dict]:
         """
         查询数据
 
@@ -62,7 +62,7 @@ class DbAdapter:
         """
         return self.db.query(sql, params)
 
-    def query_one(self, sql: str, params: Union[dict, tuple] = None) -> Optional[dict]:
+    def query_one(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> Optional[dict]:
         """
         查询单条数据
 
@@ -99,8 +99,11 @@ class DbAdapter:
         """
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception as e:
+            # 记录关闭连接时的异常，但不抛出
+            import logging
+
+            logging.getLogger(__name__).warning(f"关闭数据库连接时发生异常: {e}")
 
     @property
     def cursor(self):
@@ -132,7 +135,11 @@ class DbAdapter:
         if hasattr(self.db, "get_sqlalchemy_engine"):
             return self.db.get_sqlalchemy_engine()
         else:
-            # SQLite fallback
-            import sqlalchemy
-
-            return sqlalchemy.create_engine(f"sqlite:///{self.db.db_path}")
+            # SQLite fallback - 只有当确实是 SqliteHelper 时才使用
+            if self.db_type == "sqlite":
+                import sqlalchemy
+                from .sqlite_helper import SqliteHelper
+                if isinstance(self.db, SqliteHelper):
+                    return sqlalchemy.create_engine(f"sqlite:///{self.db.db_path}")
+            
+            raise RuntimeError(f"无法为数据库类型 {self.db_type} 创建 SQLAlchemy 引擎")

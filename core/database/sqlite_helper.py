@@ -38,7 +38,7 @@ class SqliteHelper:
             print(f"数据库连接错误: {e}")
             raise e
 
-    def _convert_params(self, sql: str, params: Union[dict, tuple]) -> tuple:
+    def _convert_params(self, sql: str, params: Optional[Union[dict, tuple]]) -> tuple:
         """
         转换参数格式以适配SQLite
 
@@ -59,7 +59,7 @@ class SqliteHelper:
             # 元组参数：保持原样
             return sql, params
 
-    def execute(self, sql: str, params: Union[dict, tuple] = None) -> None:
+    def execute(self, sql: str, params: Optional[Union[dict, tuple]] = None) -> None:
         """
         执行SQL语句
 
@@ -67,6 +67,9 @@ class SqliteHelper:
             sql: SQL语句
             params: SQL参数
         """
+        if not self.cursor or not self.conn:
+            raise RuntimeError("数据库连接未建立")
+            
         try:
             converted_sql, converted_params = self._convert_params(sql, params)
             if converted_params:
@@ -88,6 +91,9 @@ class SqliteHelper:
             sql: SQL语句
             params_list: SQL参数列表
         """
+        if not self.cursor or not self.conn:
+            raise RuntimeError("数据库连接未建立")
+            
         try:
             self.cursor.executemany(sql, params_list)
         except Exception as e:
@@ -96,7 +102,7 @@ class SqliteHelper:
             raise e
 
     def query(
-        self, sql: str, params: Union[dict, tuple] = None
+        self, sql: str, params: Optional[Union[dict, tuple]] = None
     ) -> list[dict[str, Any]]:
         """
         查询数据
@@ -108,6 +114,9 @@ class SqliteHelper:
         Returns:
             查询结果列表，每个元素为字典
         """
+        if not self.cursor:
+            raise RuntimeError("数据库连接未建立")
+            
         try:
             converted_sql, converted_params = self._convert_params(sql, params)
             if converted_params:
@@ -124,7 +133,7 @@ class SqliteHelper:
             raise e
 
     def query_one(
-        self, sql: str, params: Union[dict, tuple] = None
+        self, sql: str, params: Optional[Union[dict, tuple]] = None
     ) -> Optional[dict[str, Any]]:
         """
         查询单条数据
@@ -136,6 +145,9 @@ class SqliteHelper:
         Returns:
             单条查询结果，为字典或None
         """
+        if not self.cursor:
+            raise RuntimeError("数据库连接未建立")
+            
         try:
             converted_sql, converted_params = self._convert_params(sql, params)
             if converted_params:
@@ -164,6 +176,16 @@ class SqliteHelper:
         """
         if self.conn:
             self.conn.rollback()
+
+    def get_sqlalchemy_engine(self):
+        """
+        获取SQLAlchemy引擎
+
+        Returns:
+            SQLAlchemy引擎
+        """
+        from sqlalchemy import create_engine
+        return create_engine(f"sqlite:///{self.db_path}")
 
     def close(self) -> None:
         """
