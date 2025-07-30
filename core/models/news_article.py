@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, Optional, Union
 
 import aiohttp
+from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
 from newspaper import Article
 from pydantic import BaseModel, ConfigDict, Field
@@ -204,9 +205,10 @@ class NewsArticle(NewsArticleBase):
             }
 
             # 使用aiohttp异步请求
+            timeout = aiohttp.ClientTimeout(total=10)
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    self.url, headers=headers, timeout=10
+                    self.url, headers=headers, timeout=timeout
                 ) as response:
                     if response.status == 200:
                         html = await response.text()

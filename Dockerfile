@@ -15,7 +15,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYPPETEER_CHROMIUM_REVISION=1181205
 
 # 配置apt源使用清华源加速下载
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+# RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources
 
 # 合并系统依赖安装，减少镜像层数
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -57,8 +57,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # 配置pip使用清华源并升级pip
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple \
-    && pip install --upgrade pip
+# RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple \
+#    && pip install --upgrade pip
+
+RUN pip install --upgrade pip
 
 # 创建持久化目录并设置权限
 RUN mkdir -p /app/.pyppeteer && chmod -R 777 /app/.pyppeteer
