@@ -61,7 +61,7 @@ python-multipart==0.0.6
 # gRPC支持
 grpcio==1.71.0
 grpcio-tools==1.71.0
-protobuf==4.26.1
+protobuf==5.29.5
 
 # HTTP客户端
 httpx==0.28.1
