@@ -40,7 +40,7 @@ except ImportError:
 class ServerConfig:
     def __init__(
         self,
-        host: str = "127.0.0.1",  # 默认只绑定本地接口，提高安全性
+        host: str = "0.0.0.0",  # 绑定所有接口，允许容器外部访问
         port: int = 8000,
         reload: bool = False,
         workers: int = 1
@@ -137,7 +137,7 @@ def start_server(config: Optional[ServerConfig] = None):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="InvestNote API Server")
-    parser.add_argument("--host", default="127.0.0.1", help="Bind socket to this host")
+    parser.add_argument("--host", default="0.0.0.0", help="Bind socket to this host")
     parser.add_argument("--port", type=int, default=8000, help="Bind socket to this port")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     parser.add_argument("--workers", type=int, default=1, help="Number of worker processes")
