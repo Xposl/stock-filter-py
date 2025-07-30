@@ -90,7 +90,7 @@ pre-commit==3.6.0        # Git hooks管理
 pylint==3.0.3            # 详细的代码分析
 autopep8==2.0.4          # 自动PEP8格式化
 vulture==2.10            # 死代码检测
-safety==2.3.5            # 依赖安全检查
+# safety==2.3.5          # 依赖安全检查 - 暂时移除，与packaging版本冲突
 pydocstyle==6.3.0        # 文档字符串风格检查
 
 # 监控和日志
