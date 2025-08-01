@@ -136,11 +136,15 @@ class XueqiuBaseClient(ABC):
     def _get_token_with_urllib(self) -> Optional[str]:
         """使用urllib获取雪球token（备用方法）"""
         try:
-            # 创建安全的SSL上下文，但允许自签名证书（在必要时）
+            # 创建SSL上下文，处理证书验证问题
             context = ssl.create_default_context()
-            # 仅在必要时才禁用证书验证
-            # context.check_hostname = False
-            # context.verify_mode = ssl.CERT_NONE
+            
+            # 在开发环境中，如果遇到证书问题，可以临时禁用验证
+            # 生产环境建议配置正确的证书
+            if os.environ.get("XUEQIU_DISABLE_SSL_VERIFY", "false").lower() == "true":
+                logger.warning("已禁用SSL证书验证（仅用于开发环境）")
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
 
             cookie = CookieJar()
             handler = urllib.request.HTTPCookieProcessor(cookie)
@@ -153,7 +157,7 @@ class XueqiuBaseClient(ABC):
             ]
 
             # 使用SSL上下文打开URL
-            opener.open("https://xueqiu.com/")
+            opener.open("https://xueqiu.com/", context=context)
 
             for item in cookie:
                 if item.name == "xqat":
@@ -163,6 +167,39 @@ class XueqiuBaseClient(ABC):
             logger.warning("urllib获取token失败：未找到xqat cookie")
             return None
 
+        except ssl.SSLCertVerificationError as e:
+            logger.error(f"SSL证书验证失败: {e}")
+            logger.info("尝试使用不安全的SSL连接...")
+            try:
+                # 创建不安全的SSL上下文作为备用方案
+                unsafe_context = ssl.create_default_context()
+                unsafe_context.check_hostname = False
+                unsafe_context.verify_mode = ssl.CERT_NONE
+                
+                cookie = CookieJar()
+                handler = urllib.request.HTTPCookieProcessor(cookie)
+                opener = urllib.request.build_opener(handler)
+                opener.addheaders = [
+                    ("Host", "xueqiu.com"),
+                    ("User-Agent", self.headers["User-Agent"]),
+                    ("Accept", self.headers["Accept"]),
+                    ("Accept-Language", self.headers["Accept-Language"]),
+                ]
+
+                opener.open("https://xueqiu.com/", context=unsafe_context)
+
+                for item in cookie:
+                    if item.name == "xqat":
+                        logger.info("成功通过不安全的SSL连接获取雪球token")
+                        return item.value
+
+                logger.warning("不安全的SSL连接也无法获取token")
+                return None
+                
+            except Exception as fallback_e:
+                logger.error(f"备用SSL连接也失败: {fallback_e}")
+                return None
+                
         except Exception as e:
             logger.error(f"使用urllib获取token失败: {e}")
             return None
