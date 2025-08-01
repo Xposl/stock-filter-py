@@ -153,7 +153,7 @@ class XueqiuBaseClient(ABC):
             ]
 
             # 使用SSL上下文打开URL
-            opener.open("https://xueqiu.com/", context=context)
+            opener.open("https://xueqiu.com/")
 
             for item in cookie:
                 if item.name == "xqat":

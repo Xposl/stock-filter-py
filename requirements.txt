@@ -59,9 +59,9 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
 # gRPC支持
-grpcio==1.71.0
-grpcio-tools==1.71.0
-protobuf==5.29.5
+grpcio==1.74.0
+grpcio-tools==1.74.0
+protobuf==6.31.1
 
 # HTTP客户端
 httpx==0.28.1

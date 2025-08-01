@@ -46,8 +46,8 @@ class Indicator:
             self.group_map[item.get_key()] = item
 
     def get_group_by_key(self, key):
-        item = self.groupMap[key]
-        return item.getGroup().value if item.getGroup() is not None else 2
+        item = self.group_map[key]
+        return item.get_group().value if item.get_group() is not None else 2
 
     def calculate(self, kl_data):
         result = {}
