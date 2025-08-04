@@ -33,7 +33,7 @@ async def get_ticker_pages(request: PageRequest):
         import os
         from datetime import datetime
 
-        from core.service.ticker_repository import TickerRepository
+        from core.repository.ticker_repository import TickerRepository
 
         # 获取ticker数据
         repo = TickerRepository()

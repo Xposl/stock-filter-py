@@ -14,7 +14,7 @@ from ..models.news_article import (
     NewsArticleCreate,
     NewsArticleUpdate,
 )
-from ..service.news_article_repository import NewsArticleRepository
+from ..repository.news_article_repository import NewsArticleRepository
 
 logger = logging.getLogger(__name__)
 

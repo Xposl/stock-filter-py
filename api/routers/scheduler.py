@@ -60,7 +60,7 @@ async def cron_update_ticker_score(
     需要管理员权限访问。从ticker.py路由迁移而来，统一调度器管理。
     """
     from core.data_source_helper import DataSourceHelper
-    from core.service.ticker_repository import TickerRepository
+    from core.repository.ticker_repository import TickerRepository
 
     # 市场映射
     market_map = {

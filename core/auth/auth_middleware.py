@@ -1,105 +1,152 @@
-from typing import Any, Callable, Optional
+"""
+简化的认证中间件
+基于gRPC认证服务进行用户认证和权限验证
+"""
 
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import logging
+from typing import Optional, Callable, Dict, Any
+from fastapi import Request, Response, HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from .auth_grpc_client import auth_client
+from core.auth.grpc_auth_client import get_dummy_user_info
+from core.config import get_settings
+from core.services.auth_service import get_auth_service, UserInfo
 
-# 创建HTTP Bearer标准验证器
-security = HTTPBearer(auto_error=False)
+logger = logging.getLogger(__name__)
 
-
-class AuthDependency:
-    """
-    身份验证依赖项
-
-    用法:
-        @app.get("/protected")
-        async def protected_route(current_user: dict = Depends(auth_required())):
-            return {"message": "您已通过认证", "user": current_user}
-
-        @app.get("/admin-only")
-        async def admin_route(current_user: dict = Depends(auth_required(["ADMIN"]))):
-            return {"message": "您是管理员", "user": current_user}
-    """
-
-    def __init__(self, required_authorities: Optional[list[str]] = None):
-        """
-        初始化身份验证依赖
-
-        Args:
-            required_authorities: 需要的权限列表，如果为None则只要求用户已认证
-        """
-        self.required_authorities = required_authorities or []
-
-    async def __call__(
-        self, credentials: HTTPAuthorizationCredentials = Depends(security)
-    ) -> dict[str, Any]:
-        """
-        验证用户并返回用户信息
-
-        Args:
-            credentials: 认证凭据
-
-        Returns:
-            用户信息字典
-
-        Raises:
-            HTTPException: 认证失败或权限不足时抛出异常
-        """
-        if not credentials:
-            raise HTTPException(
-                status_code=401,
-                detail="未提供认证信息",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        # 获取token
-        token = credentials.credentials
-        if not token:
-            raise HTTPException(
-                status_code=401,
-                detail="未提供有效的认证token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        # 通过gRPC获取用户信息
-        user_info = auth_client.get_current_user(token)
-        if not user_info:
-            raise HTTPException(
-                status_code=401,
-                detail="无效的认证token或认证服务暂不可用",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        # 检查所需权限
-        if self.required_authorities:
-            import logging
-
-            logger = logging.getLogger(__name__)
-
-            user_authorities = user_info.get("authorities", [])
-            logger.info(f"用户权限: {user_authorities}")
-            logger.info(f"需要权限: {self.required_authorities}")
-
-            # 检查用户是否具有所需的任意一个权限
-            if not any(auth in user_authorities for auth in self.required_authorities):
-                logger.warning(
-                    f"权限不足: 用户拥有 {user_authorities}，但需要 {self.required_authorities} 中的至少一个"
-                )
-                raise HTTPException(status_code=403, detail="权限不足，无法访问此资源")
-
-        return user_info
+# HTTP Bearer Token 提取器
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def auth_required(required_authorities: Optional[list[str]] = None) -> Callable:
-    """
-    要求认证的依赖函数
+class AuthMiddleware(BaseHTTPMiddleware):
+    """可选认证中间件（支持匿名访问）"""
+    
+    def __init__(self, app, exclude_paths: Optional[list] = None):
+        super().__init__(app)
+        self.auth_service = get_auth_service()
+        self.settings = get_settings()
+        
+        # 使用配置中的排除路径，或者传入的自定义路径
+        self.exclude_paths = exclude_paths or self.settings.auth_exclude_paths
+    
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        """中间件主要逻辑"""
+        
+        # 检查是否需要跳过认证
+        if self._should_skip_auth(request):
+            return await call_next(request)
+        
+        # 提取Authorization头
+        authorization = request.headers.get("authorization")
+        
+        if authorization:
+            try:
+                # 尝试认证用户
+                user_info = await self.auth_service.authenticate_token(authorization)
+                
+                if user_info:
+                    # 将用户信息注入到请求上下文中
+                    request.state.user = user_info
+                    request.state.user_id = user_info.user_id
+                    request.state.platform_id = user_info.platform_id
+                    request.state.authenticated = True
+                else:
+                    # 认证失败，但允许匿名访问
+                    request.state.authenticated = False
+                    
+            except Exception as e:
+                logger.warning(f"可选认证失败: {e}")
+                request.state.authenticated = False
+        else:
+            if  self.settings.auth_enabled is False:
+                dummy_user = get_dummy_user_info()
+                request.state.user = dummy_user
+                request.state.user_id = int(dummy_user["user_id"])
+                request.state.platform_id = dummy_user["platform_id"]
+                request.state.authenticated = True
+                return await call_next(request)
+            # 没有Authorization头，匿名访问
+            request.state.authenticated = False
+        
+        return await call_next(request)
+    
+    def _should_skip_auth(self, request: Request) -> bool:
+        """判断是否应该跳过认证"""
+        path = request.url.path
+        
+        for exclude_path in self.exclude_paths:
+            if path.startswith(exclude_path):
+                return True
+        
+        return False
+
+
+async def get_current_user(request: Request) -> UserInfo:
+    """从请求中获取当前用户信息"""
+    if not hasattr(request.state, 'user'):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户未认证",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    return request.state.user
+
+
+async def get_current_user_id(
+    user: Dict[str, Any] = Depends(get_current_user)
+) -> str:
+    """获取当前用户ID.
 
     Args:
-        required_authorities: 需要的权限列表，如果为None则只要求用户已认证
+        user: 当前用户对象
 
     Returns:
-        依赖函数
+        用户ID
     """
-    return AuthDependency(required_authorities)
+    return user["user_id"]
+
+
+async def verify_bearer_token(authorization: str) -> UserInfo:
+    """验证Bearer Token并返回用户信息（用于依赖注入）"""
+    auth_service = get_auth_service()
+    
+    user_info = await auth_service.authenticate_token(authorization)
+    
+    if not user_info:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token验证失败",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    return user_info
+
+
+async def require_permission(request: Request, permission: str) -> bool:
+    """检查用户权限"""
+    user = await get_current_user(request)
+    auth_service = get_auth_service()
+    
+    has_permission = await auth_service.check_permission(user.user_id, permission)
+    
+    if not has_permission:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"缺少权限: {permission}"
+        )
+    
+    return True
+
+
+async def get_current_user_optional(request: Request) -> Optional[UserInfo]:
+    """获取当前用户信息（可选，支持匿名）"""
+    if hasattr(request.state, 'user') and request.state.authenticated:
+        return request.state.user
+    return None
+
+
+def is_authenticated(request: Request) -> bool:
+    """检查用户是否已认证"""
+    return hasattr(request.state, 'authenticated') and request.state.authenticated

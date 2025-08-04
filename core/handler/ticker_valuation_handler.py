@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from core.service.ticker_valuation_repository import TickerValuationRepository
+from core.repository.ticker_valuation_repository import TickerValuationRepository
 from core.valuation import Valuation
 
 

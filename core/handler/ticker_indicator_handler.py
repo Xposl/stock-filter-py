@@ -3,7 +3,7 @@ from typing import Optional
 from core.enum.ticker_k_type import TickerKType
 from core.indicator import Indicator
 from core.models.ticker import Ticker
-from core.service.ticker_indicator_repository import TickerIndicatorRepository
+from core.repository.ticker_indicator_repository import TickerIndicatorRepository
 
 
 class TickerIndicatorHandler:

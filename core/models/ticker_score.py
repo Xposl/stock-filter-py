@@ -21,10 +21,12 @@ class TickerScoreBase(BaseModel):
     strategy_sell: int = Field(default=0, description="策略卖出信号数")
     strategy_score: float = Field(default=0.0, description="策略分数")
     score: float = Field(default=0.0, description="综合分数")
-    history: Optional[Union[list[Any], dict[str, Any]]] = Field(
-        default=None, description="历史数据"
+    history: Optional[list[dict[str, Any]]] = Field(
+        default=None, description="历史评分数组，存储每日评分记录"
     )
-
+    analysis_data: Optional[dict[str, Any]] = Field(
+        default=None, description="分析数据（如raw_score, z_score, trend_strength等）"
+    )
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -48,8 +50,11 @@ class TickerScoreUpdate(BaseModel):
     strategy_sell: Optional[float] = Field(default=None, description="策略卖出信号数")
     strategy_score: Optional[float] = Field(default=None, description="策略分数")
     score: Optional[float] = Field(default=None, description="综合分数")
-    history: Optional[Union[list[Any], dict[str, Any]]] = Field(
-        default=None, description="历史数据"
+    history: Optional[list[dict[str, Any]]] = Field(
+        default=None, description="历史评分数组，存储每日评分记录"
+    )
+    analysis_data: Optional[dict[str, Any]] = Field(
+        default=None, description="分析数据（如raw_score, z_score, trend_strength等）"
     )
     model_config = ConfigDict(from_attributes=True)
 
@@ -87,9 +92,12 @@ def ticker_score_to_dict(score: Any) -> dict:
     # 处理JSON字段
     if "history" in result and result["history"] is not None:
         import json
-
         result["history"] = json.dumps(result["history"])
-
+    
+    if "analysis_data" in result and result["analysis_data"] is not None:
+        import json
+        result["analysis_data"] = json.dumps(result["analysis_data"])
+    
     return result
 
 
@@ -107,25 +115,26 @@ def dict_to_ticker_score(data: dict) -> TickerScore:
     processed_data = data.copy()
 
     # 处理JSON字段
-    if "history" in processed_data:
-        json_value = processed_data["history"]
+    json_fields = ["history", "analysis_data"]
+    for field in json_fields:
+        if field in processed_data:
+            json_value = processed_data[field]
 
-        # 如果是None或空字符串，设为None
-        if json_value is None or (
-            isinstance(json_value, str) and not json_value.strip()
-        ):
-            processed_data["history"] = None
-        # 如果已经是字典或列表对象，保持不变
-        elif isinstance(json_value, (dict, list)):
-            pass
-        # 尝试解析JSON字符串
-        elif isinstance(json_value, str):
-            try:
-                import json
-
-                processed_data["history"] = json.loads(json_value)
-            except (ValueError, json.JSONDecodeError):
-                processed_data["history"] = None
+            # 如果是None或空字符串，设为None
+            if json_value is None or (
+                isinstance(json_value, str) and not json_value.strip()
+            ):
+                processed_data[field] = None
+            # 如果已经是字典或列表对象，保持不变
+            elif isinstance(json_value, (dict, list)):
+                pass
+            # 尝试解析JSON字符串
+            elif isinstance(json_value, str):
+                try:
+                    import json
+                    processed_data[field] = json.loads(json_value)
+                except (ValueError, json.JSONDecodeError):
+                    processed_data[field] = None
 
     # 确保必要字段存在并有默认值
     processed_data["status"] = int(processed_data.get("status", 1) or 1)
@@ -148,29 +157,31 @@ def dict_to_ticker_score(data: dict) -> TickerScore:
         if int_field in processed_data and processed_data[int_field] is not None:
             processed_data[int_field] = int(processed_data[int_field])
 
-    # 处理日期字段(如果是字符串格式)
-    if "create_time" in processed_data:
-        date_value = processed_data["create_time"]
+# 处理日期字段(如果是字符串格式)
+    date_fields = ["create_time"]
+    for date_field in date_fields:
+        if date_field in processed_data:
+            date_value = processed_data[date_field]
 
-        # 如果是None或空字符串，设为当前时间
-        if date_value is None or (
-            isinstance(date_value, str) and not date_value.strip()
-        ):
-            processed_data["create_time"] = datetime.now()
-        elif isinstance(date_value, str):
-            try:
-                # 尝试ISO格式
-                processed_data["create_time"] = datetime.fromisoformat(
-                    date_value.replace("Z", "+00:00")
-                )
-            except (ValueError, AttributeError):
+            # 如果是None或空字符串，设为当前时间
+            if date_value is None or (
+                isinstance(date_value, str) and not date_value.strip()
+            ):
+                processed_data[date_field] = datetime.now()
+            elif isinstance(date_value, str):
                 try:
-                    # 尝试标准MySQL格式
-                    processed_data["create_time"] = datetime.strptime(
-                        date_value, "%Y-%m-%d %H:%M:%S"
+                    # 尝试ISO格式
+                    processed_data[date_field] = datetime.fromisoformat(
+                        date_value.replace("Z", "+00:00")
                     )
                 except (ValueError, AttributeError):
-                    processed_data["create_time"] = datetime.now()
+                    try:
+                        # 尝试标准MySQL格式
+                        processed_data[date_field] = datetime.strptime(
+                            date_value, "%Y-%m-%d %H:%M:%S"
+                        )
+                    except (ValueError, AttributeError):
+                        processed_data[date_field] = datetime.now()
 
     try:
         # 创建TickerScore模型实例

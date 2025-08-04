@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from core.database.database import get_database_url
 from core.news_aggregator.news_aggregator_manager import NewsAggregatorManager
-from core.service.news_article_repository import NewsArticleRepository
-from core.service.news_source_repository import NewsSourceRepository
+from core.repository.news_article_repository import NewsArticleRepository
+from core.repository.news_source_repository import NewsSourceRepository
 
 # 创建路由器 - 去掉prefix，保持原有路径结构
 router = APIRouter(tags=["新闻"])

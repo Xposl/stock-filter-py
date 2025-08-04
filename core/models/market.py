@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -141,6 +141,16 @@ def dict_to_market(data: dict) -> Market:
 
             # 如果已经是time对象，保持不变
             if isinstance(time_value, time):
+                continue
+
+            # 处理timedelta对象（从SQLite返回的情况）
+            if isinstance(time_value, timedelta):
+                # 将timedelta转换为time对象
+                total_seconds = int(time_value.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                seconds = total_seconds % 60
+                processed_data[time_field] = time(hours, minutes, seconds)
                 continue
 
             # 尝试将字符串转换为time

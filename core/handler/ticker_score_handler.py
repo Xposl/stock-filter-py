@@ -10,7 +10,7 @@ from core.models.ticker import Ticker
 from core.models.ticker_score import TickerScore
 from core.schema.k_line import KLine
 from core.score import Score
-from core.service.ticker_score_repository import TickerScoreRepository
+from core.repository.ticker_score_repository import TickerScoreRepository
 
 
 class TickerScoreHandler:
@@ -29,6 +29,7 @@ class TickerScoreHandler:
         """
         if rule is not None:
             self.rule = rule
+        self.repository = TickerScoreRepository()
 
     def calculate(
         self,
@@ -99,3 +100,4 @@ class TickerScoreHandler:
         TickerScoreRepository().update_items(ticker.id, [latest_score_dict])
 
         return result
+    

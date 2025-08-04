@@ -1,10 +1,9 @@
 import pandas as pd
 
 from core.enum.ticker_type import TickerType
-from core.service.ticker_score_repository import TickerScoreRepository
+from core.repository.ticker_score_repository import TickerScoreRepository
 
 from ..utils.utils import UtilsHelper
-
 
 class NormalFilter:
     def calculate(

@@ -14,10 +14,10 @@ import aiohttp
 
 from ..models.news_article import NewsArticleCreate
 from ..models.news_source import NewsSource, NewsSourceStatus, NewsSourceType
-from ..service.news_article_repository import NewsArticleRepository
+from ..repository.news_article_repository import NewsArticleRepository
 
 # 使用Repository模式替代SQLAlchemy查询
-from ..service.news_source_repository import NewsSourceRepository
+from ..repository.news_source_repository import NewsSourceRepository
 from .rss_aggregator import RSSAggregator
 from .xueqiu_aggregator import XueqiuAggregator
 

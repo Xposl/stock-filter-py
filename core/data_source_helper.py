@@ -1,19 +1,18 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 import akshare as ak
 from dateutil.relativedelta import relativedelta
 
-from core.enum.ticker_type import TickerType
 from core.handler.ticker_analysis_handler import TickerAnalysisHandler
 from core.handler.ticker_k_line_handler import TickerKLineHandler
 from core.models.ticker import Ticker
 from core.models.ticker_score import TickerScore
 from core.schema.k_line import KLine
-from core.service.market_repository import MarketRepository
-from core.service.ticker_repository import TickerRepository
-from core.service.ticker_score_repository import TickerScoreRepository
+from core.repository.market_repository import MarketRepository
+from core.repository.ticker_repository import TickerRepository
+from core.repository.ticker_score_repository import TickerScoreRepository
 from core.utils.utils import UtilsHelper
 
 from .handler.ticker_handler import TickerHandler
@@ -24,7 +23,6 @@ from .handler.ticker_valuation_handler import TickerValuationHandler
 
 
 class DataSourceHelper:
-    ticker_type = [TickerType.STOCK, TickerType.IDX, TickerType.ETF, TickerType.PLATE]
 
     strategies = None
     indicators = None
@@ -157,47 +155,15 @@ class DataSourceHelper:
         ).strftime("%Y-%m-%d")
         return start_date, end_date
 
-    def _is_market_open_now(self, market_code: str) -> bool:
-        """
-        检查指定市场当前是否开市
-
-        Args:
-            market_code: 市场代码 (HK, ZH, US)
-
-        Returns:
-            是否开市
-        """
-        try:
-            # 获取市场信息
-            market = self.market_repo.get_by_code(market_code)
-            if not market:
-                return False
-
-            # 导入必要的包
-            from datetime import datetime
-
-            import pytz
-
-            # 获取市场时区的当前时间
-            market_tz = pytz.timezone(market.timezone)
-            now_in_market = datetime.now(market_tz)
-
-            # 检查是否为交易日
-            weekday = now_in_market.weekday()  # 0=Monday, 6=Sunday
-            if not market.is_trading_day(weekday):
-                return False
-
-            # 检查是否在交易时间内
-            current_time = now_in_market.time()
-            return market.open_time <= current_time <= market.close_time
-
-        except Exception as e:
-            print(f"检查市场开市状态失败: {e}")
-            return False
-
     def _need_update_ticker_data(self, ticker: Ticker) -> bool:
         """
-        检查是否需要更新股票数据
+        检查是否需要更新股票数据 - 智能缓存决策逻辑
+
+        判断条件：
+        1. 最新评分时间 < 最新K线时间
+        2. 当前是交易日且市场开市
+        3. 距离上次更新超过一定时间间隔（默认30分钟）
+        4. 数据源发生变化时需要重新计算
 
         Args:
             ticker: 股票对象
@@ -214,36 +180,74 @@ class DataSourceHelper:
 
             latest_score = latest_scores[0]  # 获取最新的评分
             score_date = latest_score.time_key
+            last_kline_time = latest_score.last_kline_time
 
             # 获取最后交易日
             last_trading_date = self._get_last_trading_date()
+            
+            # 获取当前K线数据的最新时间
+            current_kline_time = self._get_latest_kline_time(ticker)
+            
+            # 获取市场状态
+            market_status = self._get_market_trading_status(ticker)
 
-            # 如果评分日期早于最后交易日，需要更新
+            # 判断是否需要更新
             if score_date < last_trading_date:
+                # 评分数据早于最后交易日，需要更新
                 return True
 
-            # 如果评分日期等于最后交易日
-            if score_date == last_trading_date:
-                # 检查对应市场是否当前开市
-                market_code_map = {1: "HK", 2: "ZH", 3: "US"}
-                market_code = market_code_map.get(ticker.group_id, "ZH")
+            if last_kline_time and current_kline_time and last_kline_time < current_kline_time:
+                # K线数据有更新，需要重新计算
+                return True
 
-                # 如果市场当前开市，可能需要获取实时数据
-                if self._is_market_open_now(market_code):
-                    # 开市期间，可以考虑更新（但为了避免频繁调用API，可以设置间隔）
-                    # 这里简化处理，如果已有当日数据且市场开市，暂不更新
-                    return False
-                else:
-                    # 市场已闭市，当日数据应该是完整的，不需要更新
-                    return False
+            if market_status["is_trading_day"] and market_status["market_open"]:
+                # 当前是交易日且市场开市，检查更新间隔
+                next_update_time = latest_score.next_update_time
+                if next_update_time is None or datetime.now() > next_update_time:
+                    return True
 
-            # 评分日期晚于最后交易日（理论上不应该发生）
+            # 数据源发生变化时需要重新计算（通过cache_version判断）
+            if latest_score.cache_version is None or latest_score.cache_version < 1:
+                return True
+
             return False
 
         except Exception as e:
             print(f"检查更新需求失败: {e}")
             # 出错时保守处理，返回需要更新
             return True
+
+    def _get_latest_kline_time(self, ticker: Ticker) -> str:
+        """
+        获取当前K线数据的最新时间
+
+        Args:
+            ticker: 股票对象
+
+        Returns:
+            最新K线时间字符串
+        """
+        try:
+            # 获取最近1天的K线数据来确定最新时间
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            k_line_data = TickerKLineHandler().get_kl(
+                ticker.code, ticker.source, current_date, current_date
+            )
+            
+            if k_line_data and len(k_line_data) > 0:
+                # 获取最后一条K线的时间
+                last_kline = k_line_data[-1]
+                if hasattr(last_kline, "time_key"):
+                    return last_kline.time_key
+                elif isinstance(last_kline, dict):
+                    return last_kline.get("time_key", current_date)
+            
+            return current_date
+            
+        except Exception:
+            return datetime.now().strftime("%Y-%m-%d")
+
+    
 
     def get_ticker_score(
         self, code: str, days: Optional[int] = 600
@@ -295,6 +299,119 @@ class DataSourceHelper:
         except Exception as e:
             print(f"获取股票评分失败 {code}: {e}")
             return None
+
+    def get_ticker_score_with_cache_info(
+        self, code: str, days: Optional[int] = 600
+    ) -> dict:
+        """
+        获取股票评分及缓存信息
+
+        Args:
+            code: 股票代码，必须包含市场前缀
+            days: 获取的历史数据天数，默认600天
+
+        Returns:
+            dict: 包含评分数据和缓存信息的字典
+            {
+                "ticker": Ticker对象,
+                "kline_data": list[KLine],
+                "score_data": list[TickerScore],
+                "cache_info": {
+                    "last_updated": "2024-01-01T10:00:00Z",
+                    "is_cached": bool,
+                    "next_update": "2024-01-01T16:00:00Z",
+                    "cache_strategy": str,
+                    "data_source": str
+                }
+            }
+        """
+        try:
+            # 获取股票基础信息
+            ticker = self.ticker_repo.get_by_code(code)
+            if ticker is None:
+                return {
+                    "ticker": None,
+                    "kline_data": [],
+                    "score_data": [],
+                    "cache_info": {
+                        "last_updated": None,
+                        "is_cached": False,
+                        "next_update": None,
+                        "cache_strategy": "no_data",
+                        "data_source": "unknown",
+                        "error": "股票未找到"
+                    }
+                }
+
+            # 检查缓存策略
+            need_update = self._need_update_ticker_data(ticker)
+            
+            if not need_update:
+                # 使用缓存数据
+                existing_scores = self.score_repo.get_items_by_ticker_id(ticker.id)
+                if existing_scores:
+                    latest_score = existing_scores[0]
+                    
+                    return {
+                        "ticker": ticker,
+                        "kline_data": [],  # 缓存时不返回K线数据以节省带宽
+                        "score_data": existing_scores,
+                        "cache_info": {
+                            "last_updated": latest_score.create_time.isoformat() if latest_score.create_time else None,
+                            "is_cached": True,
+                            "next_update": latest_score.next_update_time.isoformat() if latest_score.next_update_time else None,
+                            "cache_strategy": "time_based",
+                            "data_source": "cache",
+                            "cache_version": latest_score.cache_version or 1
+                        }
+                    }
+
+            # 需要更新数据
+            ticker, kl_data, score_data = self._update_ticker(ticker, days)
+            
+            if score_data:
+                latest_score = score_data[0] if score_data else None
+                return {
+                    "ticker": ticker,
+                    "kline_data": kl_data,
+                    "score_data": score_data,
+                    "cache_info": {
+                        "last_updated": latest_score.create_time.isoformat() if latest_score else datetime.now().isoformat(),
+                        "is_cached": False,
+                        "next_update": latest_score.next_update_time.isoformat() if latest_score and latest_score.next_update_time else None,
+                        "cache_strategy": "real_time",
+                        "data_source": "api"
+                    }
+                }
+            else:
+                return {
+                    "ticker": ticker,
+                    "kline_data": kl_data,
+                    "score_data": [],
+                    "cache_info": {
+                        "last_updated": None,
+                        "is_cached": False,
+                        "next_update": None,
+                        "cache_strategy": "error",
+                        "data_source": "api",
+                        "error": "无法获取评分数据"
+                    }
+                }
+
+        except Exception as e:
+            return {
+                "ticker": None,
+                "kline_data": [],
+                "score_data": [],
+                "cache_info": {
+                    "last_updated": None,
+                    "is_cached": False,
+                    "next_update": None,
+                    "cache_strategy": "error",
+                    "data_source": "unknown",
+                    "error": str(e)
+                }
+            }
 
     def _get_on_time_kline_data(self, ticker: Ticker, days: Optional[int] = 600):
         """
@@ -363,6 +480,23 @@ class DataSourceHelper:
             score_data = TickerScoreHandler(self.score_rule).update_ticker_score(
                 ticker, kl_data, strategy_data, indicator_data, valuation_data
             )
+            
+            # 更新缓存相关元数据
+            if score_data:
+                latest_kline_time = end_date
+                if kl_data:
+                    last_kline = kl_data[-1]
+                    if hasattr(last_kline, 'time_key'):
+                        latest_kline_time = last_kline.time_key
+                    elif isinstance(last_kline, dict):
+                        latest_kline_time = last_kline.get('time_key', end_date)
+                
+                # 为每个评分记录添加缓存元数据
+                for score in score_data:
+                    score.last_kline_time = latest_kline_time
+                    score.next_update_time = market_status["next_update_time"]
+                    score.cache_version = 1
+                    
         return ticker, kl_data, score_data
 
     def _update_ticker(
@@ -371,7 +505,7 @@ class DataSourceHelper:
         """
         更新指定股票数据
         """
-        from core.service.ticker_repository import TickerRepository
+        from core.repository.ticker_repository import TickerRepository
 
         # 统一获取和格式化日期
         start_date, end_date = self._calc_start_end_date(days)
@@ -465,7 +599,6 @@ class DataSourceHelper:
 
         if code is None:
             raise ValueError(f"Unsupported market: {market}")
-
         return code
 
     def update_ticker_list(self):

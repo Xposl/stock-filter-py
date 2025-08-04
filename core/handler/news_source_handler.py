@@ -15,7 +15,7 @@ from ..models.news_source import (
     NewsSourceType,
     NewsSourceUpdate,
 )
-from ..service.news_source_repository import NewsSourceRepository
+from ..repository.news_source_repository import NewsSourceRepository
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ from fastapi.requests import Request
 
 from core.auth.auth_middleware import auth_required
 from core.models.api_log import ApiLog
-from core.service.api_log_repository import ApiLogRepository
+from core.repository.api_log_repository import ApiLogRepository
 
 # 导入路由模块
 from .routers import news, scheduler, ticker

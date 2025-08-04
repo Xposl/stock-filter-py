@@ -5,7 +5,7 @@ from core.enum.ticker_k_type import TickerKType
 from core.models.ticker import Ticker
 from core.models.ticker_strategy import TickerStrategy
 from core.schema.k_line import KLine
-from core.service.ticker_strategy_repository import TickerStrategyRepository
+from core.repository.ticker_strategy_repository import TickerStrategyRepository
 from core.strategy import DEFAULT_STRATEGIES
 from core.strategy.base_strategy import BaseStrategy
 from core.utils.utils import UtilsHelper

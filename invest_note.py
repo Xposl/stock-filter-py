@@ -9,6 +9,8 @@ from core.analysis.strategy_evaluator import StrategyEvaluator
 from core.data_source_helper import DataSourceHelper
 from core.strategy import DEFAULT_STRATEGIES
 
+from app.handlers.ticker_handler import TickerHandler
+
 # 配置matplotlib字体
 matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS', 'Microsoft YaHei', 'STHeiti', 'Heiti TC']
 matplotlib.rcParams['axes.unicode_minus'] = False
@@ -193,7 +195,7 @@ def run_interactive_mode():
 
         elif choice == "1":
             print("\n开始更新股票列表...")
-            dataSource.update_ticker_list()
+            TickerHandler().sync_tickers()
             print("股票列表更新完成")
 
         elif choice == "2":

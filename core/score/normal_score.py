@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 import numpy as np
@@ -152,10 +153,13 @@ class NormalScore(BaseScore):
         # 将字典列表转换为TickerScore对象列表
         ticker_scores = []
         for data in result:
-            # 将附加数据存储在history字段中
-            history_data = {
+            # 将分析数据存储在analysis_data字段中
+            analysis_data = {
                 "raw_score": data.get("raw_score", 0),
                 "z_score": data.get("z_score", 0),
+                "trend_strength": data.get("trend_strength", 0),
+                "data_quality_score": data.get("data_quality_score", 0),
+                "calculation_time": datetime.now().isoformat(),
             }
 
             ticker_score = TickerScore(
@@ -172,7 +176,9 @@ class NormalScore(BaseScore):
                 strategy_sell=data["strategy_sell"],
                 strategy_score=data["strategy_score"],
                 score=data["score"],
-                history=history_data,  # 将附加数据存储在history中
+                analysis_data=analysis_data,  # 将分析数据存储在analysis_data中
+                history=None,  # 清空history，准备用于存储历史评分
+                cache_version=1,
             )
             ticker_scores.append(ticker_score)
 

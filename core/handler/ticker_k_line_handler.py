@@ -1,8 +1,6 @@
 """
 股票K线数据处理模块
 """
-import time
-from threading import Lock
 from typing import Optional
 
 from core.enum.ticker_type import TickerType
@@ -13,16 +11,10 @@ from core.utils.data_sources import (
     XueqiuKLineSource,
 )
 
-
 class TickerKLineHandler:
     """股票K线数据工具类"""
 
     TICKER_TYPES = [TickerType.STOCK, TickerType.IDX, TickerType.ETF, TickerType.PLATE]
-
-    # K线缓存，key为(code, source, start_date, end_date)
-    # Kline cache, key: (code, source, start_date, end_date)
-    _kl_cache: dict = {}
-    _kl_cache_lock = Lock()
 
     def get_kl_on_time(
         self, code: str, source: int
@@ -66,17 +58,6 @@ class TickerKLineHandler:
         if not start_date or not end_date:
             print("获取历史数据需要提供开始和结束日期")
             return None, None
-        cache_key = (code, source, start_date, end_date)
-        now = time.time()
-        with self._kl_cache_lock:
-            cache_entry = self._kl_cache.get(cache_key)
-            if cache_entry:
-                print(
-                    f"缓存命中 code:{code} source:{source} start_date:{start_date} end_date:{end_date}"
-                )
-                data, used_source, ts = cache_entry
-                if now - ts < 300:  # 5分钟=300秒
-                    return data, used_source
         tried = set()
         for i in range(3):
             s = (source + i - 1) % 3 + 1  # 1,2,3循环
@@ -102,10 +83,7 @@ class TickerKLineHandler:
                             and data[i].time_key <= end_date
                         ):
                             result.append(data[i])
-                    if len(result) > 0:
-                        with self._kl_cache_lock:
-                            self._kl_cache[cache_key] = (result, s, now)
-                        return result, s
+                    return result, s
             except Exception as e:
                 print(f"源{s}获取历史K线异常: {e}")
                 continue

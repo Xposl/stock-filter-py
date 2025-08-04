@@ -271,7 +271,7 @@ class TrendScore(BaseScore):
                 strategy_sell=data["strategy_sell"],
                 strategy_score=data["strategy_score"],
                 score=data["score"],
-                history=history_data,  # 将趋势相关数据存储在history中
+                history=[history_data],  # 将趋势相关数据存储在history中，包装为列表
             )
             ticker_scores.append(ticker_score)
 

@@ -1,0 +1,16 @@
+---
+description: 
+globs: api/**
+alwaysApply: false
+---
+# FastAPI 开发框架规则体系
+
+## 注意事项
+- 系统代码开发需要保证符合开发规范 [code_guidelines.mdc](mdc:.cursor/rules/fast-api/code_guidelines.mdc)
+- 数据表的创建**绝对禁止**使用数据库的foreign key
+- 涉及文档逻辑如pocketflow, fast-api, akshare等，请先通过mcp **context7**查询，**禁止**主观猜测
+- **时间政策强制执行**: 涉及输出时间，必须通过MCP Time工具获取真实时间，**绝对禁止**主观猜测时间。所有**文档时间标记**、**代码注释时间**、**项目规划时间**等必须基于MCP Time获取的真实时间, 按**YYYY-MM-DD HH:MM**格式输出，**禁止包含‘(通过MCP Time获取)’的文字**
+- **重构后导入规范**: 所有业务代码导入必须使用`app.xxx`格式，禁止使用旧的直接导入
+- **gitignore发生更新**需要确定更新的文件是否还遗留在git cache中，如果确定遗留，每次git提交需要清空cache后再次提交，保证线上代码不存在需要ignore文件
+- **环境变量规范**: 当需要读取环境变量 **.env** 时，由于cursor禁止直接访问，需要使用cat指令读取文件进行访问，如 cat .env
+- **禁止考虑兼容**当前项目是开发版本，如果出现代码不兼容的情况，使用最新代码

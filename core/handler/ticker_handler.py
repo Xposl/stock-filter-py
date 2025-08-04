@@ -7,7 +7,7 @@ from time import sleep
 from typing import Any, Optional
 
 from core.models.ticker import Ticker, ticker_to_dict
-from core.service.ticker_repository import TickerRepository
+from core.repository.ticker_repository import TickerRepository
 from core.utils.data_sources.xueqiu_source import XueqiuTicker
 from core.utils.dongcai_ticker import DongCaiTicker
 from core.utils.utils import UtilsHelper
@@ -162,7 +162,7 @@ class TickerHandler:
             logger.debug(f"获取股票评分数据: {code}, {days}天")
 
             # TODO: 实现真正的评分数据获取逻辑
-            # from core.service.ticker_score_repository import TickerScoreRepository
+            # from core.repository.ticker_score_repository import TickerScoreRepository
             # score_repo = TickerScoreRepository()
             # return score_repo.get_scores_by_code(code, days)
 

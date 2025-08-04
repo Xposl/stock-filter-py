@@ -13,7 +13,7 @@ sys.path.insert(0, str(project_root))
 
 from core.data_source_helper import DataSourceHelper  # noqa: E402
 from core.database.db_adapter import DbAdapter  # noqa: E402
-from core.service.ticker_score_repository import TickerScoreRepository  # noqa: E402
+from core.repository.ticker_score_repository import TickerScoreRepository  # noqa: E402
 
 
 def check_ticker_score_data():
